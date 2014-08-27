@@ -69,6 +69,8 @@
 #include "VRTSoftware.h"
 #include "VRTGeometryShader.h"
 #include "VRTShaderInstancing.h"
+#include "VegetationScattering.h"
+
 
 // class to create the forest and manage the movement between various techniques.
 namespace osgVegetation
@@ -78,7 +80,7 @@ class ForestTechniqueManager : public osg::Referenced
 {
 public:
 	ForestTechniqueManager() {}
-	typedef std::vector< osg::ref_ptr<Tree> > TreeList;
+	typedef std::vector< osg::ref_ptr<VegetationObject> > TreeList;
 	
 	float random(float min,float max) { return min + (max-min)*(float)rand()/(float)RAND_MAX; }
 	int random(int min,int max) { return min + (int)(((float)(max-min)*(float)rand()/(float)RAND_MAX) + 0.5f); }
@@ -225,8 +227,8 @@ void ForestTechniqueManager::createTreeList(osg::Node* terrain,const osg::Vec3& 
 
 	for(unsigned int i=0;i<numTreesToCreate;++i)
 	{
-		Tree* tree = new Tree;
-		tree->_position.set(random(origin.x(),origin.x()+size.x()),random(origin.y(),origin.y()+size.y()),origin.z());
+		VegetationObject* tree = new VegetationObject;
+		tree->_position.set(random(origin.x(),origin.x()+size.x()),random(origin.y(),origin.y()+size.y()),0);
 		tree->_color.set(random(128,255),random(128,255),random(128,255),255);
 		tree->_width = random(min_TreeWidth,max_TreeWidth);
 		tree->_height = random(min_TreeHeight,max_TreeHeight);
@@ -235,7 +237,7 @@ void ForestTechniqueManager::createTreeList(osg::Node* terrain,const osg::Vec3& 
 		if (terrain)
 		{
 			osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =
-				new osgUtil::LineSegmentIntersector(tree->_position,tree->_position+osg::Vec3(0.0f,0.0f,size.z()));
+				new osgUtil::LineSegmentIntersector(tree->_position,tree->_position+osg::Vec3(0.0f,0.0f,1000));
 
 			osgUtil::IntersectionVisitor iv(intersector.get());
 
@@ -402,7 +404,7 @@ osg::Node* ForestTechniqueManager::createScene(unsigned int numTreesToCreates, u
 	osg::Vec3 size(1000.0f,1000.0f,200.0f);
 
 	std::cout<<"Creating terrain...";
-	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("box.osgt");
+	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x1_3_3x3.ive.osg");
 	//osg::ref_ptr<osg::Node> terrain = createTerrain(origin,size);
 	std::cout<<"done."<<std::endl;
 	osg::ComputeBoundsVisitor  cbv;
@@ -556,14 +558,11 @@ int main( int argc, char **argv )
 	// construct the viewer.
 	osgViewer::Viewer viewer(arguments);
 
-	unsigned int numTreesToCreate = 2000;
-	arguments.read("--trees",numTreesToCreate);
-
-	unsigned int maxNumTreesPerCell = sqrtf(static_cast<float>(numTreesToCreate));
-
-	arguments.read("--trees-per-cell",maxNumTreesPerCell);
-
-	osg::ref_ptr<osgVegetation::ForestTechniqueManager> ttm = new osgVegetation::ForestTechniqueManager;
+	//unsigned int numTreesToCreate = 2000;
+	//arguments.read("--trees",numTreesToCreate);
+	//unsigned int maxNumTreesPerCell = sqrtf(static_cast<float>(numTreesToCreate));
+	//arguments.read("--trees-per-cell",maxNumTreesPerCell);
+	//osg::ref_ptr<osgVegetation::ForestTechniqueManager> ttm = new osgVegetation::ForestTechniqueManager;
 
 	// add the stats handler
 	viewer.addEventHandler(new osgViewer::StatsHandler);
@@ -582,9 +581,40 @@ int main( int argc, char **argv )
 	keyswitchManipulator->addMatrixManipulator( '6', "FirstPerson", new osgGA::FirstPersonManipulator() );
 	keyswitchManipulator->addMatrixManipulator( '7', "Spherical", new osgGA::SphericalManipulator() );
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
-	// add model to viewer.
-	viewer.setSceneData( ttm->createScene(numTreesToCreate, maxNumTreesPerCell) );
+	
+	//Add texture search paths
+	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/tiles");
+	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/material_textures");  
 
+	osgVegetation::VegetationScattering vs;
+	
+	//osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x1_3_3x3.ive.osg");
+	//osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x0_0_0x0.ive");
+	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/proxy.osg");
+
+	osgVegetation::VegetationLayerVector layers;
+	osgVegetation::VegetationLayer grass1; 
+	grass1.Density = 1;
+	grass1.Height.set(0.3,0.5);
+	grass1.Width.set(0.5,0.7);
+	grass1.TextureName = "Images/veg_grass02.dds";
+	grass1.Type = 0;
+	grass1.MaterialColor = osg::Vec4(0,0,0,1);
+	layers.push_back(grass1);
+	osgVegetation::VegetationLayer grass2; 
+	grass2.Density = 0.3;
+	grass2.Height.set(0.3,0.5);
+	grass2.Width.set(0.5,0.7);
+	grass2.TextureName = "Images/veg_grass03.dds";
+	grass2.Type = 1;
+	grass2.MaterialColor = osg::Vec4(0,1,0,1);
+	layers.push_back(grass2);
+	osg::Group* group = new osg::Group;
+	
+	group->addChild(terrain);
+	group->addChild(vs.create(terrain.get(), layers));
+
+	viewer.setSceneData(group);
 
 	return viewer.run();
 }
