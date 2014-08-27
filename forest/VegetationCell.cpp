@@ -16,7 +16,7 @@ namespace osgVegetation
 			_bb.expandBy((*citr)->_bb);
 		}
 
-		for(TreeList::iterator titr=_trees.begin();
+		for(VegetationObjectList::iterator titr=_trees.begin();
 			titr!=_trees.end();
 			++titr)
 		{
@@ -114,12 +114,12 @@ namespace osgVegetation
 	void Cell::bin()
 	{
 		// put trees in appropriate cells.
-		TreeList treesNotAssigned;
-		for(TreeList::iterator titr=_trees.begin();
+		VegetationObjectList treesNotAssigned;
+		for(VegetationObjectList::iterator titr=_trees.begin();
 			titr!=_trees.end();
 			++titr)
 		{
-			Tree* tree = titr->get();
+			VegetationObject* tree = titr->get();
 			bool assigned = false;
 			for(CellList::iterator citr=_cells.begin();
 				citr!=_cells.end() && !assigned;

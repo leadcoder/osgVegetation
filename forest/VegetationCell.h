@@ -9,16 +9,16 @@
 
 namespace osgVegetation
 {
-	class Tree : public osg::Referenced
+	class VegetationObject : public osg::Referenced
 	{
 	public:
-		Tree():
+		VegetationObject():
 		  _color(255,255,255,255),
 			  _width(1.0f),
 			  _height(1.0f),
 			  _type(0) {}
 
-		  Tree(const osg::Vec3& position, const osg::Vec4ub& color, float width, float height, unsigned int type):
+		  VegetationObject(const osg::Vec3& position, const osg::Vec4ub& color, float width, float height, unsigned int type):
 		  _position(position),
 			  _color(color),
 			  _width(width),
@@ -32,7 +32,7 @@ namespace osgVegetation
 		  unsigned int    _type;
 	};
 
-	typedef std::vector< osg::ref_ptr<Tree> > TreeList;
+	typedef std::vector< osg::ref_ptr<VegetationObject> > VegetationObjectList;
 	class Cell : public osg::Referenced
 	{
 	public:
@@ -43,9 +43,9 @@ namespace osgVegetation
 
 		void addCell(Cell* cell) { cell->_parent=this; _cells.push_back(cell); }
 
-		void addTree(Tree* tree) { _trees.push_back(tree); }
+		void addTree(VegetationObject* tree) { _trees.push_back(tree); }
 
-		void addTrees(const TreeList& trees) { _trees.insert(_trees.end(),trees.begin(),trees.end()); }
+		void addTrees(const VegetationObjectList& trees) { _trees.insert(_trees.end(),trees.begin(),trees.end()); }
 
 		void computeBound();
 
@@ -59,6 +59,6 @@ namespace osgVegetation
 		Cell*               _parent;
 		osg::BoundingBox    _bb;
 		CellList            _cells;
-		TreeList            _trees;
+		VegetationObjectList            _trees;
 	};
 }

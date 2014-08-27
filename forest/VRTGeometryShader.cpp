@@ -37,11 +37,11 @@ namespace osgVegetation
 
 			osg::Vec3Array* v = new osg::Vec3Array;
 
-			for(TreeList::iterator itr=cell->_trees.begin();
+			for(VegetationObjectList::iterator itr=cell->_trees.begin();
 				itr!=cell->_trees.end();
 				++itr)
 			{
-				Tree& tree = **itr;
+				VegetationObject& tree = **itr;
 				v->push_back(tree._position);
 				v->push_back(osg::Vec3(tree._height,(double)random(0.75f,1.15f),(double)random(1.0f,1.250f)));
 				v->push_back(osg::Vec3(tree._width,tree._type,0));

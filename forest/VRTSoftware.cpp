@@ -50,11 +50,11 @@ namespace osgVegetation
 		{
 			billboard = new osg::Billboard;
 			billboard->setStateSet(stateset);
-			for(TreeList::iterator itr=cell->_trees.begin();
+			for(VegetationObjectList::iterator itr=cell->_trees.begin();
 				itr!=cell->_trees.end();
 				++itr)
 			{
-				Tree& tree = **itr;
+				VegetationObject& tree = **itr;
 				billboard->addDrawable(createSprite(tree._width,tree._height,tree._color),tree._position);
 			}
 		}
@@ -89,11 +89,11 @@ namespace osgVegetation
 			geode = new osg::Geode;
 			geode->setStateSet(stateset);
 
-			for(TreeList::iterator itr=cell->_trees.begin();
+			for(VegetationObjectList::iterator itr=cell->_trees.begin();
 				itr!=cell->_trees.end();
 				++itr)
 			{
-				Tree& tree = **itr;
+				VegetationObject& tree = **itr;
 				geode->addDrawable(createOrthogonalQuads(tree._position,tree._width,tree._height,tree._color));
 			}
 		}
@@ -129,11 +129,11 @@ namespace osgVegetation
 
 			osg::Geometry* geometry = createOrthogonalQuads(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f,osg::Vec4ub(255,255,255,255));
 
-			for(TreeList::iterator itr=cell->_trees.begin();
+			for(VegetationObjectList::iterator itr=cell->_trees.begin();
 				itr!=cell->_trees.end();
 				++itr)
 			{
-				Tree& tree = **itr;
+				VegetationObject& tree = **itr;
 				osg::MatrixTransform* transform = new osg::MatrixTransform;
 				transform->setMatrix(osg::Matrix::scale(tree._width,tree._width,tree._height)*osg::Matrix::translate(tree._position));
 

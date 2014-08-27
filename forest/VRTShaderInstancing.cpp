@@ -99,12 +99,12 @@ namespace osgVegetation
 			treeParamsImage->allocateImage( 3*cell->_trees.size(), 1, 1, GL_RGBA, GL_FLOAT );
 
 			unsigned int i=0;
-			for(TreeList::iterator itr=cell->_trees.begin();
+			for(VegetationObjectList::iterator itr=cell->_trees.begin();
 				itr!=cell->_trees.end();
 				++itr,++i)
 			{
 				osg::Vec4f* ptr = (osg::Vec4f*)treeParamsImage->data(3*i);
-				Tree& tree = **itr;
+				VegetationObject& tree = **itr;
 				ptr[0] = osg::Vec4f(tree._position.x(),tree._position.y(),tree._position.z(),1.0);
 				ptr[1] = osg::Vec4f((float)tree._color.r()/255.0f,(float)tree._color.g()/255.0f, (float)tree._color.b()/255.0f, 1.0);
 				ptr[2] = osg::Vec4f(tree._width, tree._height, 1.0, 1.0);
