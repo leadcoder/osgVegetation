@@ -20,7 +20,7 @@ namespace osgVegetation
 			titr!=_trees.end();
 			++titr)
 		{
-			_bb.expandBy((*titr)->_position);
+			_bb.expandBy((*titr)->Position);
 		}
 	}
 
@@ -35,7 +35,7 @@ namespace osgVegetation
 		float divide_distance = radius*0.7f;
 		if (divide((_bb.xMax()-_bb.xMin())>divide_distance,(_bb.yMax()-_bb.yMin())>divide_distance,(_bb.zMax()-_bb.zMin())>divide_distance))
 		{
-			// recusively divide the new cells till maxNumTreesPerCell is met.
+			// recursively divide the new cells till maxNumTreesPerCell is met.
 			for(CellList::iterator citr=_cells.begin();
 				citr!=_cells.end();
 				++citr)
@@ -125,7 +125,7 @@ namespace osgVegetation
 				citr!=_cells.end() && !assigned;
 				++citr)
 			{
-				if ((*citr)->contains(tree->_position))
+				if ((*citr)->contains(tree->Position))
 				{
 					(*citr)->addTree(tree);
 					assigned = true;

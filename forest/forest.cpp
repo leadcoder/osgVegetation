@@ -66,16 +66,16 @@
 // for the grid data..
 #include "terrain_coords.h"
 #include "VegetationCell.h"
-#include "VRTSoftware.h"
 #include "VRTGeometryShader.h"
 #include "VRTShaderInstancing.h"
 #include "VegetationScattering.h"
+#include "VRTSoftwareGeometry.h"
 
-
+/*
 // class to create the forest and manage the movement between various techniques.
 namespace osgVegetation
 {
-
+	
 class ForestTechniqueManager : public osg::Referenced
 {
 public:
@@ -228,16 +228,16 @@ void ForestTechniqueManager::createTreeList(osg::Node* terrain,const osg::Vec3& 
 	for(unsigned int i=0;i<numTreesToCreate;++i)
 	{
 		VegetationObject* tree = new VegetationObject;
-		tree->_position.set(random(origin.x(),origin.x()+size.x()),random(origin.y(),origin.y()+size.y()),0);
-		tree->_color.set(random(128,255),random(128,255),random(128,255),255);
-		tree->_width = random(min_TreeWidth,max_TreeWidth);
-		tree->_height = random(min_TreeHeight,max_TreeHeight);
-		tree->_type = random(0,1);
+		tree->Position.set(random(origin.x(),origin.x()+size.x()),random(origin.y(),origin.y()+size.y()),0);
+		tree->Color.set(random(128,255),random(128,255),random(128,255),255);
+		tree->Width = random(min_TreeWidth,max_TreeWidth);
+		tree->Height = random(min_TreeHeight,max_TreeHeight);
+		tree->TextureUnit = random(0,1);
 
 		if (terrain)
 		{
 			osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =
-				new osgUtil::LineSegmentIntersector(tree->_position,tree->_position+osg::Vec3(0.0f,0.0f,1000));
+				new osgUtil::LineSegmentIntersector(tree->Position,tree->Position+osg::Vec3(0.0f,0.0f,1000));
 
 			osgUtil::IntersectionVisitor iv(intersector.get());
 
@@ -251,7 +251,7 @@ void ForestTechniqueManager::createTreeList(osg::Node* terrain,const osg::Vec3& 
 					++itr)
 				{
 					const osgUtil::LineSegmentIntersector::Intersection& intersection = *itr;
-					tree->_position = intersection.getWorldIntersectPoint();
+					tree->Position = intersection.getWorldIntersectPoint();
 				}
 			}
 		}
@@ -431,7 +431,7 @@ osg::Node* ForestTechniqueManager::createScene(unsigned int numTreesToCreates, u
 	tex->setImage(0, osgDB::readImageFile("Images/veg_grass02.dds"));
 	tex->setImage(1, osgDB::readImageFile("Images/veg_grass03.dds"));
 
-	/*tex->setFilter(osg::Texture2DArray::MIN_FILTER, 
+	tex->setFilter(osg::Texture2DArray::MIN_FILTER, 
 		osg::Texture2DArray::NEAREST);
 	tex->setFilter(osg::Texture2DArray::MAG_FILTER, 
 		osg::Texture2DArray::NEAREST);
@@ -440,7 +440,7 @@ osg::Node* ForestTechniqueManager::createScene(unsigned int numTreesToCreates, u
 	tex->setWrap(osg::Texture::WRAP_T, 
 		osg::Texture::CLAMP_TO_BORDER);
 	tex->setWrap(osg::Texture::WRAP_R, 
-		osg::Texture::CLAMP_TO_BORDER);*/
+		osg::Texture::CLAMP_TO_BORDER);
 
 	//ss->setTextureAttribute(1, tex); 
 
@@ -486,7 +486,7 @@ osg::Node* ForestTechniqueManager::createScene(unsigned int numTreesToCreates, u
 	}
 	osgDB::writeNodeFile(*group,"c:/temp/test.osg");*/
 	
-	osg::LOD* lod_node =  new osg::LOD();
+	/*osg::LOD* lod_node =  new osg::LOD();
 	lod_node->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
 	lod_node->setCenter(bb.center());
 	lod_node->setRadius(sqrt(terrain_size.x()*terrain_size.x()));
@@ -543,12 +543,12 @@ osg::Node* ForestTechniqueManager::createScene(unsigned int numTreesToCreates, u
 		//exit(0);
 	}*/
 
-	osg::Group* scene = new osg::Group;
+	/*osg::Group* scene = new osg::Group;
 	//scene->addChild(terrain.get());
 	scene->addChild(group);
 	return scene;
 }
-}
+}*/
 
 int main( int argc, char **argv )
 {
@@ -586,34 +586,62 @@ int main( int argc, char **argv )
 	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/tiles");
 	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/material_textures");  
 
-	osgVegetation::VegetationScattering vs;
+	
 	
 	//osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x1_3_3x3.ive.osg");
 	//osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x0_0_0x0.ive");
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/proxy.osg");
 
+
+	enum MaterialEnum
+	{
+		GRASS,
+		ROAD,
+		WOODS,
+		DIRT
+	};
+	std::map<MaterialEnum,osgVegetation::MaterialColor> material_map;
+	material_map[GRASS] = osgVegetation::MaterialColor(0,0,0,1);
+	material_map[WOODS] = osgVegetation::MaterialColor(0,1,0,1);
+	material_map[ROAD] = osgVegetation::MaterialColor(0,0,1,1);
+	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
+
+
 	osgVegetation::VegetationLayerVector layers;
 	osgVegetation::VegetationLayer grass1; 
-	grass1.Density = 1;
+	grass1.Density = 0.1;
 	grass1.Height.set(0.3,0.5);
 	grass1.Width.set(0.5,0.7);
-	grass1.TextureName = "Images/veg_grass02.dds";
-	grass1.Type = 0;
-	grass1.MaterialColor = osg::Vec4(0,0,0,1);
-	layers.push_back(grass1);
-	osgVegetation::VegetationLayer grass2; 
-	grass2.Density = 0.3;
-	grass2.Height.set(0.3,0.5);
-	grass2.Width.set(0.5,0.7);
-	grass2.TextureName = "Images/veg_grass03.dds";
-	grass2.Type = 1;
-	grass2.MaterialColor = osg::Vec4(0,1,0,1);
-	layers.push_back(grass2);
-	osg::Group* group = new osg::Group;
-	
-	group->addChild(terrain);
-	group->addChild(vs.create(terrain.get(), layers));
+	//grass1.TextureName = "Images/veg_grass02.dds";
+	grass1.MeshName = "glider.osg";
+	grass1.Materials.push_back(material_map[GRASS]);
+//	layers.push_back(grass1);
 
+	osgVegetation::VegetationLayer grass2; 
+	grass2.Density = 0.1;
+	grass2.Height.set(0.3,0.6);
+	grass2.Width.set(0.25,0.35);
+	grass2.TextureName = "Images/veg_plant02.dds";
+	grass2.Materials.push_back(material_map[GRASS]);
+	layers.push_back(grass2);
+
+	osgVegetation::VegetationLayer grass3; 
+	grass3.Density = 0.1;
+	grass3.Height.set(0.6,1.2);
+	grass3.Width.set(0.5,0.7);
+	grass3.TextureName = "Images/veg_plant03.dds";
+	grass3.Materials.push_back(material_map[GRASS]);
+	grass3.Materials.push_back(material_map[WOODS]);
+	layers.push_back(grass3);
+
+
+	osg::Group* group = new osg::Group;
+	group->addChild(terrain);
+	osgVegetation::VegetationScattering vs(new osgVegetation::VRTGeometryShader(),50);
+	//osgVegetation::VegetationScattering vs(new osgVegetation::VRTSoftwareGeometry(),50);
+	osg::Node* veg_node = vs.create(terrain.get(), layers);
+	group->addChild(veg_node);
+	osgDB::writeNodeFile(*group,"c:/temp/test.ive");
 	viewer.setSceneData(group);
 
 	return viewer.run();

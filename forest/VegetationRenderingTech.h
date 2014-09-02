@@ -2,14 +2,17 @@
 #include <osg/StateSet>
 #include <osg/Geometry>
 #include <math.h>
+#include "VegetationLayer.h"
 namespace osgVegetation
 {
 	class Cell;
-
-	class VegetationRenderingTech
+	class VegetationRenderingTech : public osg::Referenced
 	{
 	public:
-		virtual osg::Node* create(Cell* cell,osg::StateSet* stateset) = 0;
+		VegetationRenderingTech(){}
+		virtual ~VegetationRenderingTech(){}
+		virtual osg::Node* create(Cell* cell)= 0;
+		virtual void createStateSet(VegetationLayerVector &layers) = 0;
 	protected:
 		osg::Geometry* createSprite( float w, float h, osg::Vec4ub color );
 		osg::Geometry* createOrthogonalQuads( const osg::Vec3& pos, float w, float h, osg::Vec4ub color );

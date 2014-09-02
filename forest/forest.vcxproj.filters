@@ -27,13 +27,7 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VegetationCell.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="VRTGeometryShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VRTSoftware.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="VegetationRenderingTech.h">
@@ -48,7 +42,16 @@
     <ClInclude Include="tinyxml\tinyxml.h">
       <Filter>TinyXML</Filter>
     </ClInclude>
+    <ClInclude Include="VegetationCell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="VegetationScattering.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VegetationLayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VRTSoftwareGeometry.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -62,17 +65,8 @@
     <ClCompile Include="VegetationCell.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VRTGeometryShader.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VRTSoftware.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="VegetationRenderingTech.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VRTShaderInstancing.cpp">
-      <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="tinyxml\tinystr.cpp">
       <Filter>TinyXML</Filter>
@@ -87,6 +81,15 @@
       <Filter>TinyXML</Filter>
     </ClCompile>
     <ClCompile Include="VegetationScattering.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VRTGeometryShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VRTShaderInstancing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VRTSoftwareGeometry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

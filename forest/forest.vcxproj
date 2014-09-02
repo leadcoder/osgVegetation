@@ -83,6 +83,7 @@
   <ItemGroup>
     <ClInclude Include="tinyxml\tinystr.h" />
     <ClInclude Include="tinyxml\tinyxml.h" />
+    <ClInclude Include="VegetationLayer.h" />
     <ClInclude Include="VegetationScattering.h" />
     <ClInclude Include="VegetationRenderingTech.h" />
     <ClInclude Include="stdafx.h" />
@@ -90,7 +91,7 @@
     <ClInclude Include="VegetationCell.h" />
     <ClInclude Include="VRTGeometryShader.h" />
     <ClInclude Include="VRTShaderInstancing.h" />
-    <ClInclude Include="VRTSoftware.h" />
+    <ClInclude Include="VRTSoftwareGeometry.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="forest.cpp" />
@@ -107,7 +108,7 @@
     <ClCompile Include="VegetationRenderingTech.cpp" />
     <ClCompile Include="VRTGeometryShader.cpp" />
     <ClCompile Include="VRTShaderInstancing.cpp" />
-    <ClCompile Include="VRTSoftware.cpp" />
+    <ClCompile Include="VRTSoftwareGeometry.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

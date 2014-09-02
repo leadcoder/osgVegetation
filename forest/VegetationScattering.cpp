@@ -53,9 +53,9 @@
 // for the grid data..
 #include "terrain_coords.h"
 #include "VegetationCell.h"
-#include "VRTSoftware.h"
 #include "VRTGeometryShader.h"
 #include "VRTShaderInstancing.h"
+#include "VRTSoftwareGeometry.h"
 
 namespace osgVegetation
 {
@@ -169,10 +169,12 @@ namespace osgVegetation
 		}
 	
 
-	VegetationScattering::VegetationScattering() : m_PatchTargetSize(50)
+	VegetationScattering::VegetationScattering(VegetationRenderingTech* vrt, double patch_size) : m_VRT(vrt),
+		m_PatchTargetSize(patch_size)
 	{
 		m_IntersectionVisitor.setReadCallback(new osgSim::DatabaseCacheReadCallback);
 		m_ViewDistance = m_PatchTargetSize *4;
+		//m_VRTTexture = new VRTGeometryShader();
 	}
 
 	struct PagedReaderCallback : public osgUtil::IntersectionVisitor::ReadCallback
@@ -188,7 +190,7 @@ namespace osgVegetation
 	};
 
 
-	void VegetationScattering::populateVegetation(osg::Node* terrain,const VegetationLayer& layer, const osg::Vec3& origin, const osg::Vec3& size,VegetationObjectVector& object_list)
+	void VegetationScattering::populateVegetationLayer(osg::Node* terrain,const VegetationLayer& layer, const osg::Vec3& origin, const osg::Vec3& size,VegetationObjectVector& object_list)
 	{
 		float max_TreeHeight = layer.Height.y();
 		float max_TreeWidth = layer.Width.y();
@@ -198,19 +200,14 @@ namespace osgVegetation
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
 		object_list.reserve(object_list.size()+num_objects_to_create);
 		
-		
 		m_IntersectionVisitor.reset();
 		m_IntersectionVisitor.setLODSelectionMode(osgUtil::IntersectionVisitor::USE_HIGHEST_LEVEL_OF_DETAIL);
-		
 
 		for(unsigned int i=0;i<num_objects_to_create;++i)
 		{
-			
 			if (terrain)
 			{
-				//callback.pagedLODVec.clear();
 				osg::Vec3 pos(random(origin.x(),origin.x()+size.x()),random(origin.y(),origin.y()+size.y()),0);
-
 				osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =
 					new osgUtil::LineSegmentIntersector(pos,pos+osg::Vec3(0.0f,0.0f,1000));
 
@@ -254,41 +251,39 @@ namespace osgVegetation
 						else
 							color = texture->getImage(0)->getColor(tc);
 
-						if(layer.MaterialColor == color)
+						if(layer.HasMaterial(color))
 						{
 							VegetationObject* veg_obj = new VegetationObject;
 
-							veg_obj->_color.set(random(128,255),random(128,255),random(128,255),255);
-							veg_obj->_width = random(min_TreeWidth,max_TreeWidth);
-							veg_obj->_height = random(min_TreeHeight,max_TreeHeight);
-							veg_obj->_type = layer.Type;
-							veg_obj->_position = intersection.getWorldIntersectPoint();
+							//TODO add color to layer
+							veg_obj->Color.set(random(128,255),random(128,255),random(128,255),255);
+							veg_obj->Width = random(min_TreeWidth,max_TreeWidth);
+							veg_obj->Height = random(min_TreeHeight,max_TreeHeight);
+							veg_obj->TextureUnit = layer.TextureUnit;
+							veg_obj->MeshName = layer.MeshName;
+							veg_obj->Position = intersection.getWorldIntersectPoint();
 							object_list.push_back(veg_obj);
 						}
 					}
 				}
-				
 			}
-
-			
 		}
 	}
-	osg::Node* VegetationScattering::createPatch(osg::Node* terrain, const VegetationLayerVector &layers, osg::Vec3 origin, osg::Vec3 size, osg::StateSet *dstate)
+
+	osg::Node* VegetationScattering::createPatch(osg::Node* terrain, VegetationLayerVector &layers, osg::Vec3 origin, osg::Vec3 size)
 	{
 		VegetationObjectVector trees;
 		double const density= 1;
 		int const maxNumTreesPerCell = 2000;
 		for(size_t i = 0 ; i < layers.size();i++)
 		{
-			populateVegetation(terrain,layers[i],origin,size,trees);
+			populateVegetationLayer(terrain,layers[i],origin,size,trees);
 		}
 
 		osg::ref_ptr<Cell> cell = new Cell;
 		cell->addTrees(trees);
 		cell->divide(maxNumTreesPerCell);
-		VRTGeometryShader graph;
-		//VRTShaderInstancing graph;
-		return graph.create(cell.get(),dstate);
+		return m_VRT->create(cell.get());
 	}
 
 	std::string VegetationScattering::createFileName( unsigned int lv,	unsigned int x, unsigned int y )
@@ -298,13 +293,13 @@ namespace osgVegetation
 		return sstream.str();
 	}
 
-	osg::Node* VegetationScattering::createPagedLODRec(int ld, osg::Node* terrain, const VegetationLayerVector &layers,osg::StateSet *dstate, float current_size, float target_patch_size, osg::Vec3 center,int x, int y)
+	osg::Node* VegetationScattering::createPagedLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, float current_size, float target_patch_size, osg::Vec3 center,int x, int y)
 	{
 		if(current_size < target_patch_size)
 		{
 			osg::Vec3 p_origin(center.x() - current_size*0.5, center.y() - current_size*0.5,center.z());
 			osg::Vec3 p_size(current_size,current_size,1);
-			osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size,dstate);
+			osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size);
 			return f_node;
 		}
 
@@ -314,10 +309,10 @@ namespace osgVegetation
 		osg::Vec3 c3_center(center.x() + current_size*0.25,center.y() + current_size*0.25,center.z());
 		osg::Vec3 c4_center(center.x() + current_size*0.25,center.y() - current_size*0.25,center.z());
 
-		group->addChild( createPagedLODRec(ld+1,terrain,layers,dstate, current_size*0.5, target_patch_size, c1_center, x*2,   y*2));
-		group->addChild( createPagedLODRec(ld+1,terrain,layers,dstate, current_size*0.5, target_patch_size, c2_center, x*2,   y*2+1));
-		group->addChild( createPagedLODRec(ld+1,terrain,layers,dstate, current_size*0.5, target_patch_size, c3_center, x*2+1, y*2+1));
-		group->addChild( createPagedLODRec(ld+1,terrain,layers,dstate, current_size*0.5, target_patch_size, c4_center, x*2+1, y*2)); 
+		group->addChild( createPagedLODRec(ld+1,terrain,layers, current_size*0.5, target_patch_size, c1_center, x*2,   y*2));
+		group->addChild( createPagedLODRec(ld+1,terrain,layers, current_size*0.5, target_patch_size, c2_center, x*2,   y*2+1));
+		group->addChild( createPagedLODRec(ld+1,terrain,layers, current_size*0.5, target_patch_size, c3_center, x*2+1, y*2+1));
+		group->addChild( createPagedLODRec(ld+1,terrain,layers, current_size*0.5, target_patch_size, c4_center, x*2+1, y*2)); 
 
 		osg::PagedLOD* plod = new osg::PagedLOD;
 		std::string filename = createFileName(ld, x,y);
@@ -335,89 +330,13 @@ namespace osgVegetation
 	}
 
 
-	/*void VegetationScattering::createLODRec(osg::Node* terrain,  const VegetationLayerVector &layers,osg::StateSet *dstate, float target_patch_size, osg::LOD* node, float current_size)
-	{
-		osg::Vec3 center = node->getCenter();
-		if(current_size < target_patch_size*2)
-		{
-			//final lod
-			osg::Vec3 p_origin(center.x() - current_size*0.5, center.y() - current_size*0.5,center.z());
-			osg::Vec3 p_size(current_size,current_size,1);
-			osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size,dstate);
-			node->addChild(f_node,0,current_size*2);
-			//f_node->setCullingActive(false);
-		}
-		else
-		{
-			float radius = sqrt(current_size*current_size);
-			{
-				osg::Vec3 c_center(center.x() - current_size*0.25, center.y() - current_size*0.25, center.z());
-				osg::LOD* lod_t1 = new osg::LOD();
-				lod_t1->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-				lod_t1->setCenter(c_center);
-				lod_t1->setRadius(radius);
-				//lod_t1->setCullingActive(false);
-				osg::BoundingSphere sphere(c_center,radius);
-				lod_t1->setInitialBound(sphere);
-
-				createLODRec(terrain, layers,dstate, target_patch_size, lod_t1, current_size*0.5);
-				node->addChild(lod_t1,0,current_size*2);
-			}
-
-			{
-				osg::Vec3 c_center(center.x() - current_size*0.25,center.y() + current_size*0.25,center.z());
-				osg::LOD* lod_t2 = new osg::LOD();
-				lod_t2->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER );
-				lod_t2->setRadius(radius);
-				lod_t2->setCenter(c_center);
-				//lod_t2->setCullingActive(false);
-
-				osg::BoundingSphere sphere(c_center,radius);
-				lod_t2->setInitialBound(sphere);
-
-				createLODRec(terrain, layers,dstate, target_patch_size, lod_t2, current_size*0.5);
-				node->addChild(lod_t2,0,current_size*2);
-			}
-
-			{
-				osg::Vec3 c_center(center.x() + current_size*0.25,center.y() + current_size*0.25,center.z());
-				osg::LOD* lod_t3 = new osg::LOD();
-				lod_t3->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-				lod_t3->setRadius(radius);
-				lod_t3->setCenter(c_center);
-				//lod_t3->setCullingActive(false);
-				osg::BoundingSphere sphere(c_center,radius);
-				lod_t3->setInitialBound(sphere);
-
-
-				createLODRec(terrain, layers,dstate, target_patch_size, lod_t3, current_size*0.5);
-				node->addChild(lod_t3,0,current_size*2);
-			}
-
-			{
-				osg::Vec3 c_center(center.x() + current_size*0.25,center.y() - current_size*0.25,center.z());
-				osg::LOD* lod_t4 = new osg::LOD();
-				lod_t4->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-				lod_t4->setRadius(radius);
-				lod_t4->setCenter(c_center);
-				//lod_t4->setCullingActive(false);
-				osg::BoundingSphere sphere(c_center,radius);
-				lod_t4->setInitialBound(sphere);
-
-				createLODRec(terrain, layers,dstate, target_patch_size, lod_t4, current_size*0.5);
-				node->addChild(lod_t4,0,current_size*2);
-			}
-		}
-	}*/
-
-
-	osg::Node* VegetationScattering::createLODRec(int ld, osg::Node* terrain, const VegetationLayerVector &layers,osg::StateSet *dstate, float current_size, float target_patch_size, osg::Vec3 center,int x, int y)
+	osg::Node* VegetationScattering::createLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, float current_size, float target_patch_size, osg::Vec3 center,int x, int y)
 	{
 		if(current_size < target_patch_size)
 		{
 			osg::Vec3 p_origin(center.x() - current_size*0.5, center.y() - current_size*0.5,center.z());
 			osg::Vec3 p_size(current_size,current_size,1);
-			osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size,dstate);
+			osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size);
 			return f_node;
 		}
 
@@ -427,10 +346,10 @@ namespace osgVegetation
 		osg::Vec3 c3_center(center.x() + current_size*0.25,center.y() + current_size*0.25,center.z());
 		osg::Vec3 c4_center(center.x() + current_size*0.25,center.y() - current_size*0.25,center.z());
 
-		group->addChild( createLODRec(ld+1,terrain,layers,dstate, current_size*0.5, target_patch_size, c1_center, x*2,   y*2));
-		group->addChild( createLODRec(ld+1,terrain,layers,dstate, current_size*0.5, target_patch_size, c2_center, x*2,   y*2+1));
-		group->addChild( createLODRec(ld+1,terrain,layers,dstate, current_size*0.5, target_patch_size, c3_center, x*2+1, y*2+1));
-		group->addChild( createLODRec(ld+1,terrain,layers,dstate, current_size*0.5, target_patch_size, c4_center, x*2+1, y*2)); 
+		group->addChild( createLODRec(ld+1,terrain,layers,current_size*0.5, target_patch_size, c1_center, x*2,   y*2));
+		group->addChild( createLODRec(ld+1,terrain,layers,current_size*0.5, target_patch_size, c2_center, x*2,   y*2+1));
+		group->addChild( createLODRec(ld+1,terrain,layers,current_size*0.5, target_patch_size, c3_center, x*2+1, y*2+1));
+		group->addChild( createLODRec(ld+1,terrain,layers,current_size*0.5, target_patch_size, c4_center, x*2+1, y*2)); 
 
 		osg::LOD* plod = new osg::LOD;
 		plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
@@ -444,44 +363,17 @@ namespace osgVegetation
 		return plod;
 	}
 
-	osg::Node* VegetationScattering::create(osg::Node* terrain, const VegetationLayerVector &layers)
+	osg::Node* VegetationScattering::create(osg::Node* terrain, VegetationLayerVector &layers)
 	{
 		osg::ComputeBoundsVisitor  cbv;
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		terrain->accept(cbv);
-		//calculate number of patches
 		osg::Vec3 terrain_size = (bb._max - bb._min);
 
-		//unsigned int num_p_x = terrain_size.x() / patch_size;
-		//unsigned int num_p_y = terrain_size.y() / patch_size;
-
-		osg::Texture2DArray* tex = new osg::Texture2DArray;
-		tex->setTextureSize(256, 256, layers.size());
-		tex->setUseHardwareMipMapGeneration(false);   
-		for(size_t i = 0; i < layers.size();i++)
-			tex->setImage(i, osgDB::readImageFile(layers[i].TextureName));
-
-		osg::StateSet *dstate = new osg::StateSet;
-		dstate->setTextureAttributeAndModes(0, tex, osg::StateAttribute::ON );
-		dstate->setTextureAttribute(0, tex,	osg::StateAttribute::ON);
-		dstate->setAttributeAndModes( new osg::BlendFunc, osg::StateAttribute::ON );
-		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
-		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL,0.05f);
-		dstate->setAttributeAndModes( alphaFunc, osg::StateAttribute::ON );
-		dstate->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
-		dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
-		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", 2);
-		dstate->addUniform(baseTextureSampler);
+		m_VRT->createStateSet(layers);
 		osg::Group* group = new osg::Group;
-
-		/*osg::LOD* lod_node =  new osg::LOD();
-		lod_node->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-		lod_node->setCenter(bb.center());
-		lod_node->setRadius(sqrt(terrain_size.x()*terrain_size.x()));
-		createLODRec(terrain,layers,dstate, m_PatchTargetSize,lod_node,terrain_size.x());
-		group->addChild(lod_node);
-		*/
-		osg::Node* outnode = createLODRec(0, terrain,layers, dstate, terrain_size.x(), m_PatchTargetSize, bb.center(),0,0);
+	
+		osg::Node* outnode = createLODRec(0, terrain,layers, terrain_size.x(), m_PatchTargetSize, bb.center(),0,0);
 		group->addChild(outnode);
 		return group;
 

@@ -13,23 +13,24 @@ namespace osgVegetation
 	{
 	public:
 		VegetationObject():
-		  _color(255,255,255,255),
-			  _width(1.0f),
-			  _height(1.0f),
-			  _type(0) {}
+		  Color(255,255,255,255),
+			  Width(1.0f),
+			  Height(1.0f),
+			  TextureUnit(0) {}
 
 		  VegetationObject(const osg::Vec3& position, const osg::Vec4ub& color, float width, float height, unsigned int type):
-		  _position(position),
-			  _color(color),
-			  _width(width),
-			  _height(height),
-			  _type(type) {}
+		  Position(position),
+			  Color(color),
+			  Width(width),
+			  Height(height),
+			  TextureUnit(type) {}
 
-		  osg::Vec3       _position;
-		  osg::Vec4ub     _color;
-		  float           _width;
-		  float           _height;
-		  unsigned int    _type;
+		  osg::Vec3       Position;
+		  osg::Vec4ub     Color;
+		  float           Width;
+		  float           Height;
+		  unsigned int    TextureUnit;
+		  std::string     MeshName;
 	};
 
 	typedef std::vector< osg::ref_ptr<VegetationObject> > VegetationObjectList;

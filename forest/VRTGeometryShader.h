@@ -10,8 +10,12 @@ namespace osgVegetation
 	{
 	public:
 		VRTGeometryShader() {}
-		osg::Node* create(Cell* cell, osg::StateSet* dstate);
+		osg::Node* create(Cell* cell);
+		void createStateSet(VegetationLayerVector &layers);
+
 	protected:
-		osg::Program* createGeometryShader();
+		osg::Program* createGeometryShader() const;
+		osg::StateSet* m_StateSet; 
+		
 	};
 }

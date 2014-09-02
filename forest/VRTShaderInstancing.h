@@ -10,9 +10,10 @@ namespace osgVegetation
 	{
 	public:
 		VRTShaderInstancing() {}
-		osg::Node* create(Cell* cell, osg::StateSet* dstate);
-		osg::Node* createRec(Cell* cell, osg::Geometry* templateGeometry);
+		osg::Node* create(Cell* cell);
+		void createStateSet(VegetationLayerVector &layers);
 	protected:
-		
+		osg::Node* createRec(Cell* cell, osg::Geometry* templateGeometry);
+		osg::StateSet* m_StateSet; 
 	};
 }
