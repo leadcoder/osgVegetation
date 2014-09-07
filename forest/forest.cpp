@@ -70,6 +70,7 @@
 #include "VRTShaderInstancing.h"
 #include "VegetationScattering.h"
 #include "VRTSoftwareGeometry.h"
+#include "VRTMeshShaderInstancing.h"
 
 /*
 // class to create the forest and manage the movement between various techniques.
@@ -612,18 +613,19 @@ int main( int argc, char **argv )
 	grass1.Density = 0.1;
 	grass1.Height.set(0.3,0.5);
 	grass1.Width.set(0.5,0.7);
-	//grass1.TextureName = "Images/veg_grass02.dds";
-	grass1.MeshName = "glider.osg";
+	grass1.TextureName = "Images/veg_grass02.dds";
+	grass1.MeshName = "cube_mapped_torus.osgt";
 	grass1.Materials.push_back(material_map[GRASS]);
-//	layers.push_back(grass1);
+	grass1.TextureUnit = 0;
+	layers.push_back(grass1);
 
 	osgVegetation::VegetationLayer grass2; 
 	grass2.Density = 0.1;
 	grass2.Height.set(0.3,0.6);
 	grass2.Width.set(0.25,0.35);
-	grass2.TextureName = "Images/veg_plant02.dds";
+	grass2.TextureName = "Images/veg_grass02.dds";
 	grass2.Materials.push_back(material_map[GRASS]);
-	layers.push_back(grass2);
+	//layers.push_back(grass2);
 
 	osgVegetation::VegetationLayer grass3; 
 	grass3.Density = 0.1;
@@ -632,17 +634,20 @@ int main( int argc, char **argv )
 	grass3.TextureName = "Images/veg_plant03.dds";
 	grass3.Materials.push_back(material_map[GRASS]);
 	grass3.Materials.push_back(material_map[WOODS]);
-	layers.push_back(grass3);
+//	layers.push_back(grass3);
 
 
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
-	osgVegetation::VegetationScattering vs(new osgVegetation::VRTGeometryShader(),50);
+	osgVegetation::VegetationScattering vs(new osgVegetation::VRTMeshShaderInstancing(),2250);
+	//osgVegetation::VegetationScattering vs(new osgVegetation::VRTGeometryShader(),50);
+	//osgVegetation::VegetationScattering vs(new osgVegetation::VRTShaderInstancing(),2250);
 	//osgVegetation::VegetationScattering vs(new osgVegetation::VRTSoftwareGeometry(),50);
 	osg::Node* veg_node = vs.create(terrain.get(), layers);
 	group->addChild(veg_node);
-	osgDB::writeNodeFile(*group,"c:/temp/test.ive");
+	
+	osgDB::writeNodeFile(*veg_node,"c:/temp/test.ive");
 	viewer.setSceneData(group);
-
+	
 	return viewer.run();
 }

@@ -90,6 +90,7 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="VegetationCell.h" />
     <ClInclude Include="VRTGeometryShader.h" />
+    <ClInclude Include="VRTMeshShaderInstancing.h" />
     <ClInclude Include="VRTShaderInstancing.h" />
     <ClInclude Include="VRTSoftwareGeometry.h" />
   </ItemGroup>
@@ -107,6 +108,7 @@
     <ClCompile Include="VegetationCell.cpp" />
     <ClCompile Include="VegetationRenderingTech.cpp" />
     <ClCompile Include="VRTGeometryShader.cpp" />
+    <ClCompile Include="VRTMeshShaderInstancing.cpp" />
     <ClCompile Include="VRTShaderInstancing.cpp" />
     <ClCompile Include="VRTSoftwareGeometry.cpp" />
   </ItemGroup>

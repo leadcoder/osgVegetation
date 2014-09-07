@@ -274,7 +274,7 @@ namespace osgVegetation
 	{
 		VegetationObjectVector trees;
 		double const density= 1;
-		int const maxNumTreesPerCell = 2000;
+		int const maxNumTreesPerCell = 200;
 		for(size_t i = 0 ; i < layers.size();i++)
 		{
 			populateVegetationLayer(terrain,layers[i],origin,size,trees);

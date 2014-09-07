@@ -198,11 +198,8 @@ namespace osgVegetation
 				++itr)
 			{
 				group->addChild(create(itr->get()));
-				
 			}
-
 			if (geode) group->addChild(geode);
-
 		}
 		if (group) return group;
 		else return geode;
