@@ -611,11 +611,17 @@ int main( int argc, char **argv )
 	osgVegetation::VegetationLayerVector layers;
 	osgVegetation::VegetationLayer grass1; 
 	grass1.Density = 0.1;
-	grass1.Height.set(0.3,0.5);
-	grass1.Width.set(0.5,0.7);
+	grass1.Height.set(2.01,4.02);
+	grass1.Width.set(2.01,4.02);
 	grass1.TextureName = "Images/veg_grass02.dds";
-	grass1.MeshName = "cube_mapped_torus.osgt";
-	grass1.Materials.push_back(material_map[GRASS]);
+	grass1.MaxColor.set(255,200,255);
+	grass1.MinColor.set(220,170,220);
+	//grass1.MeshName = "cube_mapped_torus.osgt";
+	//grass1.MeshName = "cow.osgt";
+	grass1.MeshName = "C:/temp/osgearth/osgearth/data/pinetree.ive";
+	//grass1.MeshName = "C:/temp/osgearth/osgearth/data/loopix/tree7.osgb";
+	//grass1.MeshName = "C:/dev/GASSData/gfx/osg/3dmodels/genesis/patria.3ds";
+	grass1.Materials.push_back(material_map[WOODS]);
 	grass1.TextureUnit = 0;
 	layers.push_back(grass1);
 
@@ -639,7 +645,7 @@ int main( int argc, char **argv )
 
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
-	osgVegetation::VegetationScattering vs(new osgVegetation::VRTMeshShaderInstancing(),2250);
+	osgVegetation::VegetationScattering vs(new osgVegetation::VRTMeshShaderInstancing(),50);
 	//osgVegetation::VegetationScattering vs(new osgVegetation::VRTGeometryShader(),50);
 	//osgVegetation::VegetationScattering vs(new osgVegetation::VRTShaderInstancing(),2250);
 	//osgVegetation::VegetationScattering vs(new osgVegetation::VRTSoftwareGeometry(),50);

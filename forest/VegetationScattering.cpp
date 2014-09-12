@@ -256,7 +256,10 @@ namespace osgVegetation
 							VegetationObject* veg_obj = new VegetationObject;
 
 							//TODO add color to layer
-							veg_obj->Color.set(random(128,255),random(128,255),random(128,255),255);
+							
+							veg_obj->Color.set(random(layer.MinColor.x(), layer.MaxColor.x()),
+											   random(layer.MinColor.y(), layer.MaxColor.y()),
+											   random(layer.MinColor.z(), layer.MaxColor.z()),255);
 							veg_obj->Width = random(min_TreeWidth,max_TreeWidth);
 							veg_obj->Height = random(min_TreeHeight,max_TreeHeight);
 							veg_obj->TextureUnit = layer.TextureUnit;
@@ -274,7 +277,7 @@ namespace osgVegetation
 	{
 		VegetationObjectVector trees;
 		double const density= 1;
-		int const maxNumTreesPerCell = 200;
+		int const maxNumTreesPerCell = 9000;
 		for(size_t i = 0 ; i < layers.size();i++)
 		{
 			populateVegetationLayer(terrain,layers[i],origin,size,trees);

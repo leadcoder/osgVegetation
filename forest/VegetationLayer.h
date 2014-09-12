@@ -19,6 +19,8 @@ namespace osgVegetation
 		int TextureUnit;
 		std::string MeshName;
 		std::vector<MaterialColor> Materials;
+		osg::Vec3 MinColor;
+		osg::Vec3 MaxColor;
 		bool HasMaterial(const MaterialColor& mat) const
 		{
 			for(size_t i = 0 ; i < Materials.size(); i++)
