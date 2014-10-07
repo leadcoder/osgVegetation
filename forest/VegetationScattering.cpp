@@ -263,7 +263,7 @@ namespace osgVegetation
 							veg_obj->Width = random(min_TreeWidth,max_TreeWidth);
 							veg_obj->Height = random(min_TreeHeight,max_TreeHeight);
 							veg_obj->TextureUnit = layer.TextureUnit;
-							veg_obj->MeshName = layer.MeshName;
+							veg_obj->MeshNames = layer.MeshNames;
 							veg_obj->Position = intersection.getWorldIntersectPoint();
 							object_list.push_back(veg_obj);
 						}
@@ -273,7 +273,7 @@ namespace osgVegetation
 		}
 	}
 
-	osg::Node* VegetationScattering::createPatch(osg::Node* terrain, VegetationLayerVector &layers, osg::Vec3 origin, osg::Vec3 size)
+	osg::Node* VegetationScattering::createPatch(osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees, osg::Vec3 origin, osg::Vec3 size)
 	{
 		VegetationObjectVector trees;
 		double const density= 1;
@@ -289,6 +289,19 @@ namespace osgVegetation
 		return m_VRT->create(cell.get());
 	}
 
+	VegetationObjectVector VegetationScattering::generateVegetation(osg::Node* terrain, VegetationLayerVector &layers, osg::Vec3 origin, osg::Vec3 size)
+	{
+		VegetationObjectVector trees;
+		double const density= 1;
+		int const maxNumTreesPerCell = 9000;
+		for(size_t i = 0 ; i < layers.size();i++)
+		{
+			populateVegetationLayer(terrain,layers[i],origin,size,trees);
+		}
+		return trees;
+	}
+
+
 	std::string VegetationScattering::createFileName( unsigned int lv,	unsigned int x, unsigned int y )
 	{
 		std::stringstream sstream;
@@ -302,8 +315,9 @@ namespace osgVegetation
 		{
 			osg::Vec3 p_origin(center.x() - current_size*0.5, center.y() - current_size*0.5,center.z());
 			osg::Vec3 p_size(current_size,current_size,1);
-			osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size);
-			return f_node;
+			VegetationObjectVector trees = generateVegetation(terrain,layers,p_origin,p_size);
+			//osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size);
+			//return f_node;
 		}
 
 		osg::Group *group = new osg::Group;
@@ -333,17 +347,34 @@ namespace osgVegetation
 	}
 
 
-	osg::Node* VegetationScattering::createLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, float current_size, float target_patch_size, osg::Vec3 center,int x, int y)
+	osg::Node* VegetationScattering::createLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees, float current_size, float target_patch_size, osg::Vec3 center,int x, int y)
 	{
+		osg::ref_ptr<osg::Group> group = new osg::Group;
 		if(current_size < target_patch_size)
 		{
 			osg::Vec3 p_origin(center.x() - current_size*0.5, center.y() - current_size*0.5,center.z());
 			osg::Vec3 p_size(current_size,current_size,1);
-			osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size);
-			return f_node;
+
+			if(trees.size() == 0)
+				trees = generateVegetation(terrain,layers,p_origin,p_size);
+
+
+			VegetationObjectVector patch_trees;
+			//get trees inside patch
+			for(size_t i = 0;i < trees.size(); i++)
+			{
+				if(fabs(trees[i]->Position.x() - p_origin.x()) < p_size.x() && 
+					fabs(trees[i]->Position.y() - p_origin.y()) < p_size.y())
+					patch_trees.push_back(trees[i]);
+			}
+			osg::Node* f_node = createPatch(terrain,layers,patch_trees,p_origin,p_size);
+			
+			if(current_size < final_patch_size)
+				return f_node;
+			else
+				group->addChild(f_node);
 		}
 
-		osg::Group *group = new osg::Group;
 		osg::Vec3 c1_center(center.x() - current_size*0.25,center.y() - current_size*0.25,center.z());
 		osg::Vec3 c2_center(center.x() - current_size*0.25,center.y() + current_size*0.25,center.z());
 		osg::Vec3 c3_center(center.x() + current_size*0.25,center.y() + current_size*0.25,center.z());

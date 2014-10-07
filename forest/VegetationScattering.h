@@ -16,11 +16,14 @@
 
 namespace osgVegetation
 {
+	typedef std::vector< osg::ref_ptr<VegetationObject> > VegetationObjectVector;
 	class VegetationScattering : public osg::Referenced
 	{
 	public:
+		
 		VegetationScattering(VegetationRenderingTech* vrt, double patch_size);
 		osg::Node* create(osg::Node* terrain, VegetationLayerVector &layers);
+		VegetationObjectVector generateVegetation(osg::Node* terrain, VegetationLayerVector &layers, osg::Vec3 origin, osg::Vec3 size);
 	private:
 		double m_PatchTargetSize;
 		double m_ViewDistance;
@@ -30,7 +33,7 @@ namespace osgVegetation
 		typedef std::map<std::string,osg::ref_ptr<osg::Image> > MaterialCacheMap; 
 
 		MaterialCacheMap m_MaterialCache;
-		typedef std::vector< osg::ref_ptr<VegetationObject> > VegetationObjectVector;
+		
 		
 		float random(float min,float max) { return min + (max-min)*(float)rand()/(float)RAND_MAX; }
 		int random(int min,int max) { return min + (int)(((float)(max-min)*(float)rand()/(float)RAND_MAX) + 0.5f); }

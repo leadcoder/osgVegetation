@@ -26,10 +26,11 @@ namespace osgVegetation
 
 	bool Cell::divide(unsigned int maxNumTreesPerCell)
 	{
+		computeBound();
 
 		if (_trees.size()<=maxNumTreesPerCell) return false;
 
-		computeBound();
+		
 
 		float radius = _bb.radius();
 		float divide_distance = radius*0.7f;
