@@ -618,7 +618,7 @@ int main( int argc, char **argv )
 	grass1.MinColor.set(220,170,220);
 	//grass1.MeshName = "cube_mapped_torus.osgt";
 	//grass1.MeshName = "cow.osgt";
-	grass1.MeshName = "pine01.ive";
+	grass1.MeshNames.push_back("pine01.ive");
 	//grass1.MeshName = "C:/temp/osgearth/osgearth/data/pinetree.ive";
 	//grass1.MeshName = "C:/temp/osgearth/osgearth/data/loopix/tree7.osgb";
 	//grass1.MeshName = "C:/dev/GASSData/gfx/osg/3dmodels/genesis/patria.3ds";

@@ -17,7 +17,7 @@ namespace osgVegetation
 		double Density;
 		//TextureUnit
 		int TextureUnit;
-		std::string MeshName;
+		std::vector<std::string> MeshNames;
 		std::vector<MaterialColor> Materials;
 		osg::Vec3 MinColor;
 		osg::Vec3 MaxColor;

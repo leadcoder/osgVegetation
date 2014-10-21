@@ -39,10 +39,10 @@ namespace osgVegetation
 		int random(int min,int max) { return min + (int)(((float)(max-min)*(float)rand()/(float)RAND_MAX) + 0.5f); }
 
 		std::string createFileName(unsigned int lv,	unsigned int x, unsigned int y);
-		osg::Node* createPatch(osg::Node* terrain, VegetationLayerVector &layers, osg::Vec3 origin, osg::Vec3 size);
+		osg::Node* createPatch(osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees, osg::Vec3 origin, osg::Vec3 size);
 		osg::Geode* createTerrain(const osg::Vec3& origin, const osg::Vec3& size);
 		void populateVegetationLayer(osg::Node* terrain,const VegetationLayer& layer, const osg::Vec3& origin, const osg::Vec3& size, VegetationObjectVector& object_list);
-		osg::Node* createLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, float current_size, float target_patch_size, osg::Vec3 center,int x, int y);
-		osg::Node* createPagedLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, float current_size, float target_patch_size, osg::Vec3 center,int x, int y);
+		osg::Node* createLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees, float current_size, float target_patch_size,float final_patch_size, osg::Vec3 center,int x, int y);
+		osg::Node* createPagedLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees, float current_size, float target_patch_size, float final_patch_size, osg::Vec3 center,int x, int y);
 	};
 }

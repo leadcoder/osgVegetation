@@ -30,7 +30,7 @@ namespace osgVegetation
 		  float           Width;
 		  float           Height;
 		  unsigned int    TextureUnit;
-		  std::string     MeshName;
+		  std::vector<std::string> MeshNames;
 	};
 
 	typedef std::vector< osg::ref_ptr<VegetationObject> > VegetationObjectList;

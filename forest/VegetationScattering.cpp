@@ -275,14 +275,14 @@ namespace osgVegetation
 
 	osg::Node* VegetationScattering::createPatch(osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees, osg::Vec3 origin, osg::Vec3 size)
 	{
-		VegetationObjectVector trees;
+		/*VegetationObjectVector trees;
 		double const density= 1;
 		int const maxNumTreesPerCell = 9000;
 		for(size_t i = 0 ; i < layers.size();i++)
 		{
 			populateVegetationLayer(terrain,layers[i],origin,size,trees);
-		}
-
+		}*/
+		int const maxNumTreesPerCell = 9000;
 		osg::ref_ptr<Cell> cell = new Cell;
 		cell->addTrees(trees);
 		cell->divide(maxNumTreesPerCell);
@@ -293,7 +293,6 @@ namespace osgVegetation
 	{
 		VegetationObjectVector trees;
 		double const density= 1;
-		int const maxNumTreesPerCell = 9000;
 		for(size_t i = 0 ; i < layers.size();i++)
 		{
 			populateVegetationLayer(terrain,layers[i],origin,size,trees);
@@ -309,7 +308,7 @@ namespace osgVegetation
 		return sstream.str();
 	}
 
-	osg::Node* VegetationScattering::createPagedLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, float current_size, float target_patch_size, osg::Vec3 center,int x, int y)
+	osg::Node* VegetationScattering::createPagedLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees,float current_size, float final_patch_size, float target_patch_size, osg::Vec3 center,int x, int y)
 	{
 		if(current_size < target_patch_size)
 		{
@@ -326,10 +325,10 @@ namespace osgVegetation
 		osg::Vec3 c3_center(center.x() + current_size*0.25,center.y() + current_size*0.25,center.z());
 		osg::Vec3 c4_center(center.x() + current_size*0.25,center.y() - current_size*0.25,center.z());
 
-		group->addChild( createPagedLODRec(ld+1,terrain,layers, current_size*0.5, target_patch_size, c1_center, x*2,   y*2));
-		group->addChild( createPagedLODRec(ld+1,terrain,layers, current_size*0.5, target_patch_size, c2_center, x*2,   y*2+1));
-		group->addChild( createPagedLODRec(ld+1,terrain,layers, current_size*0.5, target_patch_size, c3_center, x*2+1, y*2+1));
-		group->addChild( createPagedLODRec(ld+1,terrain,layers, current_size*0.5, target_patch_size, c4_center, x*2+1, y*2)); 
+		group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c1_center, x*2,   y*2));
+		group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c2_center, x*2,   y*2+1));
+		group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c3_center, x*2+1, y*2+1));
+		group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c4_center, x*2+1, y*2)); 
 
 		osg::PagedLOD* plod = new osg::PagedLOD;
 		std::string filename = createFileName(ld, x,y);
@@ -347,7 +346,7 @@ namespace osgVegetation
 	}
 
 
-	osg::Node* VegetationScattering::createLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees, float current_size, float target_patch_size, osg::Vec3 center,int x, int y)
+	osg::Node* VegetationScattering::createLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees, float current_size, float target_patch_size, float final_patch_size, osg::Vec3 center,int x, int y)
 	{
 		osg::ref_ptr<osg::Group> group = new osg::Group;
 		if(current_size < target_patch_size)
@@ -380,10 +379,10 @@ namespace osgVegetation
 		osg::Vec3 c3_center(center.x() + current_size*0.25,center.y() + current_size*0.25,center.z());
 		osg::Vec3 c4_center(center.x() + current_size*0.25,center.y() - current_size*0.25,center.z());
 
-		group->addChild( createLODRec(ld+1,terrain,layers,current_size*0.5, target_patch_size, c1_center, x*2,   y*2));
-		group->addChild( createLODRec(ld+1,terrain,layers,current_size*0.5, target_patch_size, c2_center, x*2,   y*2+1));
-		group->addChild( createLODRec(ld+1,terrain,layers,current_size*0.5, target_patch_size, c3_center, x*2+1, y*2+1));
-		group->addChild( createLODRec(ld+1,terrain,layers,current_size*0.5, target_patch_size, c4_center, x*2+1, y*2)); 
+		group->addChild( createLODRec(ld+1,terrain,layers,trees,current_size*0.5, target_patch_size, final_patch_size, c1_center, x*2,   y*2));
+		group->addChild( createLODRec(ld+1,terrain,layers,trees,current_size*0.5, target_patch_size, final_patch_size, c2_center, x*2,   y*2+1));
+		group->addChild( createLODRec(ld+1,terrain,layers,trees,current_size*0.5, target_patch_size, final_patch_size, c3_center, x*2+1, y*2+1));
+		group->addChild( createLODRec(ld+1,terrain,layers,trees,current_size*0.5, target_patch_size, final_patch_size, c4_center, x*2+1, y*2)); 
 
 		osg::LOD* plod = new osg::LOD;
 		plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
@@ -407,7 +406,8 @@ namespace osgVegetation
 		m_VRT->createStateSet(layers);
 		osg::Group* group = new osg::Group;
 	
-		osg::Node* outnode = createLODRec(0, terrain,layers, terrain_size.x(), m_PatchTargetSize, bb.center(),0,0);
+		VegetationObjectVector trees;
+		osg::Node* outnode = createLODRec(0, terrain,layers, trees, terrain_size.x(), m_PatchTargetSize, m_PatchTargetSize,bb.center(),0,0);
 		group->addChild(outnode);
 		return group;
 

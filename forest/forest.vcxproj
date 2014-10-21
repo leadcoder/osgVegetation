@@ -49,12 +49,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\dev\dependencies\osg\OpenSceneGraph-3.2.1\msvc2010x86\install\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\dev\OSGLab\OpenSceneGraph-3.2.1\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\dev\dependencies\osg\OpenSceneGraph-3.2.1\msvc2010x86\install\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\dev\OSGLab\OpenSceneGraph-3.2.1\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenThreadsd.lib;osgd.lib;osgDBd.lib;osgUtild.lib;osgGAd.lib;osgViewerd.lib;osgTextd.lib;osgShadowd.lib;osgSimd.lib;opengl32.lib;glu32.lib;Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -66,14 +66,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\dev\dependencies\osg\OpenSceneGraph-3.2.1\msvc2010x86\install\include;./tinyxml</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\dev\OSGLab\OpenSceneGraph-3.2.1\include;./tinyxml</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>C:\dev\dependencies\osg\OpenSceneGraph-3.2.1\msvc2010x86\install\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\dev\OSGLab\OpenSceneGraph-3.2.1\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>OpenThreads.lib;osg.lib;osgDB.lib;osgUtil.lib;osgGA.lib;osgViewer.lib;osgText.lib;osgShadow.lib;osgSim.lib;opengl32.lib;glu32.lib;Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
