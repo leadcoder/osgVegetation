@@ -6,17 +6,18 @@
 
 namespace osgVegetation
 {
-	class VRTMeshShaderInstancing :  public VegetationRenderingTech
+	class VRTMeshShaderInstancing :  public MeshVegetationRenderingTech
 	{
 	public:
 		VRTMeshShaderInstancing() {}
-		osg::Node* create(Cell* cell);
-		void createStateSet(VegetationLayerVector &layers);
-		osg::StateSet* m_StateSet; 
+		//osg::Node* create(Cell* cell);
+		osg::StateSet* createStateSet(MeshVegetationLayerVector &layers);
+		//osg::Node* create(const MeshVegetationObjectVector &trees);
+		osg::Node* create(const MeshVegetationObjectVector &trees, const std::string &mesh_name, const osg::BoundingBox &bb);
+		osg::StateSet* m_StateSet ; 
 	protected:
 		osg::Node* createRec(Cell* cell);
-		osg::ref_ptr<osg::Node> m_MeshNode;
-		//osg::ref_ptr<osg::Node> m_Geode;
+		std::map<std::string, osg::ref_ptr<osg::Node>  > m_MeshNodeMap;
 		std::vector<osg::Geometry*> m_Geometries;
 	};
 }
