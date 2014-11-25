@@ -60,11 +60,11 @@ namespace osgVegetation
 						geom->setUseDisplayList( false );
 						geom->setUseVertexBufferObjects( true );
 					}
-
 					 
-					 
-					geom->setComputeBoundingBoxCallback(  new StaticBoundingBox(_bb)); 
-					geom->dirtyBound();
+					//geom->setComputeBoundingBoxCallback(  new StaticBoundingBox(_bb)); 
+					//geom->setComputeBoundingBoxCallback(NULL);
+					geom->setInitialBound(_bb);
+					//geom->dirtyBound();
 
 					// convert to use DrawInstanced
 					for( unsigned p=0; p<geom->getNumPrimitiveSets(); ++p )
@@ -109,8 +109,6 @@ namespace osgVegetation
 		osg::ref_ptr<osg::Drawable::ComputeBoundingBoxCallback> _staticBBoxCallback;
 		osg::BoundingBox _bb;
 		std::list<osg::PrimitiveSet*> _primitiveSets;
-		
-
 	};
 
 	osg::StateSet* VRTMeshShaderInstancing::createStateSet(MeshVegetationLayerVector &layers) 

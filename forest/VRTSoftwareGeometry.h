@@ -13,7 +13,7 @@ namespace osgVegetation
 	public:
 		VRTSoftwareGeometry() {}
 		osg::Node* create(Cell* cell);
-		void createStateSet(VegetationLayerVector &layers);
+		void createStateSet(BillboardVegetationLayerVector &layers);
 	protected:
 		osg::Node* createTransformGraph2(Cell* cell);
 		osg::ref_ptr<osg::Node> m_VegMesh;

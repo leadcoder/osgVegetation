@@ -24,9 +24,9 @@ namespace osgVegetation
 	{
 		if(layers.size() == 1)
 		{
-			if(layers[0].MeshName != "")
+			if(layers[0].MeshNames[0].size() > 0)
 			{
-				m_VegMesh = osgDB::readNodeFile(layers[0].MeshName);
+				m_VegMesh = osgDB::readNodeFile(layers[0].MeshNames[0]);
 			}
 			else
 			{

@@ -6,13 +6,12 @@
 
 namespace osgVegetation
 {
-	class VRTGeometryShader :  public VegetationRenderingTech
+	class VRTGeometryShader :  public BillboardVegetationRenderingTech
 	{
 	public:
 		VRTGeometryShader() {}
 		osg::Node* create(Cell* cell);
-		void createStateSet(VegetationLayerVector &layers);
-
+		osg::StateSet* createStateSet(BillboardVegetationLayerVector &layers);
 	protected:
 		osg::Program* createGeometryShader() const;
 		osg::StateSet* m_StateSet; 
