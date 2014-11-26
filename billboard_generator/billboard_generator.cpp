@@ -35,16 +35,20 @@
 #include <osg/TexEnv>
 #include <osg/Camera>
 #include <osg/VertexProgram>
+#include <osg/CullFace>
 #include <osg/FragmentProgram>
 #include <osg/ComputeBoundsVisitor>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
+#include <osgDB/FileNameUtils>
 #include <osg/Texture2DArray>
 
 #include <osgUtil/LineSegmentIntersector>
 #include <osgUtil/IntersectionVisitor>
 #include <osgUtil/SmoothingVisitor>
+#include <osgUtil/Optimizer>
+
 
 #include <osgText/Text>
 
@@ -98,33 +102,45 @@ private:
 	std::string m_imageName; 
 }; 
 
-void CreateGeometry(const osg::Vec3 &min_pos, const osg::Vec3 &max_pos)
+osg::ref_ptr<osg::Geode> CreateGeometry(const osg::Vec3 &min_pos, const osg::Vec3 &max_pos, osg::ref_ptr<osg::Texture2D> texture)
 {
 	osg::Vec3 size = max_pos - min_pos;
 	// Create a geode to display t/he texture
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode();
-
+	geode->setDataVariance(osg::Object::STATIC);
 	// Create a geometry for the geode
 	osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry();
 	geode->addDrawable(geometry);
+	geometry->setDataVariance(osg::Object::STATIC);
 
 	// The coordinates can be different if we want to display the
 	// texture at a location different from the coordinates of the
 	// geometries inside the texture
 	osg::ref_ptr<osg::Vec3Array> vertexArray = new osg::Vec3Array();
-	vertexArray->push_back(osg::Vec3(min_pos.x(), min_pos.y(), min_pos.z()));
-	vertexArray->push_back(osg::Vec3(max_pos.x(), min_pos.y(), min_pos.z()));
-	vertexArray->push_back(osg::Vec3(max_pos.x(), max_pos.y(), min_pos.z()));
-	vertexArray->push_back(osg::Vec3(min_pos.x(), max_pos.y(), min_pos.z()));
+	vertexArray->push_back(osg::Vec3(min_pos.x(), 0, min_pos.y()));
+	vertexArray->push_back(osg::Vec3(max_pos.x(), 0, min_pos.y()));
+	vertexArray->push_back(osg::Vec3(max_pos.x(), 0, max_pos.y()));
+	vertexArray->push_back(osg::Vec3(min_pos.x(), 0, max_pos.y()));
 	geometry->setVertexArray(vertexArray);
+
+
+	osg::Vec3 n1(-1.0, -1.0, 0);n1.normalize();
+	osg::Vec3 n2(1.0, -1.0, 0);n2.normalize();
+	osg::ref_ptr<osg::Vec3Array> normalArray = new osg::Vec3Array();
+	normalArray->push_back(n1);
+	normalArray->push_back(n2);
+	normalArray->push_back(n2);
+	normalArray->push_back(n1);
+	geometry->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
+	geometry->setNormalArray(normalArray);
 
 	// The geometry color for the texture mapping should be white
 	// (1.f, 1.f, 1.f, 1.f) so that color blending won't affect
 	// the texture real color
 	osg::ref_ptr<osg::Vec4Array> colorArray = new osg::Vec4Array();
 	colorArray->push_back(osg::Vec4(1.f, 1.f, 1.f, 1.f));
-	geometry->setColorArray(colorArray);
-	geometry->setColorBinding(osg::Geometry::BIND_OVERALL);
+	//geometry->setColorArray(colorArray);
+	//geometry->setColorBinding(osg::Geometry::BIND_OVERALL);
 
 	// We are using the entire texture by using the four corners
 	// of the texture coordinates
@@ -139,24 +155,73 @@ void CreateGeometry(const osg::Vec3 &min_pos, const osg::Vec3 &max_pos)
 	geometry->addPrimitiveSet(new osg::DrawArrays(GL_TRIANGLE_FAN, 0, 4));
 
 	// Add the texture to the geode
-	geode->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture2D, osg::StateAttribute::ON);
+	geometry->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+	osg::AlphaFunc* alphaFunction = new osg::AlphaFunc;
+	alphaFunction->setFunction(osg::AlphaFunc::GEQUAL,0.1f);
+	geometry->getOrCreateStateSet()->setAttributeAndModes( alphaFunction, osg::StateAttribute::ON );
+	osg::CullFace* cull = new osg::CullFace(); 
+	cull->setMode(osg::CullFace::BACK); 
+	geometry->getOrCreateStateSet()->setAttributeAndModes(cull, osg::StateAttribute::ON); 
+
+	//geode->getOrCreateStateSet()->setAttribute( new osg::AlphaFunc(osg::AlphaFunc::GEQUAL,0.1f) ,osg::StateAttribute::ON);
 
 	// Make sure that we are using color blending
 	// and the transparent bin, since the features may not
 	// cover the entire texture and the empty
 	// space should be transparent.
-	geode->getOrCreateStateSet()->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
-	osg::ref_ptr<osg::BlendFunc> blendFunc = new osg::BlendFunc;
-	blendFunc->setFunction(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	geode->getOrCreateStateSet()->setAttributeAndModes(blendFunc);
-
+	//geode->getOrCreateStateSet()->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+	//osg::ref_ptr<osg::BlendFunc> blendFunc = new osg::BlendFunc;
+	//blendFunc->setFunction(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//geode->getOrCreateStateSet()->setAttributeAndModes(blendFunc);
+	return geode;
 }
 
 int main( int argc, char **argv )
 {
+	osg::ArgumentParser arguments(&argc,argv);
 
+	arguments.getApplicationUsage()->setApplicationName(arguments.getApplicationName());
+	arguments.getApplicationUsage()->setDescription(arguments.getApplicationName()+" is a utility for creating billboards from 3D models.");
+	arguments.getApplicationUsage()->addCommandLineOption("--model <filename>","The input model.");
+	
+
+	// if user request help write it out to cout.
+	if (arguments.read("-h") || arguments.read("--help"))
+	{
+		arguments.getApplicationUsage()->write(std::cout);
+		return 1;
+	}
+
+	std::string filename;
+	if (!arguments.read("--model",filename))
+	{
+		std::cout << "You need to provide a model";
+		return 0;
+	}
+	std::string out_path = osgDB::getFilePath(filename) + "/";
+
+
+	int textureWidth = 512;
+	int textureHeight= 512;
+
+	if (arguments.read("--tw",textureWidth))
+	{
+		
+	}
+
+	if (arguments.read("--th",textureHeight))
+	{
+
+	}
+
+
+		
+	osgViewer::Viewer viewer(arguments);
 	//osg::Group* mesh_ = 
-	osg::Node* mesh_node = osgDB::readNodeFile("C:/dev/dependencies/osg/OpenSceneGraph-Data-3.0.0/trees/birch.osg");
+	osg::Node* mesh_node = osgDB::readNodeFile(filename);//"C:/dev/dependencies/osg/OpenSceneGraph-Data-3.0.0/trees/birch.osg");
+ 	//osg::Node* mesh_node = osgDB::readNodeFile("C:/temp/exp_tress/birch/birch.obj");
+//	  osg::Node* mesh_node = osgDB::readNodeFile("C:/temp/exp_tress/pine01/pine01_no_alpha.osg");
+	mesh_node->getOrCreateStateSet()->setMode( GL_LIGHTING, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE );
 	osg::MatrixTransform* transform = new osg::MatrixTransform;
 	transform->setMatrix(osg::Matrix::scale(1,1,1)*osg::Matrixd::rotate(osg::DegreesToRadians(-90.0),1,0,0));
 	transform->addChild(mesh_node);
@@ -173,8 +238,7 @@ int main( int argc, char **argv )
 	float minz = bb._min.z();
 	float maxz = bb._max.z();
 
-	int textureWidth = 512;
-	int textureHeight= 512;
+	
 
 	// Create a render-to-texture camera with an absolute
 	// reference frame and pre-render
@@ -189,7 +253,7 @@ int main( int argc, char **argv )
 	//Set the camera's viewport to the same size of the texture
 	camera->setViewport(0, 0, textureWidth, textureHeight);
 
-	osg::Vec4 clearColor(1,1,1,0);
+	osg::Vec4 clearColor(0,0,0,0);
 	// Set the camera's clear color and masks
 	camera->setClearColor(clearColor);
 	camera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -273,64 +337,75 @@ int main( int argc, char **argv )
 	sceneGraph->addChild(camera);
 	sceneGraph->addChild(geode);
 
-	osg::ArgumentParser arguments(&argc,argv);
-
-	// construct the viewer.
-	osgViewer::Viewer viewer(arguments);
+	
 	viewer.addEventHandler(new osgViewer::StatsHandler);
 
-	//viewer.addEventHandler(new TechniqueEventHandler(ttm.get()));
 	viewer.addEventHandler(new osgGA::StateSetManipulator(viewer.getCamera()->getOrCreateStateSet()));
 
 	viewer.setSceneData(sceneGraph);
 
 	viewer.realize();
 
-	viewer.frame(0.1);
-	const size_t num_images = 8;
+	//viewer.frame(0.1);
+	//viewer.frame(0.1);
+	const size_t num_images = 4;
 	const double rotation_step = 360.0/(double) num_images;
-	//osgDB::writeImageFile(*image, "c:/temp/output.tga"); 
+	
+	std::string billboard_prefix = osgDB::getStrippedName(filename);
+	osg::Group* out_group = new osg::Group();
 	for(size_t i =0 ; i < num_images; i++)
 	{
+		osg::MatrixTransform* out_transform = new osg::MatrixTransform;
 		double angle = i*rotation_step;
 		transform->setMatrix(osg::Matrix::scale(1,1,1)*osg::Matrixd::rotate(osg::DegreesToRadians(angle),0,0,1)*osg::Matrixd::rotate(osg::DegreesToRadians(-90.0),1,0,0));
 		std::stringstream ss;
-		ss << "c:/temp/billboard_" << i << ".tga";// << std::endl;
+		ss << out_path << billboard_prefix << "_bb_" << i << ".tga";// << std::endl;
 		capture_cb->setFilename(ss.str());
 		//update twice to get correct rotation
 		viewer.frame(0.1);
 		viewer.frame(0.1);
+		osg::ref_ptr<osg::Texture2D> out_texture = new osg::Texture2D();
+		osg::Image* out_image = static_cast<osg::Image*>(image->clone(osg::CopyOp::DEEP_COPY_IMAGES));
+		out_texture->setImage(out_image);
+		out_image->setFileName(osgDB::getSimpleFileName(ss.str()));
+		out_transform->setMatrix(osg::Matrix::scale(1,1,1)*osg::Matrixd::rotate(osg::DegreesToRadians(angle),0,0,1));
+		out_transform->addChild(CreateGeometry(bb._min , bb._max, out_texture));
+		out_transform->setDataVariance(osg::Object::STATIC);
+		out_group->addChild(out_transform);
 	}
-
-
-	/*transform->setMatrix(osg::Matrix::scale(1,1,1)*osg::Matrixd::rotate(osg::DegreesToRadians(90.0),0,0,1)*osg::Matrixd::rotate(osg::DegreesToRadians(-90.0),1,0,0));
-	camera->setPostDrawCallback( new Capture("c:/temp/output2.tga") ); 
-	viewer.frame(0.1);
-	viewer.frame(0.1);
-	transform->setMatrix(osg::Matrix::scale(1,1,1)*osg::Matrixd::rotate(osg::DegreesToRadians(45.0),0,0,1)*osg::Matrixd::rotate(osg::DegreesToRadians(-90.0),1,0,0));
-	camera->setPostDrawCallback( new Capture("c:/temp/output3.tga") ); 
-	viewer.frame(0.1);
-	viewer.frame(0.1);
-	//osgDB::writeImageFile(*image, "c:/test/output2.tga"); 
-	camera->setPostDrawCallback(NULL);
-	//save texture!
-	*/
-	//image->readImageFromCurrentTexture(0,false);
-	//image->readPixels(0,0,textureWidth,textureHeight,GL_RGBA,GL_UNSIGNED_BYTE);
-	//osgDB::writeImageFile(*image,"c:/temp/test.tga");
 
 	if (!viewer.getCameraManipulator() && viewer.getCamera()->getAllowEventFocus())
 	{
 		viewer.setCameraManipulator(new osgGA::TrackballManipulator());
 	}
+	osgUtil::Optimizer optimzer;
+	optimzer.optimize(out_group,osgUtil::Optimizer::FLATTEN_STATIC_TRANSFORMS);
+	optimzer.optimize(out_group,osgUtil::Optimizer::REMOVE_REDUNDANT_NODES);
+	optimzer.optimize(out_group,osgUtil::Optimizer::MERGE_GEODES);
+	optimzer.optimize(out_group,osgUtil::Optimizer::MERGE_GEOMETRY);
+	//optimzer.optimize(out_group,osgUtil::Optimizer::TEXTURE_ATLAS_BUILDER);
+	//optimzer.optimize(out_group,osgUtil::Optimizer::FLATTEN_STATIC_TRANSFORMS_DUPLICATING_SHARED_SUBGRAPHS);
+	//optimzer.optimize(out_group,osgUtil::Optimizer::VERTEX_PRETRANSFORM|osgUtil::Optimizer::VERTEX_POSTTRANSFORM);
+	//optimzer.optimize(out_group,osgUtil::Optimizer::MERGE_GEOMETRY);
+	//optimzer.optimize(out_group,osgUtil::Optimizer::TEXTURE_ATLAS_BUILDER);
 
+	sceneGraph->removeChild(camera);
+	sceneGraph->removeChild(geode);
+	sceneGraph->addChild(out_group);
+
+	//generate output model
+	std::string out_file = osgDB::getStrippedName(filename);
+	out_file = out_path + out_file + "_bb.osg";
+	osgDB::writeNodeFile(*out_group,out_file);
+
+	if (!arguments.read("--view"))
+	{
+	//	return 0;
+	}
 	while(!viewer.done())
 	{
 		viewer.frame(0.1);
-
 	}
-
-
 
 	return 0;
 	// use an ArgumentParser object to manage the program arguments.
