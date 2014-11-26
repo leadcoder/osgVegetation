@@ -51,11 +51,23 @@
     <ClInclude Include="VegetationLayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VRTSoftwareGeometry.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="VRTMeshShaderInstancing.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshVegetationScattering.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshVegetationObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BillboardVegetationObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VegetationUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VegetationTerrainQuery.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -63,9 +75,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="forest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VegetationCell.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="VegetationRenderingTech.cpp">
@@ -83,20 +92,20 @@
     <ClCompile Include="tinyxml\tinyxmlparser.cpp">
       <Filter>TinyXML</Filter>
     </ClCompile>
+    <ClCompile Include="VRTMeshShaderInstancing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshVegetationScattering.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="VegetationScattering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VRTGeometryShader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="VRTShaderInstancing.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="VRTSoftwareGeometry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VRTMeshShaderInstancing.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="VegetationTerrainQuery.cpp">
+      <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

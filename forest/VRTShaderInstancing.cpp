@@ -21,8 +21,7 @@
 
 namespace osgVegetation
 {
-
-	void VRTShaderInstancing::createStateSet(VegetationLayerVector &layers) 
+	osg::StateSet* VRTShaderInstancing::createStateSet(BillboardVegetationLayerVector &layers) 
 	{
 		//Load textures
 		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
@@ -118,13 +117,55 @@ namespace osgVegetation
 
 			//osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture",0);
 			//dstate->addUniform(baseTextureSampler);
-
-		
 			m_StateSet = dstate; 
+			
 		}
+		return dstate;
 	}
 
-	osg::Node* VRTShaderInstancing::create(Cell* cell)
+	osg::Geometry* VRTShaderInstancing::createOrthogonalQuadsNoColor( const osg::Vec3& pos, float w, float h)
+	{
+		// set up the coords
+		osg::Vec3Array& v = *(new osg::Vec3Array(8));
+		osg::Vec2Array& t = *(new osg::Vec2Array(8));
+
+		float rotation = random(0.0f,osg::PI/2.0f);
+		float sw = sinf(rotation)*w*0.5f;
+		float cw = cosf(rotation)*w*0.5f;
+
+		v[0].set(pos.x()-sw,pos.y()-cw,pos.z()+0.0f);
+		v[1].set(pos.x()+sw,pos.y()+cw,pos.z()+0.0f);
+		v[2].set(pos.x()+sw,pos.y()+cw,pos.z()+h);
+		v[3].set(pos.x()-sw,pos.y()-cw,pos.z()+h);
+
+		v[4].set(pos.x()-cw,pos.y()+sw,pos.z()+0.0f);
+		v[5].set(pos.x()+cw,pos.y()-sw,pos.z()+0.0f);
+		v[6].set(pos.x()+cw,pos.y()-sw,pos.z()+h);
+		v[7].set(pos.x()-cw,pos.y()+sw,pos.z()+h);
+
+		t[0].set(0.0f,0.0f);
+		t[1].set(1.0f,0.0f);
+		t[2].set(1.0f,1.0f);
+		t[3].set(0.0f,1.0f);
+
+		t[4].set(0.0f,0.0f);
+		t[5].set(1.0f,0.0f);
+		t[6].set(1.0f,1.0f);
+		t[7].set(0.0f,1.0f);
+
+		osg::Geometry *geom = new osg::Geometry;
+
+		geom->setVertexArray( &v );
+
+		geom->setTexCoordArray( 0, &t );
+
+		geom->addPrimitiveSet( new osg::DrawArrays(osg::PrimitiveSet::QUADS,0,8) );
+
+		return geom;
+	}
+
+
+	/*osg::Node* VRTShaderInstancing::create(Cell* cell)
 	{
 		osg::ref_ptr<osg::Geometry> templateGeometry = createOrthogonalQuadsNoColor(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
 		templateGeometry->setUseVertexBufferObjects(true);
@@ -159,7 +200,7 @@ namespace osgVegetation
 			treeParamsImage->allocateImage( 3*cell->_trees.size(), 1, 1, GL_RGBA, GL_FLOAT );
 
 			unsigned int i=0;
-			for(VegetationObjectList::iterator itr=cell->_trees.begin();
+			for(BillboardVegetationObjectVector::iterator itr= cell->_trees.begin();
 				itr!=cell->_trees.end();
 				++itr,++i)
 			{
@@ -193,5 +234,48 @@ namespace osgVegetation
 		}
 		if (group) return group;
 		else return geode;
+	}*/
+
+	osg::Node* VRTShaderInstancing::create(const BillboardVegetationObjectVector &trees, const osg::BoundingBox &bb)
+	{
+		osg::Geode* geode = 0;
+		osg::Group* group = 0;
+		if(trees.size() > 0)
+		{
+			osg::ref_ptr<osg::Geometry> templateGeometry = createOrthogonalQuadsNoColor(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
+			templateGeometry->setUseVertexBufferObjects(true);
+			templateGeometry->setUseDisplayList(false);
+			osg::Geometry* geometry = (osg::Geometry*)templateGeometry->clone( osg::CopyOp::DEEP_COPY_PRIMITIVES );
+			geometry->setUseDisplayList(false);
+			osg::DrawArrays* primSet = dynamic_cast<osg::DrawArrays*>( geometry->getPrimitiveSet(0) );
+			primSet->setNumInstances( trees.size() );
+			geode = new osg::Geode;
+			geode->addDrawable(geometry);
+			unsigned int i=0;
+			osg::ref_ptr<osg::Image> treeParamsImage = new osg::Image;
+			treeParamsImage->allocateImage( 3*trees.size(), 1, 1, GL_RGBA, GL_FLOAT );
+			for(BillboardVegetationObjectVector::const_iterator itr= trees.begin();
+				itr!= trees.end();
+				++itr,++i)
+			{
+				osg::Vec4f* ptr = (osg::Vec4f*)treeParamsImage->data(3*i);
+				BillboardVegetationObject& tree = **itr;
+				ptr[0] = osg::Vec4f(tree.Position.x(),tree.Position.y(),tree.Position.z(),1.0);
+				ptr[1] = osg::Vec4f((float)tree.Color.r()/255.0f,(float)tree.Color.g()/255.0f, (float)tree.Color.b()/255.0f, 1.0);
+				ptr[2] = osg::Vec4f(tree.Width, tree.Height, tree.TextureUnit, 1.0);
+
+			}
+			osg::ref_ptr<osg::TextureBuffer> tbo = new osg::TextureBuffer;
+			tbo->setImage( treeParamsImage.get() );
+			tbo->setInternalFormat(GL_RGBA32F_ARB);
+			geometry->getOrCreateStateSet()->setTextureAttribute(1, tbo.get(),osg::StateAttribute::ON);
+			geometry->setInitialBound( bb );
+			osg::Uniform* dataBufferSampler = new osg::Uniform("dataBuffer",1);
+			geometry->getOrCreateStateSet()->addUniform(dataBufferSampler);
+			
+			geode->setStateSet(m_StateSet);
+
+		}
+		return geode;
 	}
 }

@@ -6,35 +6,13 @@
 #include <osg/Vec4ub>
 #include <osg/ref_ptr>
 #include <vector>
+#include "VegetationLayer.h"
+
 
 namespace osgVegetation
 {
-	class VegetationObject : public osg::Referenced
-	{
-	public:
-		VegetationObject():
-		  Color(255,255,255,255),
-			  Width(1.0f),
-			  Height(1.0f),
-			  TextureUnit(0) {}
 
-		  VegetationObject(const osg::Vec3& position, const osg::Vec4ub& color, float width, float height, unsigned int type):
-		  Position(position),
-			  Color(color),
-			  Width(width),
-			  Height(height),
-			  TextureUnit(type) {}
-
-		  osg::Vec3       Position;
-		  osg::Vec4ub     Color;
-		  float           Width;
-		  float           Height;
-		  unsigned int    TextureUnit;
-		  std::vector<std::string> MeshNames;
-	};
-
-	typedef std::vector< osg::ref_ptr<VegetationObject> > VegetationObjectList;
-	class Cell : public osg::Referenced
+	/*class Cell : public osg::Referenced
 	{
 	public:
 		typedef std::vector< osg::ref_ptr<Cell> > CellList;
@@ -46,7 +24,7 @@ namespace osgVegetation
 
 		void addTree(VegetationObject* tree) { _trees.push_back(tree); }
 
-		void addTrees(const VegetationObjectList& trees) { _trees.insert(_trees.end(),trees.begin(),trees.end()); }
+		void addTrees(const VegetationObjectVector& trees) { _trees.insert(_trees.end(),trees.begin(),trees.end()); }
 
 		void computeBound();
 
@@ -60,6 +38,6 @@ namespace osgVegetation
 		Cell*               _parent;
 		osg::BoundingBox    _bb;
 		CellList            _cells;
-		VegetationObjectList            _trees;
-	};
+		VegetationObjectVector            _trees;
+	};*/
 }
