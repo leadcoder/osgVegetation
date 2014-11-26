@@ -46,6 +46,7 @@
 #include <osgUtil/LineSegmentIntersector>
 #include <osgUtil/IntersectionVisitor>
 #include <osgUtil/SmoothingVisitor>
+#include <osgUtil/Optimizer>
 
 #include <osgText/Text>
 
@@ -104,10 +105,11 @@ osg::ref_ptr<osg::Geode> CreateGeometry(const osg::Vec3 &min_pos, const osg::Vec
 	osg::Vec3 size = max_pos - min_pos;
 	// Create a geode to display t/he texture
 	osg::ref_ptr<osg::Geode> geode = new osg::Geode();
-
+	geode->setDataVariance(osg::Object::STATIC);
 	// Create a geometry for the geode
 	osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry();
 	geode->addDrawable(geometry);
+	geometry->setDataVariance(osg::Object::STATIC);
 
 	// The coordinates can be different if we want to display the
 	// texture at a location different from the coordinates of the
@@ -151,13 +153,13 @@ osg::ref_ptr<osg::Geode> CreateGeometry(const osg::Vec3 &min_pos, const osg::Vec
 	geometry->addPrimitiveSet(new osg::DrawArrays(GL_TRIANGLE_FAN, 0, 4));
 
 	// Add the texture to the geode
-	geode->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+	geometry->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
 	osg::AlphaFunc* alphaFunction = new osg::AlphaFunc;
 	alphaFunction->setFunction(osg::AlphaFunc::GEQUAL,0.1f);
-	geode->getOrCreateStateSet()->setAttributeAndModes( alphaFunction, osg::StateAttribute::ON );
+	geometry->getOrCreateStateSet()->setAttributeAndModes( alphaFunction, osg::StateAttribute::ON );
 	osg::CullFace* cull = new osg::CullFace(); 
 	cull->setMode(osg::CullFace::BACK); 
-	geode->getOrCreateStateSet()->setAttributeAndModes(cull, osg::StateAttribute::ON); 
+	geometry->getOrCreateStateSet()->setAttributeAndModes(cull, osg::StateAttribute::ON); 
 
 	//geode->getOrCreateStateSet()->setAttribute( new osg::AlphaFunc(osg::AlphaFunc::GEQUAL,0.1f) ,osg::StateAttribute::ON);
 
@@ -331,6 +333,7 @@ int main( int argc, char **argv )
 		out_texture->setImage(out_image);
 		out_transform->setMatrix(osg::Matrix::scale(1,1,1)*osg::Matrixd::rotate(osg::DegreesToRadians(angle),0,0,1));
 		out_transform->addChild(CreateGeometry(bb._min , bb._max, out_texture));
+		out_transform->setDataVariance(osg::Object::STATIC);
 		out_group->addChild(out_transform);
 	}
 
@@ -338,11 +341,25 @@ int main( int argc, char **argv )
 	{
 		viewer.setCameraManipulator(new osgGA::TrackballManipulator());
 	}
+	
+	osgUtil::Optimizer optimzer;
+	optimzer.optimize(out_group,osgUtil::Optimizer::FLATTEN_STATIC_TRANSFORMS);
+	optimzer.optimize(out_group,osgUtil::Optimizer::REMOVE_REDUNDANT_NODES);
+	optimzer.optimize(out_group,osgUtil::Optimizer::MERGE_GEODES);
+	optimzer.optimize(out_group,osgUtil::Optimizer::MERGE_GEOMETRY);
+	optimzer.optimize(out_group,osgUtil::Optimizer::TEXTURE_ATLAS_BUILDER);
+	
+	//optimzer.optimize(out_group,osgUtil::Optimizer::FLATTEN_STATIC_TRANSFORMS_DUPLICATING_SHARED_SUBGRAPHS);
+	//optimzer.optimize(out_group,osgUtil::Optimizer::VERTEX_PRETRANSFORM|osgUtil::Optimizer::VERTEX_POSTTRANSFORM);
+	//optimzer.optimize(out_group,osgUtil::Optimizer::MERGE_GEOMETRY);
+	//optimzer.optimize(out_group,osgUtil::Optimizer::TEXTURE_ATLAS_BUILDER);
 
 	sceneGraph->removeChild(camera);
 	sceneGraph->removeChild(geode);
 	
 	sceneGraph->addChild(out_group);
+
+	osgDB::writeNodeFile(*out_group,"c:/temp/test2.osg");
 
 	while(!viewer.done())
 	{
