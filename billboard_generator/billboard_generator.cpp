@@ -156,7 +156,7 @@ int main( int argc, char **argv )
 {
 
 	//osg::Group* mesh_ = 
-	osg::Node* mesh_node = osgDB::readNodeFile("C:/temp/exp_tress/birch/birch.obj");
+	osg::Node* mesh_node = osgDB::readNodeFile("C:/dev/dependencies/osg/OpenSceneGraph-Data-3.0.0/trees/birch.osg");
 	osg::MatrixTransform* transform = new osg::MatrixTransform;
 	transform->setMatrix(osg::Matrix::scale(1,1,1)*osg::Matrixd::rotate(osg::DegreesToRadians(-90.0),1,0,0));
 	transform->addChild(mesh_node);
