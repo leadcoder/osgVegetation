@@ -84,6 +84,9 @@ namespace osgVegetation
 		float min_TreeHeight = layer.Height.x();
 		float min_TreeWidth = layer.Width.x();
 
+		//float min_scale = layer.Scale.x();
+		//float max_scale = layer.Scale.y();
+
 		float max_TreeHeight = layer.Height.y();
 		float max_TreeWidth = layer.Width.y();
 
@@ -102,8 +105,10 @@ namespace osgVegetation
 						//TODO add color to layer
 						float intesity = random(layer.IntensitySpan.x(), layer.IntensitySpan.y());
 						veg_obj->Color.set(intesity,intesity,intesity,1.0);
-						veg_obj->Width = random(min_TreeWidth,max_TreeWidth);
-						veg_obj->Height = random(min_TreeHeight,max_TreeHeight);
+						
+						float tree_scale = 1.0;//random(min_scale ,max_scale);
+						veg_obj->Width = random(min_TreeWidth,max_TreeWidth)*tree_scale;
+						veg_obj->Height = random(min_TreeHeight,max_TreeHeight)*tree_scale;
 						veg_obj->Position = inter;
 						veg_obj->Rotation = osg::Quat(random(0,osg::PI),osg::Vec3(0,0,1));
 						object_list.push_back(veg_obj);
@@ -274,7 +279,7 @@ namespace osgVegetation
 					}
 				}
 
-				if((mesh_lod + 1) < layers[layer].MeshLODs.size()) //check if we have more lods, if not stop recursive calls
+				if((mesh_lod + 1) < layers[layer].MeshLODs.size()) //check if we have more lod's, if not stop recursive calls
 				{
 					final_lod = false;
 				}

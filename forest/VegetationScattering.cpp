@@ -61,37 +61,32 @@
 
 namespace osgVegetation
 {
-	VegetationScattering::VegetationScattering(osg::Node* terrain, double view_dist) :	m_Terrain(terrain), 
-		m_PatchTargetSize(view_dist)
+	VegetationScattering::VegetationScattering(osg::Node* terrain) : m_Terrain(terrain) 
 	{
-		m_ViewDistance = m_PatchTargetSize;
-		m_VRT = new VRTShaderInstancing();
+		m_VRT = new VRTShaderInstancing(true,true);
 		m_TerrainQuery = new VegetationTerrainQuery(terrain);
 	}
 
-
-	void VegetationScattering::populateVegetationLayer(const BillboardVegetationLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& object_list)
+	void VegetationScattering::populateVegetationLayer(const BillboardVegetationLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& object_list, double density_scale)
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
-		float max_TreeHeight = layer.Height.y();
-		float max_TreeWidth = layer.Width.y();
+		float max_tree_height = layer.Height.y();
+		float max_tree_width = layer.Width.y();
 
-		float min_TreeHeight = layer.Height.x();
-		float min_TreeWidth = layer.Width.x();
-		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
+		float min_tree_height = layer.Height.x();
+		float min_tree_width = layer.Width.x();
+
+		float min_scale = layer.Scale.x();
+		float max_scale = layer.Scale.y();
+
+
+		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*density_scale;
 		object_list.reserve(object_list.size()+num_objects_to_create);
 
-		//m_IntersectionVisitor.reset();
-	
 		for(unsigned int i=0;i<num_objects_to_create;++i)
 		{
-			osg::Vec3 pos(random(origin.x(),origin.x()+size.x()),random(origin.y(),origin.y()+size.y()),0);
-			//osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =
-			//	new osgUtil::LineSegmentIntersector(pos,pos+osg::Vec3(0.0f,0.0f,1000));
-
-			//m_IntersectionVisitor.setIntersector(intersector.get());
-			//m_Terrain->accept(m_IntersectionVisitor);
+			osg::Vec3 pos(Utils::random(origin.x(),origin.x()+size.x()),Utils::random(origin.y(),origin.y()+size.y()),0);
 			osg::Vec3 inter;
 			osg::Vec4 color; 
 
@@ -101,63 +96,24 @@ namespace osgVegetation
 				{
 					BillboardVegetationObject* veg_obj = new BillboardVegetationObject;
 					//TODO add color to layer
-					veg_obj->Width = random(min_TreeWidth,max_TreeWidth);
-					veg_obj->Height = random(min_TreeHeight,max_TreeHeight);
-					veg_obj->TextureUnit = layer.TextureUnit;
+					float tree_scale = Utils::random(min_scale ,max_scale);
+					veg_obj->Width = Utils::random(min_tree_width,max_tree_width)*tree_scale;
+					veg_obj->Height = Utils::random(min_tree_height,max_tree_height)*tree_scale;
+					veg_obj->TextureUnit = layer._TextureUnit;
 					veg_obj->Position = inter;
 					object_list.push_back(veg_obj);
 				}
 			}
-			/*if (intersector->containsIntersections())
-			{
-				osgUtil::LineSegmentIntersector::Intersections& intersections = intersector->getIntersections();
-				for(osgUtil::LineSegmentIntersector::Intersections::iterator itr = intersections.begin();
-					itr != intersections.end();
-					++itr)
-				{
-					const osgUtil::LineSegmentIntersector::Intersection& intersection = *itr;
-					
-					osg::Vec4 color; 
-					osg::Vec3 tc;
-					osg::Texture* texture = Utils::getTexture(intersection,tc);
-					//check if dds, if so we will try to load alternative image file because we have no utils to decompress dds
-					if(osgDB::getFileExtension(texture->getImage(0)->getFileName()) == "dds")
-					{
-						std::string new_texture_file = osgDB::getNameLessExtension(osgDB::getSimpleFileName(texture->getImage(0)->getFileName())) + ".rgb";
-						//first check cache
-						osg::Image* image = NULL;
-						MaterialCacheMap::iterator iter = m_MaterialCache.find(new_texture_file);
-						if(iter != m_MaterialCache.end())
-						{
-							image = iter->second.get();
-						}
-						else
-						{
-							m_MaterialCache[new_texture_file] = osgDB::readImageFile(new_texture_file);
-							image = m_MaterialCache[new_texture_file].get();
-						}
-						if(image)
-						{
-							color = image->getColor(tc);
-						}
-					}
-					else
-						color = texture->getImage(0)->getColor(tc);
-
-					
-				}
-			}*/
-
 		}
 	}
 	
-	BillboardVegetationObjectVector VegetationScattering::generateVegetation(BillboardVegetationLayerVector &layers,const osg::BoundingBox& bb)
+	BillboardVegetationObjectVector VegetationScattering::generateVegetation(BillboardVegetationLayerVector &layers,const osg::BoundingBox& bb, double density_scale)
 	{
 		BillboardVegetationObjectVector trees;
 		double const density= 1;
 		for(size_t i = 0 ; i < layers.size();i++)
 		{
-			populateVegetationLayer(layers[i],bb,trees);
+			populateVegetationLayer(layers[i],bb,trees,density_scale);
 		}
 		return trees;
 	}
@@ -210,85 +166,115 @@ namespace osgVegetation
 	osg::Node* VegetationScattering::createLODRec(int ld, BillboardVegetationLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
 	{
 		osg::ref_ptr<osg::Group> group = new osg::Group;
-		osg::ref_ptr<osg::Group> mesh_group = new osg::Group;
+		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
-		if(bb_size < m_ViewDistance) //final lod
+
+		bool final_lod = false;
+
+		if(bb_size < m_MinPatchSize)
+			final_lod = true;
+		
+		if(bb_size < m_ViewDistance)
 		{
+
+			//calculate density ratio for this lod level
+			int ratio = (m_FinalLOD - ld);
+			int tiles = pow(2.0, ratio);
+			double density_ratio = tiles*tiles;
+			density_ratio = 1.0/density_ratio;
+
 			if(trees.size() == 0)
 			{
-				trees = generateVegetation(layers,bb);
+				trees = generateVegetation(layers,bb,density_ratio);
 			}
-
 			BillboardVegetationObjectVector patch_trees;
-			/*size_t step = 0;
-			if(current_size < final_patch_size)
-			{
-				step = 1;
-			}*/
+			
 			//get trees inside patch
-			for(size_t i = 0; i < trees.size(); i++)
+			/*for(size_t i = 0; i < trees.size(); i = i++)
 			{
-				if(bb.contains(trees[i]->Position))
+				//if(bb.contains(trees[i]->Position))
 				{
 					patch_trees.push_back(trees[i]);
 				}
-			}
-			return m_VRT->create(patch_trees,bb);
+			}*/
+			osg::Node* node = m_VRT->create(trees,bb);
+			trees.clear();
+
+			mesh_group->addChild(node);
+			//osgDB::writeNodeFile(*node,"c:/temp/bbveg.ive");
 		}
 
-		//split bounding box for children
-		double sx = (bb._max.x() - bb._min.x())*0.5;
-		double sy = (bb._max.x() - bb._min.x())*0.5;
-		osg::BoundingBox b1(bb._min, 
-							osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,bb._max.z()));
-		osg::BoundingBox b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       ,bb._min.z()),
-							osg::Vec3(bb._max.x(),       bb._min.y() + sy  ,bb._max.z()));
+		//split bounding box into four new children
 
-		osg::BoundingBox b3(osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy   ,bb._min.z()),
-							osg::Vec3(bb._max.x(),       bb._max.y()		,bb._max.z()));
+		if(!final_lod)
+		{
+			double sx = (bb._max.x() - bb._min.x())*0.5;
+			double sy = (bb._max.x() - bb._min.x())*0.5;
+			osg::BoundingBox b1(bb._min, 
+				osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,bb._max.z()));
+			osg::BoundingBox b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       ,bb._min.z()),
+				osg::Vec3(bb._max.x(),       bb._min.y() + sy  ,bb._max.z()));
 
-		osg::BoundingBox b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  ,bb._min.z()),
-							osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
+			osg::BoundingBox b3(osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy   ,bb._min.z()),
+				osg::Vec3(bb._max.x(),       bb._max.y()		,bb._max.z()));
 
-		group->addChild( createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
-		group->addChild( createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
-		group->addChild( createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
-		group->addChild( createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
+			osg::BoundingBox b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  ,bb._min.z()),
+				osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
 
-		/*osg::LOD* plod = new osg::LOD;
-		plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-		plod->setCenter( bb.center());
-		float radius = sqrt(current_size*current_size);
-		plod->setRadius( radius);
-		float cutoff = radius*2;
-		plod->addChild(group,0,FLT_MAX);*/
-		osg::LOD* plod = new osg::LOD;
-		plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
-		plod->setCenter( bb.center());
+			group->addChild( createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
+			group->addChild( createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
+			group->addChild( createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
+			group->addChild( createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
+
+			osg::LOD* plod = new osg::LOD;
+			plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
+			plod->setCenter( bb.center());
+
+			double radius = sqrt(bb_size*bb_size);
+			plod->setRadius(radius);
+
+			float cutoff = radius*2;
+			//regular terrain lod setup
+			//plod->addChild(mesh_group, cutoff, FLT_MAX );
+			plod->addChild(mesh_group, 0, FLT_MAX );
+			plod->addChild(group, 0.0f, cutoff );
+			return plod;
+		}
+		else
+			return mesh_group;
 		
-		double radius = sqrt(bb_size*bb_size);
-		plod->setRadius(radius);
-		
-		float cutoff = radius*2;
-		plod->setRange( 0, cutoff, FLT_MAX );
-		plod->setRange( 1, 0.0f, cutoff );
-		plod->addChild(mesh_group);
-		plod->addChild(group);
-		return plod;
 	}
 
-	osg::Node* VegetationScattering::create(BillboardVegetationLayerVector &layers)
+	osg::Node* VegetationScattering::create(BillboardVegetationData &data)
 	{
 		osg::ComputeBoundsVisitor  cbv;
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		m_Terrain->accept(cbv);
-		osg::Vec3 terrain_size = (bb._max - bb._min);
-
+		bb._max.set(std::max(bb._max.x(),bb._max.y()),std::max(bb._max.x(),bb._max.y()), bb._max.z());
+		bb._min.set(std::min(bb._min.x(),bb._min.y()),std::min(bb._min.x(),bb._min.y()), bb._min.z());
+		
+		m_ViewDistance = data.ViewDistance;
+		m_VRT->setAlphaRefValue(data.AlphaRefValue);
+		m_VRT->setAlphaBlend(data.UseAlphaBlend);
+		m_VRT->setTerrainNormal(data.TerrainNormal);
 		osg::Group* group = new osg::Group;
-		group->setStateSet(m_VRT->createStateSet(layers));
+		group->setStateSet(m_VRT->createStateSet(data.Layers));
+
+		double terrain_size = bb._max.x() - bb._min.x();
+
+		m_MinPatchSize = m_ViewDistance/4;
+
+		double temp_size  = terrain_size;
+		m_FinalLOD =0;
+		while(temp_size > m_MinPatchSize)
+		{
+			temp_size = temp_size/2.0; 
+			m_FinalLOD++;
+		}
+		//m_FinalLOD = terrain_size/m_MinPatchSize;
 
 		BillboardVegetationObjectVector trees;
-		osg::Node* outnode = createLODRec(0, layers, trees, bb,0,0);
+		osg::Node* outnode = createLODRec(0, data.Layers, trees, bb,0,0);
 		group->addChild(outnode);
 		return group;
 	}

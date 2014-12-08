@@ -6,6 +6,7 @@
 
 namespace osgVegetation
 {
+	class Cell;
 	class VRTGeometryShader :  public BillboardVegetationRenderingTech
 	{
 	public:

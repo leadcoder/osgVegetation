@@ -6,6 +6,7 @@
 
 namespace osgVegetation
 {
+	class Cell;
 	class VRTMeshShaderInstancing :  public MeshVegetationRenderingTech
 	{
 	public:

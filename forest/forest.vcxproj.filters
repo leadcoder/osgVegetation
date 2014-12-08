@@ -95,9 +95,6 @@
     <ClCompile Include="VRTMeshShaderInstancing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MeshVegetationScattering.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="VegetationScattering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -105,6 +102,9 @@
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="VegetationTerrainQuery.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshVegetationScattering.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>

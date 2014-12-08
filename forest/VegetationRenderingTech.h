@@ -22,24 +22,23 @@ namespace osgVegetation
 		int random(int min,int max) { return min + (int)(((float)(max-min)*(float)rand()/(float)RAND_MAX) + 0.5f); }
 	};
 
-	class Cell;
 	class BillboardVegetationRenderingTech : public osg::Referenced
 	{
 	public:
 		BillboardVegetationRenderingTech(){}
 		virtual ~BillboardVegetationRenderingTech(){}
-		//virtual osg::Node* create(const BillboardVegetationObjectVector &trees, const osg::BoundingBox &bb) = 0;
 		virtual osg::Node* create(const BillboardVegetationObjectVector &trees, const osg::BoundingBox &bb) = 0;
-		//virtual osg::Node* create(Cell* cell)= 0;
 		virtual osg::StateSet* createStateSet(BillboardVegetationLayerVector &layers) = 0;
+		virtual void setAlphaRefValue(float value) = 0;
+		virtual void setAlphaBlend(bool value) = 0;
+		virtual void setTerrainNormal(bool value) = 0;
 	protected:
-		osg::Geometry* createSprite( float w, float h, osg::Vec4ub color );
-		osg::Geometry* createOrthogonalQuads( const osg::Vec3& pos, float w, float h, osg::Vec4ub color );
-		osg::Geometry* createOrthogonalQuadsNoColor( const osg::Vec3& pos, float w, float h );
-		float random(float min,float max) { return min + (max-min)*(float)rand()/(float)RAND_MAX; }
-		int random(int min,int max) { return min + (int)(((float)(max-min)*(float)rand()/(float)RAND_MAX) + 0.5f); }
+		//osg::Geometry* createSprite( float w, float h, osg::Vec4ub color );
+		//osg::Geometry* createOrthogonalQuads( const osg::Vec3& pos, float w, float h, osg::Vec4ub color );
+		//osg::Geometry* createOrthogonalQuadsNoColor( const osg::Vec3& pos, float w, float h );
+		//float random(float min,float max) { return min + (max-min)*(float)rand()/(float)RAND_MAX; }
+		//int random(int min,int max) { return min + (int)(((float)(max-min)*(float)rand()/(float)RAND_MAX) + 0.5f); }
 	};
-
 
 	class MeshVegetationRenderingTech : public osg::Referenced
 	{

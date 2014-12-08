@@ -165,33 +165,75 @@ int main( int argc, char **argv )
 	//osgDB::writeNodeFile(*veg_node,"c:/temp/test.ive");
 
 	
-	osgVegetation::BillboardVegetationLayerVector bblayers;
-	osgVegetation::BillboardVegetationLayer grass1; 
-	grass1.Materials.push_back(material_map[WOODS]);
-	grass1.TextureUnit = 0;
-	//bblayers.push_back(grass1);
-
-	osgVegetation::BillboardVegetationLayer  grass2; 
-	grass2.Density = 0.1;
+	osgVegetation::BillboardVegetationData undergrowth_data(50,true,0.5,true);
+	
+	osgVegetation::BillboardVegetationLayer  grass2("Images/veg_grass02.dds"); 
+	grass2.Density = 3.5;
 	grass2.Height.set(0.3,0.6);
 	grass2.Width.set(0.25,0.35);
-	grass2.TextureName = "Images/veg_grass02.dds";
+	grass2.Scale.set(1.5,3);
 	grass2.Materials.push_back(material_map[GRASS]);
-	bblayers.push_back(grass2);
+	grass2.Materials.push_back(material_map[WOODS]);
+	undergrowth_data.Layers.push_back(grass2);
 
-	osgVegetation::BillboardVegetationLayer  grass3; 
+	osgVegetation::BillboardVegetationLayer  grass3("Images/veg_plant03.dds"); 
 	grass3.Density = 0.1;
 	grass3.Height.set(0.6,1.2);
 	grass3.Width.set(0.5,0.7);
-	grass3.TextureName = "Images/veg_plant03.dds";
+	grass3.Scale.set(1.5,3);
 	grass3.Materials.push_back(material_map[GRASS]);
 	grass3.Materials.push_back(material_map[WOODS]);
-	bblayers.push_back(grass3);
-	
-	osgVegetation::VegetationScattering bs(terrain.get(),25);
-	osg::Node* bb_node = bs.create(bblayers);
-	group->addChild(bb_node);
-	osgDB::writeNodeFile(*bb_node,"c:/temp/bbveg.ive");
+	undergrowth_data.Layers.push_back(grass3);
+
+	osgVegetation::BillboardVegetationData tree_data(400,true,0.08,false);
+
+	osgVegetation::BillboardVegetationLayer  spruce("Images/spruce01.dds");
+	spruce.Density = 0.03;
+	spruce.Height.set(5,5);
+	spruce.Width.set(2,2);
+	spruce.Scale.set(2,3);
+	spruce.Materials.push_back(material_map[WOODS]);
+	tree_data.Layers.push_back(spruce);
+
+	osgVegetation::BillboardVegetationLayer  pine("Images/pine01.dds"); 
+	pine.Density = 0.03;
+	pine.Height.set(5,5);
+	pine.Width.set(2,2);
+	pine.Scale.set(2,3);
+	pine.Materials.push_back(material_map[WOODS]);
+	tree_data.Layers.push_back(pine);
+
+	osgVegetation::BillboardVegetationLayer  birch("Images/birch01.dds");
+	birch.Density = 0.03;
+	birch.Height.set(4,4);
+	birch.Width.set(4,4);
+	birch.Scale.set(2,3);
+	birch.Materials.push_back(material_map[WOODS]);
+	tree_data.Layers.push_back(birch);
+
+	//osgVegetation::VegetationScattering bs(terrain.get(),400);
+	//osg::Node* bb_node = bs.create(bblayers);
+
+	osgVegetation::VegetationScattering scattering(terrain.get());
+	osg::Node* ug_node = scattering.create(undergrowth_data);
+	group->addChild(ug_node);
+	osg::Node* tree_node = scattering.create(tree_data);
+	group->addChild(tree_node);
+
+	//osgDB::writeNodeFile(*bb_node,"c:/temp/bbveg.ive");
+
+	// osg:Light allows us to set default parameter values to be used by osg::LightSource
+	// note: we do not use light number 0, because we do not want to override the osg default headlights
+	osg::Light* pLight = new osg::Light;
+	//pLight->setLightNum( 4 );						
+	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
+	pLight->setPosition( osg::Vec4(1,0,1,0) );		// last param	w = 0.0 directional light (direction)
+	//				w = 1.0 point light (position)
+	// light source
+	osg::LightSource* pLightSource = new osg::LightSource;    
+	pLightSource->setLight( pLight );
+
+	group->addChild( pLightSource );
 	
 	viewer.setSceneData(group);
 	
