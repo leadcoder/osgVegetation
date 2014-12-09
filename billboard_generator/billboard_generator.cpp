@@ -253,7 +253,9 @@ int main( int argc, char **argv )
 	//Set the camera's viewport to the same size of the texture
 	camera->setViewport(0, 0, textureWidth, textureHeight);
 
-	osg::Vec4 clearColor(0,0,0,0);
+	//osg::Vec4 clearColor(30.0/255.0, 41.0/255.0, 18.0/255.0, 0); //pine
+	//osg::Vec4 clearColor(16.0/255.0, 20.0/255.0, 8.0/255.0, 0); //spruce
+	osg::Vec4 clearColor(27.0/255.0, 44.0/255.0, 18.0/255.0, 0); //birch
 	// Set the camera's clear color and masks
 	camera->setClearColor(clearColor);
 	camera->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
