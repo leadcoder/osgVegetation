@@ -6,7 +6,7 @@
 #include <osg/Vec4ub>
 #include <osg/ref_ptr>
 #include <vector>
-#include "VegetationLayer.h"
+#include "BillboardLayer.h"
 
 
 namespace osgVegetation

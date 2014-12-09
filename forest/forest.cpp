@@ -1,21 +1,3 @@
-/* OpenSceneGraph example, osgforest.
-*
-*  Permission is hereby granted, free of charge, to any person obtaining a copy
-*  of this software and associated documentation files (the "Software"), to deal
-*  in the Software without restriction, including without limitation the rights
-*  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-*  copies of the Software, and to permit persons to whom the Software is
-*  furnished to do so, subject to the following conditions:
-*
-*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-*  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-*  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-*  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-*  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-*  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-*  THE SOFTWARE.
-*/
-
 #include <osg/AlphaFunc>
 #include <osg/Billboard>
 #include <osg/BlendFunc>
@@ -65,13 +47,9 @@
 #include <sstream>
 // for the grid data..
 #include "terrain_coords.h"
-//#include "VegetationCell.h"
-//#include "VRTGeometryShader.h"
-//#include "VRTShaderInstancing.h"
-#include "MeshVegetationScattering.h"
-//#include "VRTSoftwareGeometry.h"
-#include "VRTMeshShaderInstancing.h"
-#include "VegetationScattering.h"
+#include "MeshScattering.h"
+#include "MRTShaderInstancing.h"
+#include "QuadTreeScattering.h"
 
 int main( int argc, char **argv )
 {
@@ -80,13 +58,7 @@ int main( int argc, char **argv )
 
 	// construct the viewer.
 	osgViewer::Viewer viewer(arguments);
-
-	//unsigned int numTreesToCreate = 2000;
-	//arguments.read("--trees",numTreesToCreate);
-	//unsigned int maxNumTreesPerCell = sqrtf(static_cast<float>(numTreesToCreate));
-	//arguments.read("--trees-per-cell",maxNumTreesPerCell);
-	//osg::ref_ptr<osgVegetation::ForestTechniqueManager> ttm = new osgVegetation::ForestTechniqueManager;
-
+	
 	// add the stats handler
 	viewer.addEventHandler(new osgViewer::StatsHandler);
 
@@ -130,7 +102,7 @@ int main( int argc, char **argv )
 	material_map[ROAD] = osgVegetation::MaterialColor(0,0,1,1);
 	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
 
-	osgVegetation::MeshVegetationLayer treelayer1; 
+	osgVegetation::MeshLayer treelayer1; 
 	treelayer1.Density = 0.03;
 	treelayer1.Height.set(0.7,1.2);
 	treelayer1.Width.set(0.9,1.1);
@@ -141,7 +113,7 @@ int main( int argc, char **argv )
 	treelayer1.MeshLODs.push_back(osgVegetation::MeshLod("trees/pine01_no_alpha.osg",75));
 	treelayer1.Materials.push_back(material_map[WOODS]);
 
-	osgVegetation::MeshVegetationLayer treelayer2; 
+	osgVegetation::MeshLayer treelayer2; 
 	treelayer2.Density = 0.01;
 	treelayer2.Height.set(7,12);
 	treelayer2.Width.set(9,11);
@@ -155,7 +127,7 @@ int main( int argc, char **argv )
 	//grass1.MeshName = "C:/temp/osgearth/osgearth/data/loopix/tree7.osgb";
 	//grass1.MeshName = "C:/dev/GASSData/gfx/osg/3dmodels/genesis/patria.3ds";
 
-	osgVegetation::MeshVegetationLayerVector layers;
+	osgVegetation::MeshLayerVector layers;
 	//layers.push_back(treelayer1);
 	layers.push_back(treelayer2);
 	
@@ -165,9 +137,9 @@ int main( int argc, char **argv )
 	//osgDB::writeNodeFile(*veg_node,"c:/temp/test.ive");
 
 	
-	osgVegetation::BillboardVegetationData undergrowth_data(50,true,0.5,true);
+	osgVegetation::BillboardData undergrowth_data(50,true,0.5,true);
 	
-	osgVegetation::BillboardVegetationLayer  grass2("Images/veg_grass02.dds"); 
+	osgVegetation::BillboardLayer  grass2("Images/veg_grass02.dds"); 
 	grass2.Density = 3.5;
 	grass2.Height.set(0.3,0.6);
 	grass2.Width.set(0.25,0.35);
@@ -176,7 +148,7 @@ int main( int argc, char **argv )
 	grass2.Materials.push_back(material_map[WOODS]);
 	undergrowth_data.Layers.push_back(grass2);
 
-	osgVegetation::BillboardVegetationLayer  grass3("Images/veg_plant03.dds"); 
+	osgVegetation::BillboardLayer  grass3("Images/veg_plant03.dds"); 
 	grass3.Density = 0.1;
 	grass3.Height.set(0.6,1.2);
 	grass3.Width.set(0.5,0.7);
@@ -185,9 +157,9 @@ int main( int argc, char **argv )
 	grass3.Materials.push_back(material_map[WOODS]);
 	undergrowth_data.Layers.push_back(grass3);
 
-	osgVegetation::BillboardVegetationData tree_data(400,true,0.08,false);
+	osgVegetation::BillboardData tree_data(400,true,0.08,false);
 
-	osgVegetation::BillboardVegetationLayer  spruce("Images/spruce01.dds");
+	osgVegetation::BillboardLayer  spruce("Images/spruce01.dds");
 	spruce.Density = 0.03;
 	spruce.Height.set(5,5);
 	spruce.Width.set(2,2);
@@ -195,7 +167,7 @@ int main( int argc, char **argv )
 	spruce.Materials.push_back(material_map[WOODS]);
 	tree_data.Layers.push_back(spruce);
 
-	osgVegetation::BillboardVegetationLayer  pine("Images/pine01.dds"); 
+	osgVegetation::BillboardLayer  pine("Images/pine01.dds"); 
 	pine.Density = 0.03;
 	pine.Height.set(5,5);
 	pine.Width.set(2,2);
@@ -203,7 +175,7 @@ int main( int argc, char **argv )
 	pine.Materials.push_back(material_map[WOODS]);
 	tree_data.Layers.push_back(pine);
 
-	osgVegetation::BillboardVegetationLayer  birch("Images/birch01.dds");
+	osgVegetation::BillboardLayer  birch("Images/birch01.dds");
 	birch.Density = 0.03;
 	birch.Height.set(4,4);
 	birch.Width.set(4,4);
@@ -214,7 +186,7 @@ int main( int argc, char **argv )
 	//osgVegetation::VegetationScattering bs(terrain.get(),400);
 	//osg::Node* bb_node = bs.create(bblayers);
 
-	osgVegetation::VegetationScattering scattering(terrain.get());
+	osgVegetation::QuadTreeScattering scattering(terrain.get());
 	osg::Node* ug_node = scattering.create(undergrowth_data);
 	group->addChild(ug_node);
 	osg::Node* tree_node = scattering.create(tree_data);

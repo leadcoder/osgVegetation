@@ -1,4 +1,4 @@
-#include "VRTGeometryShader.h"
+#include "BRTGeometryShader.h"
 #include <osg/AlphaFunc>
 #include <osg/Billboard>
 #include <osg/BlendFunc>
@@ -16,14 +16,13 @@
 #include <osg/Image>
 #include <osg/Texture2DArray>
 #include <osgDB/ReadFile>
-#include "VegetationCell.h"
-#include "VegetationLayer.h"
+#include "BillboardLayer.h"
 
 
 namespace osgVegetation
 {
 
-	osg::Program* VRTGeometryShader::createGeometryShader() const
+	osg::Program* BRTGeometryShader::createGeometryShader() const
 	{
 		static const char* vertSource = {
 			"#version 120\n"
@@ -105,7 +104,7 @@ namespace osgVegetation
 		return pgm;
 
 	}
-	void VRTGeometryShader::createStateSet(VegetationLayerVector &layers)
+	void BRTGeometryShader::createStateSet(VegetationLayerVector &layers)
 	{
 		//Load textures
 		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
@@ -149,7 +148,7 @@ namespace osgVegetation
 		m_StateSet->setAttribute( createGeometryShader() );
 	}
 
-	osg::Node* VRTGeometryShader::create(Cell* cell)
+	/*osg::Node* BRTGeometryShader::create(Cell* cell)
 	{
 		bool needGroup = !(cell->_cells.empty());
 		bool needTrees = !(cell->_trees.empty());
@@ -203,7 +202,7 @@ namespace osgVegetation
 		}
 		if (group) return group;
 		else return geode;
-	}
+	}*/
 
 	
 }

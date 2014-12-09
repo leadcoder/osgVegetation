@@ -2,13 +2,11 @@
 #include <osg/StateSet>
 #include <osg/Geometry>
 #include <math.h>
-#include "VegetationRenderingTech.h"
+#include "IBillboardRenderingTech.h"
 
 namespace osgVegetation
 {
-	class Cell;
-
-	class VRTSoftwareGeometry : public VegetationRenderingTech
+	/*class VRTSoftwareGeometry : public VegetationRenderingTech
 	{
 	public:
 		VRTSoftwareGeometry() {}
@@ -17,5 +15,5 @@ namespace osgVegetation
 	protected:
 		osg::Node* createTransformGraph2(Cell* cell);
 		osg::ref_ptr<osg::Node> m_VegMesh;
-	};
+	};*/
 }
