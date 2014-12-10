@@ -86,11 +86,12 @@ namespace osgVegetation
 		{
 			osg::Vec3 pos(Utils::random(origin.x(),origin.x()+size.x()),Utils::random(origin.y(),origin.y()+size.y()),0);
 			osg::Vec3 inter;
-			osg::Vec4 color; 
+			osg::Vec4 color;
+			osg::Vec4 mat_color;
 
-			if(m_TerrainQuery->getTerrainData(pos,color,inter))
+			if(m_TerrainQuery->getTerrainData(pos,color,mat_color,inter))
 			{
-				if(layer.hasMaterial(color))
+				if(layer.hasMaterial(mat_color))
 				{
 					BillboardObject* veg_obj = new BillboardObject;
 					//TODO add color to layer

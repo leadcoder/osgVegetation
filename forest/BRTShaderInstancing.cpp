@@ -109,9 +109,10 @@ namespace osgVegetation
 
 			std::stringstream vertexShaderSource;
 			vertexShaderSource << 
-				"#version 440 compatibility\n"
+				"#version 430 compatibility\n"
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
 				"uniform samplerBuffer dataBuffer;\n"
+				"uniform float fadeInDist;\n"
 				"out vec2 TexCoord;\n";
 			if(m_PPL)
 			{
@@ -140,6 +141,7 @@ namespace osgVegetation
 					"   modelView[0][0] = data.x; modelView[0][1] = 0.0;modelView[0][2] = 0.0;\n"
 					"   modelView[1][0] = 0;      modelView[1][1] = data.y;modelView[1][2] = 0.0;\n"
 					"   vec4 prePos = modelView * vec4(gl_Vertex.xyz,1.0) ;\n"
+					"   prePos.y = prePos.y - data.y*gl_Vertex.z * clamp(((-prePos.z-fadeInDist)/20.0), 0.0, 1.0);\n"
 					"   gl_Position = gl_ProjectionMatrix * prePos ;\n";
 					
 					if(m_TerrainNormal)
@@ -199,7 +201,7 @@ namespace osgVegetation
 
 			std::stringstream fragmentShaderSource;
 			fragmentShaderSource <<
-				"#version 440 core\n"
+				"#version 430 core\n"
 				"#extension GL_EXT_gpu_shader4 : enable\n"
 				"#extension GL_EXT_texture_array : enable\n"
 				"uniform sampler2DArray baseTexture; \n"
@@ -227,7 +229,7 @@ namespace osgVegetation
 			}
 			fragmentShaderSource <<
 				"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
-				"    finalColor.w = finalColor.w * clamp(1 - ((depth-fadeInDist)/10), 0.0, 1.0);\n"
+				"    finalColor.w = finalColor.w * clamp(1 - ((depth-fadeInDist)/fadeInDist*0.2), 0.0, 1.0);\n"
 				"    FragData0 = Color*finalColor;\n"
 				"}\n";
 

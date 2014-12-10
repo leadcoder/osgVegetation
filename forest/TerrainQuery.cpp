@@ -38,7 +38,7 @@ namespace osgVegetation
 		m_IntersectionVisitor.setLODSelectionMode(osgUtil::IntersectionVisitor::USE_HIGHEST_LEVEL_OF_DETAIL);
 	}
 
-	bool TerrainQuery::getTerrainData(osg::Vec3& location, osg::Vec4 &color, osg::Vec3 &inter)
+	bool TerrainQuery::getTerrainData(osg::Vec3& location, osg::Vec4 &color, osg::Vec4 &material_color, osg::Vec3 &inter)
 	{
 		osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =	new osgUtil::LineSegmentIntersector(location,location+osg::Vec3(0.0f,0.0f,1000));
 		m_IntersectionVisitor.setIntersector(intersector.get());
@@ -52,27 +52,17 @@ namespace osgVegetation
 			{
 				const osgUtil::LineSegmentIntersector::Intersection& intersection = *itr;
 				osg::Vec3 tc;
-				osg::Texture* texture = getTexture(intersection,tc);
+				osg::Texture* texture = _getTexture(intersection,tc);
 
 				if(texture && texture->getImage(0))
 				{
-					std::string tex_file_name = osgDB::getFileExtension(texture->getImage(0)->getFileName();
-				   //check if dds, if so we will try to load alternative image file because we have no utils to decompress dds
-					if(osgDB::getFileExtension(tex_file_name) == "dds")
+					std::string tex_filename = osgDB::getSimpleFileName(texture->getImage(0)->getFileName());
+				    //check if dds, if so we will try to load alternative image file because we have no utils to decompress dds
+					if(osgDB::getFileExtension(tex_filename) == "dds")
 					{
-						tex_file_name = osgDB::getNameLessExtension(osgDB::getSimpleFileName(texture->getImage(0)->getFileName())) + ".rgb";
+						tex_filename = osgDB::getNameLessExtension(tex_filename) + ".rgb";
 						//first check cache
-						osg::Image* image = NULL;
-						MaterialCacheMap::iterator iter = m_MaterialCache.find(tex_file_name);
-						if(iter != m_MaterialCache.end())
-						{
-							image = iter->second.get();
-						}
-						else
-						{
-							m_MaterialCache[tex_file_name] = osgDB::readImageFile(tex_file_name);
-							image = m_MaterialCache[tex_file_name].get();
-						}
+						osg::Image* image = _loadImage(tex_filename);
 						if(image)
 						{
 							color = image->getColor(tc);
@@ -80,6 +70,16 @@ namespace osgVegetation
 					}
 					else
 						color = texture->getImage(0)->getColor(tc);
+
+					//get material texture
+					const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + "_material.png";
+					osg::Image* image = _loadImage(mat_image_filename);
+					if(image)
+					{
+						material_color = image->getColor(tc);
+					}
+					else
+						material_color = color;
 				}
 				inter = intersection.getWorldIntersectPoint();
 				return true;
@@ -88,8 +88,24 @@ namespace osgVegetation
 		return false;
 	}
 
+	osg::Image* TerrainQuery::_loadImage(const std::string &filename)
+	{
+		osg::Image* image = NULL;
+		MaterialCacheMap::iterator iter = m_MaterialCache.find(filename);
+		if(iter != m_MaterialCache.end())
+		{
+			image = iter->second.get();
+		}
+		else
+		{
+			m_MaterialCache[filename] = osgDB::readImageFile(filename);
+			image = m_MaterialCache[filename].get();
+		}
+		return image;
+	}
 
-	osg::Texture* TerrainQuery::getTexture(const osgUtil::LineSegmentIntersector::Intersection& intersection,osg::Vec3& tc) const
+
+	osg::Texture* TerrainQuery::_getTexture(const osgUtil::LineSegmentIntersector::Intersection& intersection,osg::Vec3& tc) const
 	{
 		osg::Geometry* geometry = intersection.drawable.valid() ? intersection.drawable->asGeometry() : 0;
 		osg::Vec3Array* vertices = geometry ? dynamic_cast<osg::Vec3Array*>(geometry->getVertexArray()) : 0;

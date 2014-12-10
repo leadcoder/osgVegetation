@@ -92,10 +92,11 @@ namespace osgVegetation
 			{
 				osg::Vec3 pos(random(origin.x(),origin.x()+size.x()),random(origin.y(),origin.y()+size.y()),0);
 				osg::Vec4 color;
+				osg::Vec4 mat_color;
 				osg::Vec3 inter;
-				if(m_TerrainQuery->getTerrainData(pos,color,inter))
+				if(m_TerrainQuery->getTerrainData(pos,color,mat_color,inter))
 				{
-					if(layer.hasMaterial(color))
+					if(layer.hasMaterial(mat_color))
 					{
 						MeshObject* veg_obj = new MeshObject;
 						//TODO add color to layer
