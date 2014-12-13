@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include <osg/StateSet>
 #include <osg/Geometry>
 #include <math.h>
@@ -6,7 +7,7 @@
 
 namespace osgVegetation
 {
-	class MRTShaderInstancing :  public IMeshRenderingTech
+	class osgvExport MRTShaderInstancing :  public IMeshRenderingTech
 	{
 	public:
 		MRTShaderInstancing() {}

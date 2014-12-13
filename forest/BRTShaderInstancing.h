@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include <osg/StateSet>
 #include <osg/Geometry>
 #include <osg/BoundingBox>
@@ -7,7 +8,7 @@
 
 namespace osgVegetation
 {
-	class BRTShaderInstancing :  public IBillboardRenderingTech
+	class osgvExport BRTShaderInstancing :  public IBillboardRenderingTech
 	{
 	public:
 		BRTShaderInstancing(bool true_billboards, bool use_simple_normals);

@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include <osg/BoundingBox>
 #include <osg/Referenced>
 #include <osg/vec4>
@@ -19,7 +20,7 @@ namespace osgVegetation
 	class TerrainQuery;
 
 
-	class QuadTreeScattering : public osg::Referenced
+	class osgvExport QuadTreeScattering : public osg::Referenced
 	{
 	public:
 		QuadTreeScattering(osg::Node* terrain);

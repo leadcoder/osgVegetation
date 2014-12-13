@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include <osg/BoundingBox>
 #include <osg/Referenced>
 #include <osg/vec4>
@@ -15,7 +16,7 @@ namespace osgSim {class DatabaseCacheReadCallback;}
 
 namespace osgVegetation
 {
-	class TerrainQuery : public osg::Referenced
+	class osgvExport TerrainQuery : public osg::Referenced
 	{
 	public:
 		TerrainQuery(osg::Node* terrain);
