@@ -1,5 +1,5 @@
 SET(APP_NAME "sample1")
-SET(CPP_FILES "forest.cpp")
+SET(CPP_FILES "sample1.cpp")
 
 include(OSGDep)
 
