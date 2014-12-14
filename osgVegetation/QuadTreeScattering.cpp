@@ -8,50 +8,22 @@
 #include <osg/Material>
 #include <osg/Math>
 #include <osg/MatrixTransform>
-#include <osg/PolygonOffset>
-#include <osg/Projection>
 #include <osg/ShapeDrawable>
 #include <osg/StateSet>
-#include <osg/Switch>
 #include <osg/Texture2D>
 #include <osg/TextureBuffer>
 #include <osg/Image>
 #include <osg/TexEnv>
-#include <osg/VertexProgram>
-#include <osg/FragmentProgram>
 #include <osg/ComputeBoundsVisitor>
-#include <osg/TexMat>
+#include <osg/PagedLOD>
+
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
 #include <osg/Texture2DArray>
-
-#include <osgUtil/LineSegmentIntersector>
-#include <osgUtil/IntersectionVisitor>
-#include <osgUtil/SmoothingVisitor>
-#include <osgSim/LineOfSight>
-
-#include <osgText/Text>
-
-#include <osgViewer/Viewer>
-#include <osgViewer/ViewerEventHandlers>
-
-
-#include <osgGA/StateSetManipulator>
-#include <osgGA/TrackballManipulator>
-#include <osgGA/FlightManipulator>
-#include <osgGA/DriveManipulator>
-#include <osgGA/KeySwitchMatrixManipulator>
-#include <osgGA/StateSetManipulator>
-#include <osgGA/AnimationPathManipulator>
-#include <osgGA/TerrainManipulator>
-#include <osgGA/SphericalManipulator>
-
-#include <iostream>
+//#include <iostream>
 #include <sstream>
-// for the grid data..
-#include "terrain_coords.h"
 #include "BRTGeometryShader.h"
 #include "BRTShaderInstancing.h"
 #include "VegetationUtils.h"
@@ -59,9 +31,9 @@
 
 namespace osgVegetation
 {
-	QuadTreeScattering::QuadTreeScattering(osg::Node* terrain) : m_Terrain(terrain) 
+	QuadTreeScattering::QuadTreeScattering(osg::Node* terrain) : m_Terrain(terrain),
+		m_VRT(NULL)
 	{
-		m_VRT = new BRTShaderInstancing(true,true);
 		m_TerrainQuery = new TerrainQuery(terrain);
 	}
 
@@ -77,7 +49,6 @@ namespace osgVegetation
 
 		float min_scale = layer.Scale.x();
 		float max_scale = layer.Scale.y();
-
 
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*density_scale;
 		object_list.reserve(object_list.size()+num_objects_to_create);
@@ -164,6 +135,7 @@ namespace osgVegetation
 
 	osg::Node* QuadTreeScattering::createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
 	{
+	
 		osg::ref_ptr<osg::Group> group = new osg::Group;
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
@@ -246,6 +218,9 @@ namespace osgVegetation
 
 	osg::Node* QuadTreeScattering::create(BillboardData &data)
 	{
+		delete m_VRT;
+		m_VRT = new BRTShaderInstancing(data);
+
 		osg::ComputeBoundsVisitor  cbv;
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		m_Terrain->accept(cbv);
@@ -257,7 +232,7 @@ namespace osgVegetation
 		m_VRT->setAlphaBlend(data.UseAlphaBlend);
 		m_VRT->setTerrainNormal(data.TerrainNormal);
 		osg::Group* group = new osg::Group;
-		group->setStateSet(m_VRT->createStateSet(data.Layers));
+		//group->setStateSet(m_VRT->getStateSet());
 
 		double terrain_size = bb._max.x() - bb._min.x();
 

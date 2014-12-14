@@ -108,7 +108,7 @@ int main( int argc, char **argv )
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
 	pLight->setPosition( osg::Vec4(1,0,1,0) );		// last param	w = 0.0 directional light (direction)
-	
+	pLight->setAmbient(osg::Vec4(0.7f, 0.7f, 0.7f, 1.0f) );
 	// light source
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );

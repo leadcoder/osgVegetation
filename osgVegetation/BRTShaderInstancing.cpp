@@ -21,14 +21,13 @@
 
 namespace osgVegetation
 {
-	BRTShaderInstancing::BRTShaderInstancing(bool true_billboards, bool use_simple_normals) : m_TrueBillboards(true_billboards),
-		m_PPL(true),
-		m_TerrainNormal(use_simple_normals),
-		//m_AlphaRefValue(0.08f)
+	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data) : m_TrueBillboards(true),
+		m_PPL(false),
+		m_TerrainNormal(data.TerrainNormal),
 		m_AlphaRefValue(0.05f),
 		m_AlphaBlend(false)
 	{
-
+		m_StateSet = _createStateSet(data.Layers);
 	}
 
 	BRTShaderInstancing::~BRTShaderInstancing()
@@ -36,7 +35,7 @@ namespace osgVegetation
 
 	}
 
-	osg::StateSet* BRTShaderInstancing::createStateSet(BillboardLayerVector &layers) 
+	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardLayerVector &layers) 
 	{
 		int tex_width = 0;
 		int tex_height = 0;
@@ -63,10 +62,8 @@ namespace osgVegetation
 			}
 			else
 				layers[i]._TextureIndex = index_map[layers[i].TextureName];
-
 		}
-		
-
+	
 		osg::Texture2DArray* tex = new osg::Texture2DArray;
 		tex->setTextureSize(tex_width, tex_height, num_textures);
 		tex->setUseHardwareMipMapGeneration(true);   
@@ -88,7 +85,6 @@ namespace osgVegetation
 		else
 			dstate->setAttributeAndModes(new osg::CullFace(),osg::StateAttribute::ON);
 			
-		
 		//dstate->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
 		
 		if(m_AlphaBlend)
@@ -98,8 +94,6 @@ namespace osgVegetation
 		}
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);
 		dstate->addUniform(baseTextureSampler);
-
-		
 
 		dstate->setMode( GL_LIGHTING, osg::StateAttribute::ON );
 
@@ -122,6 +116,7 @@ namespace osgVegetation
 			}
 			vertexShaderSource << 
 			    "out vec4 Color;\n"
+				"out vec3 Ambient;\n"
 				"out float veg_type; \n"
 				"const vec3 LightPosition = vec3(0.0, 0.0, 4.0);\n" 
 				"void main()\n"
@@ -184,15 +179,15 @@ namespace osgVegetation
 				{
 					vertexShaderSource << 
 						"   Normal = normal;\n"
-						"   LightDir = normalize(gl_LightSource[0].position.xyz);\n";
-						
+						"   LightDir = normalize(gl_LightSource[0].position.xyz);\n"
+						"   Ambient  = gl_LightSource[0].ambient.xyz;\n";
 				}
 				else
 				{
 					vertexShaderSource <<
 					"   vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
 					"   float NdotL = max(dot(normal, lightDir), 0.0);\n"
-					"   Color.xyz = NdotL*Color.xyz;\n";
+					"   Color.xyz = NdotL*Color.xyz + gl_LightSource[0].ambient.xyz*Color.xyz;\n";
 				}
 				vertexShaderSource << 
 				"   veg_type = data.z;\n"
@@ -207,6 +202,7 @@ namespace osgVegetation
 				"uniform sampler2DArray baseTexture; \n"
 				"uniform float fadeInDist;\n"
 				"in float veg_type; \n"
+				"in vec3 Ambient; \n"
 				"in vec2 TexCoord;\n";
 			if(m_PPL)
 			{
@@ -225,12 +221,18 @@ namespace osgVegetation
 			{
 			fragmentShaderSource << 
 				"   float NdotL = max(dot(normalize(Normal), LightDir), 0.0);\n"
-				"   finalColor.xyz = NdotL*finalColor.xyz;\n";
+				"   finalColor.xyz = NdotL*finalColor.xyz + Ambient.xyz*finalColor.xyz;\n";
 			}
+			else
+			{
+			fragmentShaderSource << 
+				"   finalColor.xyz = finalColor.xyz * Color.xyz;\n";
+			}
+
 			fragmentShaderSource <<
 				"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
-				"    finalColor.w = finalColor.w * clamp(1 - ((depth-fadeInDist)/fadeInDist*0.2), 0.0, 1.0);\n"
-				"    FragData0 = Color*finalColor;\n"
+				"    finalColor.w = finalColor.w * clamp(1 - ((depth-fadeInDist)/10), 0.0, 1.0);\n"
+				"    FragData0 = finalColor;\n"
 				"}\n";
 
 			osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
@@ -238,15 +240,11 @@ namespace osgVegetation
 
 			osg::Shader* fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
 			program->addShader(fragment_shader);
-			//osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture",0);
-			//dstate->addUniform(baseTextureSampler);
-			m_StateSet = dstate; 
-			
 		}
 		return dstate;
 	}
 
-	osg::Geometry* BRTShaderInstancing::createSingleQuadsWithNormals( const osg::Vec3& pos, float w, float h)
+	osg::Geometry* BRTShaderInstancing::_createSingleQuadsWithNormals( const osg::Vec3& pos, float w, float h)
 	{
 		// set up the coords
 		osg::Vec3Array& v = *(new osg::Vec3Array(8));
@@ -300,7 +298,7 @@ namespace osgVegetation
 	}
 
 
-	osg::Geometry* BRTShaderInstancing::createOrthogonalQuadsWithNormals( const osg::Vec3& pos, float w, float h)
+	osg::Geometry* BRTShaderInstancing::_createOrthogonalQuadsWithNormals( const osg::Vec3& pos, float w, float h)
 	{
 		// set up the coords
 		osg::Vec3Array& v = *(new osg::Vec3Array(16));
@@ -421,9 +419,9 @@ namespace osgVegetation
 		{
 			osg::ref_ptr<osg::Geometry> templateGeometry; 
 			if(m_TrueBillboards)
-				templateGeometry = createSingleQuadsWithNormals(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
+				templateGeometry = _createSingleQuadsWithNormals(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
 			else
-				templateGeometry = createOrthogonalQuadsWithNormals(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
+				templateGeometry = _createOrthogonalQuadsWithNormals(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
 
 			templateGeometry->setUseVertexBufferObjects(true);
 			templateGeometry->setUseDisplayList(false);
