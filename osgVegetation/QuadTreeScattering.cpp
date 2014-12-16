@@ -41,14 +41,14 @@ namespace osgVegetation
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
-		float max_tree_height = layer.Height.y();
-		float max_tree_width = layer.Width.y();
+		//float max_tree_height = layer.Height.y();
+		//float max_tree_width = layer.Width.y();
 
-		float min_tree_height = layer.Height.x();
-		float min_tree_width = layer.Width.x();
+		//float min_tree_height = layer.Height.x();
+		//float min_tree_width = layer.Width.x();
 
-		float min_scale = layer.Scale.x();
-		float max_scale = layer.Scale.y();
+		//float min_scale = layer.Scale.x();
+		//float max_scale = layer.Scale.y();
 
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*density_scale;
 		object_list.reserve(object_list.size()+num_objects_to_create);
@@ -59,18 +59,20 @@ namespace osgVegetation
 			osg::Vec3 inter;
 			osg::Vec4 color;
 			osg::Vec4 mat_color;
-
+			float rand_int = Utils::random(layer.ColorIntensity.x(),layer.ColorIntensity.y());
 			if(m_TerrainQuery->getTerrainData(pos,color,mat_color,inter))
 			{
 				if(layer.hasMaterial(mat_color))
 				{
 					BillboardObject* veg_obj = new BillboardObject;
 					//TODO add color to layer
-					float tree_scale = Utils::random(min_scale ,max_scale);
-					veg_obj->Width = Utils::random(min_tree_width,max_tree_width)*tree_scale;
-					veg_obj->Height = Utils::random(min_tree_height,max_tree_height)*tree_scale;
+					float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y());
+					veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
+					veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
 					veg_obj->TextureIndex = layer._TextureIndex;
 					veg_obj->Position = inter;
+					veg_obj->Color = color*rand_int*0.5;
+					veg_obj->Color += osg::Vec4(1,1,1,1)*0.5*rand_int;
 					object_list.push_back(veg_obj);
 				}
 			}

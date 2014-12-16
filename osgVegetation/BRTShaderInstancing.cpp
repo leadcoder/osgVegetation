@@ -24,8 +24,8 @@ namespace osgVegetation
 	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data) : m_TrueBillboards(true),
 		m_PPL(false),
 		m_TerrainNormal(data.TerrainNormal),
-		m_AlphaRefValue(0.05f),
-		m_AlphaBlend(false)
+		m_AlphaRefValue(data.AlphaRefValue),
+		m_AlphaBlend(data.UseAlphaBlend)
 	{
 		m_StateSet = _createStateSet(data.Layers);
 	}
@@ -136,7 +136,7 @@ namespace osgVegetation
 					"   modelView[0][0] = data.x; modelView[0][1] = 0.0;modelView[0][2] = 0.0;\n"
 					"   modelView[1][0] = 0;      modelView[1][1] = data.y;modelView[1][2] = 0.0;\n"
 					"   vec4 prePos = modelView * vec4(gl_Vertex.xyz,1.0) ;\n"
-					"   prePos.y = prePos.y - data.y*gl_Vertex.z * clamp(((-prePos.z-fadeInDist)/20.0), 0.0, 1.0);\n"
+					"   prePos.y = prePos.y - data.y*gl_Vertex.z * clamp(((-prePos.z-fadeInDist)/(fadeInDist*0.2)), 0.0, 1.0);\n"
 					"   gl_Position = gl_ProjectionMatrix * prePos ;\n";
 					
 					if(m_TerrainNormal)
@@ -221,7 +221,7 @@ namespace osgVegetation
 			{
 			fragmentShaderSource << 
 				"   float NdotL = max(dot(normalize(Normal), LightDir), 0.0);\n"
-				"   finalColor.xyz = NdotL*finalColor.xyz + Ambient.xyz*finalColor.xyz;\n";
+				"   finalColor.xyz = NdotL*finalColor.xyz*Color.xyz + Ambient.xyz*finalColor.xyz*Color.xyz;\n";
 			}
 			else
 			{
@@ -231,7 +231,7 @@ namespace osgVegetation
 
 			fragmentShaderSource <<
 				"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
-				"    finalColor.w = finalColor.w * clamp(1 - ((depth-fadeInDist)/10), 0.0, 1.0);\n"
+				"    finalColor.w = finalColor.w * clamp(1 - ((depth-fadeInDist)/(fadeInDist*0.2)), 0.0, 1.0);\n"
 				"    FragData0 = finalColor;\n"
 				"}\n";
 
@@ -441,7 +441,7 @@ namespace osgVegetation
 				osg::Vec4f* ptr = (osg::Vec4f*)treeParamsImage->data(3*i);
 				BillboardObject& tree = **itr;
 				ptr[0] = osg::Vec4f(tree.Position.x(),tree.Position.y(),tree.Position.z(),1.0);
-				ptr[1] = osg::Vec4f((float)tree.Color.r()/255.0f,(float)tree.Color.g()/255.0f, (float)tree.Color.b()/255.0f, 1.0);
+				ptr[1] = osg::Vec4f((float)tree.Color.r(),(float)tree.Color.g(), (float)tree.Color.b(), 1.0);
 				ptr[2] = osg::Vec4f(tree.Width, tree.Height, tree.TextureIndex, 1.0);
 			}
 

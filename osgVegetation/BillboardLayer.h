@@ -18,6 +18,7 @@ namespace osgVegetation
 			Height(1,1),
 			Width(1,1),
 			Scale(1,1),
+			ColorIntensity(1,1),
 			Density(1),
 			_TextureIndex(0)
 
@@ -60,6 +61,11 @@ namespace osgVegetation
 			Density for this layer (billboards/m2)
 		*/
 		double Density;
+
+		/*
+			Color intensity interval
+		*/
+		osg::Vec2 ColorIntensity;
 
 		/**
 			Material vector that specify where to scatter billboards

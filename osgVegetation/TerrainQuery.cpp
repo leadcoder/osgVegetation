@@ -60,19 +60,21 @@ namespace osgVegetation
 				    //check if dds, if so we will try to load alternative image file because we have no utils to decompress dds
 					if(osgDB::getFileExtension(tex_filename) == "dds")
 					{
-						tex_filename = osgDB::getNameLessExtension(tex_filename) + ".rgb";
+						tex_filename = osgDB::getNameLessExtension(tex_filename) + ".png";
 						//first check cache
 						osg::Image* image = _loadImage(tex_filename);
 						if(image)
 						{
-							color = image->getColor(tc);
+							osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
+							color = image->getColor(tc2);
 						}
 					}
 					else
 						color = texture->getImage(0)->getColor(tc);
 
 					//get material texture
-					const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + "_material.png";
+					//const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + "_material.png";
+					const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + ".rgb";
 					osg::Image* image = _loadImage(mat_image_filename);
 					if(image)
 					{
