@@ -262,8 +262,6 @@ namespace osgVegetation
 		v[6].set(pos.x()+sw,pos.y(),pos.z()+h);
 		v[7].set(pos.x()   ,pos.y(),pos.z()+h);
 		
-
-		
 		double roundness = 1.0;
 
 		n[0].set(-roundness,-1,0);

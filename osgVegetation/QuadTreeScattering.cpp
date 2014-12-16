@@ -134,10 +134,16 @@ namespace osgVegetation
 	return plod;
 	}*/
 
+	static int tot_count = 0;
+	static int c_count = 0;
 
 	osg::Node* QuadTreeScattering::createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
 	{
-	
+		c_count++;
+		if(ld < 6)
+			std::cout << "Create Patch:" << c_count << " of:" << tot_count << std::endl;
+			//std::cout << "Create Patch, LOD:" << ld << " x:" << x << " y:" << y << std::endl;
+		//
 		osg::ref_ptr<osg::Group> group = new osg::Group;
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
@@ -170,6 +176,7 @@ namespace osgVegetation
 					patch_trees.push_back(trees[i]);
 				}
 			}*/
+			
 			osg::Node* node = m_VRT->create(trees,bb);
 			trees.clear();
 
@@ -217,7 +224,7 @@ namespace osgVegetation
 			return mesh_group;
 		
 	}
-
+	
 	osg::Node* QuadTreeScattering::create(BillboardData &data)
 	{
 		delete m_VRT;
@@ -226,8 +233,8 @@ namespace osgVegetation
 		osg::ComputeBoundsVisitor  cbv;
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		m_Terrain->accept(cbv);
-		bb._max.set(std::max(bb._max.x(),bb._max.y()),std::max(bb._max.x(),bb._max.y()), bb._max.z());
-		bb._min.set(std::min(bb._min.x(),bb._min.y()),std::min(bb._min.x(),bb._min.y()), bb._min.z());
+		//bb._max.set(std::max(bb._max.x(),bb._max.y()),std::max(bb._max.x(),bb._max.y()), bb._max.z());
+		//bb._min.set(std::min(bb._min.x(),bb._min.y()),std::min(bb._min.x(),bb._min.y()), bb._min.z());
 		
 		m_ViewDistance = data.ViewDistance;
 		m_VRT->setAlphaRefValue(data.AlphaRefValue);
@@ -235,8 +242,10 @@ namespace osgVegetation
 		m_VRT->setTerrainNormal(data.TerrainNormal);
 		osg::Group* group = new osg::Group;
 		//group->setStateSet(m_VRT->getStateSet());
+		
 
-		double terrain_size = bb._max.x() - bb._min.x();
+		double terrain_size = std::max(bb._max.x() - bb._min.x(), bb._max.y() - bb._min.y());
+		bb._max.set(bb._min.x() + terrain_size, bb._min.y() + terrain_size, bb._max.z());
 
 		m_MinPatchSize = m_ViewDistance/4;
 
@@ -244,9 +253,13 @@ namespace osgVegetation
 		m_FinalLOD =0;
 		while(temp_size > m_MinPatchSize)
 		{
+			int side = 2 << m_FinalLOD;
+			tot_count += side*side; 
 			temp_size = temp_size/2.0; 
 			m_FinalLOD++;
 		}
+
+		
 		//m_FinalLOD = terrain_size/m_MinPatchSize;
 
 		BillboardVegetationObjectVector trees;
