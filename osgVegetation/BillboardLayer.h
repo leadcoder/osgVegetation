@@ -73,10 +73,6 @@ namespace osgVegetation
 
 		std::vector<MaterialColor> Materials;
 		
-		//not used
-		//osg::Vec3 MinColor;
-		//osg::Vec3 MaxColor;
-		
 		//internal data holding texture index inside texture array
 		int _TextureIndex;
 	};

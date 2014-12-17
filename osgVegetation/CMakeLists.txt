@@ -23,6 +23,7 @@ SET(H_FILES
 	MeshLayer.h
 	MeshObject.h
 	QuadTreeScattering.h
+	ITerrainQuery.h
 	TerrainQuery.h
 	VegetationUtils.h
 )

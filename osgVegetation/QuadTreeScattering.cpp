@@ -27,14 +27,15 @@
 #include "BRTGeometryShader.h"
 #include "BRTShaderInstancing.h"
 #include "VegetationUtils.h"
-#include "TerrainQuery.h"
+#include "ITerrainQuery.h"
 
 namespace osgVegetation
 {
-	QuadTreeScattering::QuadTreeScattering(osg::Node* terrain) : m_Terrain(terrain),
-		m_VRT(NULL)
+	QuadTreeScattering::QuadTreeScattering(osg::Node* terrain, ITerrainQuery* tq) : m_Terrain(terrain),
+		m_VRT(NULL),
+		m_TerrainQuery(tq)
 	{
-		m_TerrainQuery = new TerrainQuery(terrain);
+		
 	}
 
 	void QuadTreeScattering::populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& object_list, double density_scale)
@@ -127,29 +128,27 @@ namespace osgVegetation
 	return plod;
 	}*/
 
-	static int tot_count = 0;
-	static int c_count = 0;
+	
 
 	osg::Node* QuadTreeScattering::createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
 	{
-		c_count++;
-		if(ld < 6)
-			std::cout << "Create Patch:" << c_count << " of:" << tot_count << std::endl;
-			//std::cout << "Create Patch, LOD:" << ld << " x:" << x << " y:" << y << std::endl;
-		//
+		m_CurrentTile++;
+		if(ld < 6) //only show progress above lod 6, we dont want to spam the log
+			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Create Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
+		
+		
+
+
 		osg::ref_ptr<osg::Group> group = new osg::Group;
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
-
-
 		bool final_lod = false;
 
-		if(bb_size < m_MinPatchSize)
+		if(bb_size < m_MinTileSize)
 			final_lod = true;
 		
 		if(bb_size < m_ViewDistance)
 		{
-
 			//calculate density ratio for this lod level
 			int ratio = (m_FinalLOD - ld);
 			int tiles = pow(2.0, ratio);
@@ -175,6 +174,8 @@ namespace osgVegetation
 			trees.clear();
 
 			mesh_group->addChild(node);
+
+			//debug
 			//osgDB::writeNodeFile(*node,"c:/temp/bbveg.ive");
 		}
 
@@ -195,10 +196,11 @@ namespace osgVegetation
 			osg::BoundingBox b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  ,bb._min.z()),
 				osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
 
-			group->addChild( createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
-			group->addChild( createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
-			group->addChild( createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
-			group->addChild( createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
+			//first check that we are inside initial bounding box
+			if(b1.intersects(m_InitBB))	group->addChild( createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
+			if(b2.intersects(m_InitBB))	group->addChild( createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
+			if(b3.intersects(m_InitBB)) group->addChild( createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
+			if(b4.intersects(m_InitBB)) group->addChild( createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
 
 			osg::LOD* plod = new osg::LOD;
 			plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
@@ -221,6 +223,7 @@ namespace osgVegetation
 	
 	osg::Node* QuadTreeScattering::create(BillboardData &data)
 	{
+		
 		delete m_VRT;
 		m_VRT = new BRTShaderInstancing(data);
 
@@ -228,30 +231,36 @@ namespace osgVegetation
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		m_Terrain->accept(cbv);
 		
+
 		m_ViewDistance = data.ViewDistance;
 		m_VRT->setAlphaRefValue(data.AlphaRefValue);
 		m_VRT->setAlphaBlend(data.UseAlphaBlend);
 		m_VRT->setTerrainNormal(data.TerrainNormal);
-		//osg::Group* group = new osg::Group;
-		//group->setStateSet(m_VRT->getStateSet());
-	
+		
+		//get max terrain side, we want square area for to begin quad tree splitting
 		double terrain_size = std::max(bb._max.x() - bb._min.x(), bb._max.y() - bb._min.y());
-		//bb._max.set(bb._min.x() + terrain_size, bb._min.y() + terrain_size, bb._max.z());
+		
 		m_Offset = bb._min;
+		m_InitBB._min.set(0,0,0);
+		m_InitBB._max = bb._max - bb._min;
+		
 		bb._max.set(terrain_size, terrain_size, bb._max.z() - bb._min.z());
 		bb._min.set(0,0,0);
 		//add offset matrix
+
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
 
-		m_MinPatchSize = m_ViewDistance/4;
+		m_MinTileSize = m_ViewDistance/4;
 
 		double temp_size  = terrain_size;
 		m_FinalLOD =0;
-		while(temp_size > m_MinPatchSize)
+		m_NumberOfTiles = 0;
+		m_CurrentTile = 0;
+		while(temp_size > m_MinTileSize)
 		{
 			int side = 2 << m_FinalLOD;
-			tot_count += side*side; 
+			m_NumberOfTiles += side*side; 
 			temp_size = temp_size/2.0; 
 			m_FinalLOD++;
 		}

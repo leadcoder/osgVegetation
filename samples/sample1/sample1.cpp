@@ -44,6 +44,7 @@
 #include "MeshScattering.h"
 #include "MRTShaderInstancing.h"
 #include "QuadTreeScattering.h"
+#include "TerrainQuery.h"
 
 int main( int argc, char **argv )
 {
@@ -98,7 +99,8 @@ int main( int argc, char **argv )
 	spruce.Materials.push_back(material_map[WOODS]);
 	tree_data.Layers.push_back(spruce);
 
-	osgVegetation::QuadTreeScattering scattering(terrain.get());
+	osgVegetation::TerrainQuery tq(terrain.get());
+	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
 	osg::Node* tree_node = scattering.create(tree_data);
 	group->addChild(tree_node);
 	

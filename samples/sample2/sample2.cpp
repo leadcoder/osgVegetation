@@ -44,6 +44,7 @@
 #include "MeshScattering.h"
 #include "MRTShaderInstancing.h"
 #include "QuadTreeScattering.h"
+#include "TerrainQuery.h"
 
 int main( int argc, char **argv )
 {
@@ -120,7 +121,7 @@ int main( int argc, char **argv )
 	grass3.Materials.push_back(material_map[WOODS]);
 	undergrowth_data.Layers.push_back(grass3);
 
-	osgVegetation::BillboardData tree_data(400,false,0.08,false);
+	osgVegetation::BillboardData tree_data(600,false,0.08,false);
 
 	osgVegetation::BillboardLayer  spruce("Images/spruce01.dds");
 	spruce.Density = 0.03;
@@ -150,21 +151,23 @@ int main( int argc, char **argv )
 
 	//osgVegetation::VegetationScattering bs(terrain.get(),400);
 	//osg::Node* bb_node = bs.create(bblayers);
-
-	osgVegetation::QuadTreeScattering scattering(terrain.get());
-	osg::Node* ug_node = scattering.create(undergrowth_data);
-	group->addChild(ug_node);
-	osgVegetation::QuadTreeScattering scattering2(terrain.get());
+	osgVegetation::TerrainQuery tq(terrain.get());
+	tq.setMaterialTextureSuffix(".rgb");
+	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
+	//osg::Node* ug_node = scattering.create(undergrowth_data);
+	//group->addChild(ug_node);
+	osgVegetation::QuadTreeScattering scattering2(terrain.get(),&tq);
 	osg::Node* tree_node = scattering2.create(tree_data);
 	group->addChild(tree_node);
 	
-	//osgDB::writeNodeFile(*tree_node,"c:/temp/bbveg.ive");
+	osgDB::writeNodeFile(*tree_node,"c:/temp/bbveg.ive");
 	
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
 	pLight->setPosition( osg::Vec4(1,0,1,0) );		// last param	w = 0.0 directional light (direction)
 	pLight->setAmbient(osg::Vec4(0.7f, 0.7f, 0.7f, 1.0f) );
+
 	// light source
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );

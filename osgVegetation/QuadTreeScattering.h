@@ -17,25 +17,38 @@
 
 namespace osgVegetation
 {
-	class TerrainQuery;
+	class ITerrainQuery;
 
-
+	/**
+		Class used for vegetation scattering. Vegetation is stored in quad tree 
+		structure based on the osg::LOD node. The start tile is based on the terrain size and then recursivly 
+		divided until the vegetation view distance is reached. The user can also let LOD nodes above the final hold
+		vegetation data (with decreased density). This feature enable terrain far away (from camera) to hold 
+		low density vegetation saving performance.
+	*/
 	class osgvExport QuadTreeScattering : public osg::Referenced
 	{
 	public:
-		QuadTreeScattering(osg::Node* terrain);
+		QuadTreeScattering(osg::Node* terrain, ITerrainQuery* tq);
 		osg::Node* create(BillboardData &layers);
 	private:
-		double m_PatchTargetSize;
+		double m_TileTargetSize;
 		double m_ViewDistance;
-		double m_MinPatchSize;
+		double m_MinTileSize;
+
 		int m_FinalLOD;
+
+		//progress data
+		int m_CurrentTile;
+		int m_NumberOfTiles;
+
+		osg::BoundingBox m_InitBB;
 		IBillboardRenderingTech* m_VRT;
 		osg::Node* m_Terrain;
 		osg::Vec3 m_Offset;
 		typedef std::map<std::string,osg::ref_ptr<osg::Image> > MaterialCacheMap; 
 		MaterialCacheMap m_MaterialCache;
-		TerrainQuery* m_TerrainQuery;
+		ITerrainQuery* m_TerrainQuery;
 		std::string createFileName(unsigned int lv,	unsigned int x, unsigned int y);
 		osg::Geode* createTerrain(const osg::Vec3& origin, const osg::Vec3& size);
 		void populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& object_list,double density_scale);

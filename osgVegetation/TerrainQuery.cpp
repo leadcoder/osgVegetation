@@ -31,7 +31,8 @@ namespace osgVegetation
 		}
 	};
 
-	TerrainQuery::TerrainQuery(osg::Node* terrain): m_Terrain(terrain)
+	TerrainQuery::TerrainQuery(osg::Node* terrain): m_Terrain(terrain),
+		m_MaterialTextureSuffix("_material.png")
 	{
 		m_Cache = new osgSim::DatabaseCacheReadCallback;
 		m_IntersectionVisitor.setReadCallback(m_Cache);
@@ -40,7 +41,8 @@ namespace osgVegetation
 
 	bool TerrainQuery::getTerrainData(osg::Vec3& location, osg::Vec4 &color, osg::Vec4 &material_color, osg::Vec3 &inter)
 	{
-		osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =	new osgUtil::LineSegmentIntersector(location,location+osg::Vec3(0.0f,0.0f,1000));
+		osg::Vec3 start_location(location.x(),location.y(), -100);
+		osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =	new osgUtil::LineSegmentIntersector(start_location,start_location + osg::Vec3(0.0f,0.0f,300));
 		m_IntersectionVisitor.setIntersector(intersector.get());
 		m_Terrain->accept(m_IntersectionVisitor);
 		if (intersector->containsIntersections())
@@ -74,7 +76,12 @@ namespace osgVegetation
 
 					//get material texture
 					//const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + "_material.png";
-					const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + ".rgb";
+					std::string mat_image_filename;
+					if(m_MaterialTexture != "")
+						mat_image_filename = m_MaterialTexture;
+					else
+						mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + m_MaterialTextureSuffix;
+
 					osg::Image* image = _loadImage(mat_image_filename);
 					if(image)
 					{
