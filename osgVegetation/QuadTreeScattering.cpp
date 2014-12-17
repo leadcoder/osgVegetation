@@ -41,14 +41,6 @@ namespace osgVegetation
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
-		//float max_tree_height = layer.Height.y();
-		//float max_tree_width = layer.Width.y();
-
-		//float min_tree_height = layer.Height.x();
-		//float min_tree_width = layer.Width.x();
-
-		//float min_scale = layer.Scale.x();
-		//float max_scale = layer.Scale.y();
 
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*density_scale;
 		object_list.reserve(object_list.size()+num_objects_to_create);
@@ -60,7 +52,8 @@ namespace osgVegetation
 			osg::Vec4 color;
 			osg::Vec4 mat_color;
 			float rand_int = Utils::random(layer.ColorIntensity.x(),layer.ColorIntensity.y());
-			if(m_TerrainQuery->getTerrainData(pos,color,mat_color,inter))
+			osg::Vec3 offset_pos = pos + m_Offset;
+			if(m_TerrainQuery->getTerrainData(offset_pos,color,mat_color,inter))
 			{
 				if(layer.hasMaterial(mat_color))
 				{
@@ -70,7 +63,7 @@ namespace osgVegetation
 					veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
 					veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
 					veg_obj->TextureIndex = layer._TextureIndex;
-					veg_obj->Position = inter;
+					veg_obj->Position = inter-m_Offset;
 					veg_obj->Color = color*rand_int*0.5;
 					veg_obj->Color += osg::Vec4(1,1,1,1)*0.5*rand_int;
 					object_list.push_back(veg_obj);
@@ -148,6 +141,7 @@ namespace osgVegetation
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
 
+
 		bool final_lod = false;
 
 		if(bb_size < m_MinPatchSize)
@@ -171,7 +165,7 @@ namespace osgVegetation
 			//get trees inside patch
 			/*for(size_t i = 0; i < trees.size(); i = i++)
 			{
-				//if(bb.contains(trees[i]->Position))
+				//if(bb.contains(trees[i]->Position+m_Offset))
 				{
 					patch_trees.push_back(trees[i]);
 				}
@@ -214,7 +208,7 @@ namespace osgVegetation
 			plod->setRadius(radius);
 
 			float cutoff = radius*2;
-			//regular terrain lod setup
+			//regular terrain LOD setup
 			//plod->addChild(mesh_group, cutoff, FLT_MAX );
 			plod->addChild(mesh_group, 0, FLT_MAX );
 			plod->addChild(group, 0.0f, cutoff );
@@ -233,19 +227,22 @@ namespace osgVegetation
 		osg::ComputeBoundsVisitor  cbv;
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		m_Terrain->accept(cbv);
-		//bb._max.set(std::max(bb._max.x(),bb._max.y()),std::max(bb._max.x(),bb._max.y()), bb._max.z());
-		//bb._min.set(std::min(bb._min.x(),bb._min.y()),std::min(bb._min.x(),bb._min.y()), bb._min.z());
 		
 		m_ViewDistance = data.ViewDistance;
 		m_VRT->setAlphaRefValue(data.AlphaRefValue);
 		m_VRT->setAlphaBlend(data.UseAlphaBlend);
 		m_VRT->setTerrainNormal(data.TerrainNormal);
-		osg::Group* group = new osg::Group;
+		//osg::Group* group = new osg::Group;
 		//group->setStateSet(m_VRT->getStateSet());
-		
-
+	
 		double terrain_size = std::max(bb._max.x() - bb._min.x(), bb._max.y() - bb._min.y());
-		bb._max.set(bb._min.x() + terrain_size, bb._min.y() + terrain_size, bb._max.z());
+		//bb._max.set(bb._min.x() + terrain_size, bb._min.y() + terrain_size, bb._max.z());
+		m_Offset = bb._min;
+		bb._max.set(terrain_size, terrain_size, bb._max.z() - bb._min.z());
+		bb._min.set(0,0,0);
+		//add offset matrix
+		osg::MatrixTransform* transform = new osg::MatrixTransform;
+		transform->setMatrix(osg::Matrix::translate(m_Offset));
 
 		m_MinPatchSize = m_ViewDistance/4;
 
@@ -258,13 +255,11 @@ namespace osgVegetation
 			temp_size = temp_size/2.0; 
 			m_FinalLOD++;
 		}
-
-		
-		//m_FinalLOD = terrain_size/m_MinPatchSize;
+	
 
 		BillboardVegetationObjectVector trees;
 		osg::Node* outnode = createLODRec(0, data.Layers, trees, bb,0,0);
-		group->addChild(outnode);
-		return group;
+		transform->addChild(outnode);
+		return transform;
 	}
 }
