@@ -16,6 +16,8 @@
 #include <osg/TexEnv>
 #include <osg/ComputeBoundsVisitor>
 #include <osg/PagedLOD>
+#include <osg/ProxyNode>
+
 
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
@@ -33,7 +35,8 @@ namespace osgVegetation
 {
 	QuadTreeScattering::QuadTreeScattering(osg::Node* terrain, ITerrainQuery* tq) : m_Terrain(terrain),
 		m_VRT(NULL),
-		m_TerrainQuery(tq)
+		m_TerrainQuery(tq),
+		m_UsePagedLOD(false)
 	{
 		
 	}
@@ -91,55 +94,15 @@ namespace osgVegetation
 		return sstream.str();
 	}
 
-	/*osg::Node* VegetationScattering::createPagedLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees,float current_size, float final_patch_size, float target_patch_size, osg::Vec3 center,int x, int y)
-	{
-	if(current_size < target_patch_size)
-	{
-	osg::Vec3 p_origin(center.x() - current_size*0.5, center.y() - current_size*0.5,center.z());
-	osg::Vec3 p_size(current_size,current_size,1);
-	VegetationObjectVector trees = generateVegetation(terrain,layers,p_origin,p_size);
-	//osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size);
-	//return f_node;
-	}
-
-	osg::Group *group = new osg::Group;
-	osg::Vec3 c1_center(center.x() - current_size*0.25,center.y() - current_size*0.25,center.z());
-	osg::Vec3 c2_center(center.x() - current_size*0.25,center.y() + current_size*0.25,center.z());
-	osg::Vec3 c3_center(center.x() + current_size*0.25,center.y() + current_size*0.25,center.z());
-	osg::Vec3 c4_center(center.x() + current_size*0.25,center.y() - current_size*0.25,center.z());
-
-	group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c1_center, x*2,   y*2));
-	group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c2_center, x*2,   y*2+1));
-	group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c3_center, x*2+1, y*2+1));
-	group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c4_center, x*2+1, y*2)); 
-
-	osg::PagedLOD* plod = new osg::PagedLOD;
-	std::string filename = createFileName(ld, x,y);
-	//plod->insertChild( 0, geode.get() );
-	plod->setFileName( 0, filename );
-	osgDB::writeNodeFile( *group, "C:/temp/paged/" + filename );
-	plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-	plod->setCenter( center );
-	float radius = sqrt(current_size*current_size);
-	plod->setRadius( radius);
-	float cutoff = radius*2;
-	//plod->setRange( 0, cutoff, FLT_MAX );
-	plod->setRange( 0, 0.0f, cutoff );
-	return plod;
-	}*/
-
-	
-
 	osg::Node* QuadTreeScattering::createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
 	{
 		m_CurrentTile++;
 		if(ld < 6) //only show progress above lod 6, we dont want to spam the log
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Create Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
-		
-		
+	
+		osg::ref_ptr<osg::Group> children_group = new osg::Group;
 
-
-		osg::ref_ptr<osg::Group> group = new osg::Group;
+		//mesh_group is returned so we don't use smart pointer
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
 		bool final_lod = false;
@@ -197,29 +160,26 @@ namespace osgVegetation
 				osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
 
 			//first check that we are inside initial bounding box
-			if(b1.intersects(m_InitBB))	group->addChild( createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
-			if(b2.intersects(m_InitBB))	group->addChild( createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
-			if(b3.intersects(m_InitBB)) group->addChild( createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
-			if(b4.intersects(m_InitBB)) group->addChild( createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
+			if(b1.intersects(m_InitBB))	children_group->addChild( createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
+			if(b2.intersects(m_InitBB))	children_group->addChild( createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
+			if(b3.intersects(m_InitBB)) children_group->addChild( createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
+			if(b4.intersects(m_InitBB)) children_group->addChild( createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
 
-			if(true)
+			if(m_UsePagedLOD)
 			{
 				osg::PagedLOD* plod = new osg::PagedLOD;
 				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
 				plod->setCenter(bb.center());
-				
-				
 				double radius = sqrt(bb_size*bb_size);
 				plod->setRadius(radius);
 				float cutoff = radius*2;
 				//regular terrain LOD setup
 				//plod->addChild(mesh_group, cutoff, FLT_MAX );
 				plod->addChild(mesh_group, 0, FLT_MAX );
-				//plod->addChild(group, 0.0f, cutoff );
 				const std::string filename = createFileName(ld, x,y);
 				plod->setFileName( 1, filename );
 				plod->setRange(1,0,cutoff);
-				osgDB::writeNodeFile( *group, "C:/temp/paged/" + filename );
+				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
 				return plod;
 			}
 			else
@@ -235,7 +195,7 @@ namespace osgVegetation
 				//regular terrain LOD setup
 				//plod->addChild(mesh_group, cutoff, FLT_MAX );
 				plod->addChild(mesh_group, 0, FLT_MAX );
-				plod->addChild(group, 0.0f, cutoff );
+				plod->addChild(children_group, 0.0f, cutoff );
 				return plod;
 			}
 		}
@@ -243,9 +203,13 @@ namespace osgVegetation
 			return mesh_group;
 		
 	}
-	
-	osg::Node* QuadTreeScattering::create(BillboardData &data)
+	osg::Node* QuadTreeScattering::create(BillboardData &data, const std::string &page_lod_path)
 	{
+		if(page_lod_path != "")
+		{
+			m_UsePagedLOD = true;
+			m_SavePath = page_lod_path;
+		}
 		
 		delete m_VRT;
 		m_VRT = new BRTShaderInstancing(data);
@@ -253,8 +217,7 @@ namespace osgVegetation
 		osg::ComputeBoundsVisitor  cbv;
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		m_Terrain->accept(cbv);
-		
-
+	
 		m_ViewDistance = data.ViewDistance;
 		m_VRT->setAlphaRefValue(data.AlphaRefValue);
 		m_VRT->setAlphaBlend(data.UseAlphaBlend);
@@ -287,11 +250,20 @@ namespace osgVegetation
 			temp_size = temp_size/2.0; 
 			m_FinalLOD++;
 		}
-	
 
 		BillboardVegetationObjectVector trees;
 		osg::Node* outnode = createLODRec(0, data.Layers, trees, bb,0,0);
-		transform->addChild(outnode);
+		if(m_UsePagedLOD)
+		{
+			osgDB::writeNodeFile( *outnode, m_SavePath + "/master.ive" );
+			osg::ProxyNode* pn = new osg::ProxyNode();
+			pn->setFileName(0,"master.ive");
+			//pn->setDatabasePath("C:/temp/paged");
+			transform->addChild(pn);
+			osgDB::writeNodeFile( *transform, m_SavePath + "/transformation.osg" );
+		}
+			
+
 		return transform;
 	}
 }
