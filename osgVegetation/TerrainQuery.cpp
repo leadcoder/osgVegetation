@@ -27,6 +27,8 @@ namespace osgVegetation
 		{ 
 			osg::ref_ptr<osg::Node> node = osgDB::readNodeFile(filename); 
 			pagedLODVec.push_back(node);
+			if(pagedLODVec.size() > 100) //flush cache
+				pagedLODVec.clear();
 			return node.get();
 		}
 	};
@@ -85,7 +87,8 @@ namespace osgVegetation
 					osg::Image* image = _loadImage(mat_image_filename);
 					if(image)
 					{
-						material_color = image->getColor(tc);
+						osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
+						material_color = image->getColor(tc2);
 					}
 					else
 						material_color = color;
@@ -107,12 +110,14 @@ namespace osgVegetation
 		}
 		else
 		{
+			if(m_MaterialCache.size() > 100)
+				m_MaterialCache.clear();
+
 			m_MaterialCache[filename] = osgDB::readImageFile(filename);
 			image = m_MaterialCache[filename].get();
 		}
 		return image;
 	}
-
 
 	osg::Texture* TerrainQuery::_getTexture(const osgUtil::LineSegmentIntersector::Intersection& intersection,osg::Vec3& tc) const
 	{
