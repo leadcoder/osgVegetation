@@ -202,19 +202,42 @@ namespace osgVegetation
 			if(b3.intersects(m_InitBB)) group->addChild( createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
 			if(b4.intersects(m_InitBB)) group->addChild( createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
 
-			osg::LOD* plod = new osg::LOD;
-			plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
-			plod->setCenter( bb.center());
+			if(true)
+			{
+				osg::PagedLOD* plod = new osg::PagedLOD;
+				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
+				plod->setCenter(bb.center());
+				
+				
+				double radius = sqrt(bb_size*bb_size);
+				plod->setRadius(radius);
+				float cutoff = radius*2;
+				//regular terrain LOD setup
+				//plod->addChild(mesh_group, cutoff, FLT_MAX );
+				plod->addChild(mesh_group, 0, FLT_MAX );
+				//plod->addChild(group, 0.0f, cutoff );
+				const std::string filename = createFileName(ld, x,y);
+				plod->setFileName( 1, filename );
+				plod->setRange(1,0,cutoff);
+				osgDB::writeNodeFile( *group, "C:/temp/paged/" + filename );
+				return plod;
+			}
+			else
+			{
+				osg::LOD* plod = new osg::LOD;
+				plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
+				plod->setCenter( bb.center());
 
-			double radius = sqrt(bb_size*bb_size);
-			plod->setRadius(radius);
+				double radius = sqrt(bb_size*bb_size);
+				plod->setRadius(radius);
 
-			float cutoff = radius*2;
-			//regular terrain LOD setup
-			//plod->addChild(mesh_group, cutoff, FLT_MAX );
-			plod->addChild(mesh_group, 0, FLT_MAX );
-			plod->addChild(group, 0.0f, cutoff );
-			return plod;
+				float cutoff = radius*2;
+				//regular terrain LOD setup
+				//plod->addChild(mesh_group, cutoff, FLT_MAX );
+				plod->addChild(mesh_group, 0, FLT_MAX );
+				plod->addChild(group, 0.0f, cutoff );
+				return plod;
+			}
 		}
 		else
 			return mesh_group;
