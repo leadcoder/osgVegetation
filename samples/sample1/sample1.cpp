@@ -106,7 +106,7 @@ int main( int argc, char **argv )
 	
 	//osgDB::writeNodeFile(*tree_node,"c:/temp/bbveg.ive");
 	
-	osg::Light* pLight = new osg::Light;
+	/*osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
 	pLight->setPosition( osg::Vec4(1,0,1,0) );		// last param	w = 0.0 directional light (direction)
@@ -114,7 +114,7 @@ int main( int argc, char **argv )
 	// light source
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );
-	group->addChild( pLightSource );
+	group->addChild( pLightSource );*/
 	viewer.setSceneData(group);
 
 	return viewer.run();

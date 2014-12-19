@@ -72,15 +72,15 @@ int main( int argc, char **argv )
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
 	
 	//Add data path
-	//osgDB::Registry::instance()->getDataFilePathList().push_back("../data");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/OpenSceneGraph-Data-3.0.0");  
 
 	//Add texture search paths
-	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/tiles");
-	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/material_textures");  
-	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/color_textures");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("F:/temp/detail_mapping/Grid0/tiles");
+	osgDB::Registry::instance()->getDataFilePathList().push_back("F:/temp/detail_mapping/Grid0/material_textures");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("F:/temp/detail_mapping/Grid0/color_textures");  
 	//osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x1_3_3x3.ive.osg");
 	//osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x0_0_0x0.ive");
-	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/proxy.osg");
+	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("F:/temp/detail_mapping/proxy.osg");
 
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
@@ -98,10 +98,11 @@ int main( int argc, char **argv )
 	material_map[ROAD] = osgVegetation::MaterialColor(0,0,1,1);
 	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
 
-	osgVegetation::BillboardData undergrowth_data(50,false,0.4,true);
+	//osgVegetation::BillboardData undergrowth_data(50,true,0.4,true);
+	osgVegetation::BillboardData undergrowth_data(100,true,0.4,true);
 
 	osgVegetation::BillboardLayer  grass2("Images/veg_grass02.dds"); 
-	grass2.Density = 3.1;
+	grass2.Density = 1.0;
 	grass2.Height.set(0.3,0.6);
 	grass2.Width.set(0.25,0.35);
 	grass2.Scale.set(1.5,3);
@@ -152,15 +153,16 @@ int main( int argc, char **argv )
 	//osgVegetation::VegetationScattering bs(terrain.get(),400);
 	//osg::Node* bb_node = bs.create(bblayers);
 	osgVegetation::TerrainQuery tq(terrain.get());
-	tq.setMaterialTextureSuffix(".rgb");
+	tq.setMaterialTextureSuffix(".tga");
 	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
-	//osg::Node* ug_node = scattering.create(undergrowth_data);
-	//group->addChild(ug_node);
-	osgVegetation::QuadTreeScattering scattering2(terrain.get(),&tq);
-	osg::Node* tree_node = scattering2.create(tree_data);
-	group->addChild(tree_node);
+	osg::Node* ug_node = scattering.create(undergrowth_data);
+	group->addChild(ug_node);
+	//osgVegetation::QuadTreeScattering scattering2(terrain.get(),&tq);
+	//osg::Node* tree_node = scattering.create(tree_data);
+	//group->addChild(tree_node);
 	
-	osgDB::writeNodeFile(*tree_node,"c:/temp/bbveg.ive");
+	osgDB::writeNodeFile(*ug_node,"c:/temp/undergrowth_veg.ive");
+	//osgDB::writeNodeFile(*tree_node,"c:/temp/tree_veg.ive");
 	
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						

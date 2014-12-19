@@ -88,6 +88,7 @@ namespace osgVegetation
 					if(image)
 					{
 						osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
+						//osg::Vec3 tc2 = tc;
 						material_color = image->getColor(tc2);
 					}
 					else
