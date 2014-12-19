@@ -458,8 +458,7 @@ namespace osgVegetation
 			fadeInDist->set(radius*2.0f);
 			//fadeInDist->setDataVariance(osg::Object::DYNAMIC);
 			geometry->getOrCreateStateSet()->addUniform(fadeInDist);
-			geode->setStateSet(m_StateSet);
-
+			//geode->setStateSet((osg::StateSet*) m_StateSet->clone(osg::CopyOp::DEEP_COPY_STATESETS));
 		}
 		return geode;
 	}

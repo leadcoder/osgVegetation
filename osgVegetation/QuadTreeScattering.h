@@ -30,7 +30,13 @@ namespace osgVegetation
 	{
 	public:
 		QuadTreeScattering(osg::Node* terrain, ITerrainQuery* tq);
-		osg::Node* create(BillboardData &layers);
+		/*
+			Generate vegetation data by providing billboard data
+			@param data Billboard layers and settings
+			@param paged_lod_path Optional path to save paged LODS, if provided PagedLOD are used instead of regular LOD nodes
+
+		*/
+		osg::Node* create(BillboardData &data, const std::string &paged_lod_path = "", const std::string &filename_prefix = "");
 	private:
 		double m_TileTargetSize;
 		double m_ViewDistance;
@@ -49,6 +55,10 @@ namespace osgVegetation
 		typedef std::map<std::string,osg::ref_ptr<osg::Image> > MaterialCacheMap; 
 		MaterialCacheMap m_MaterialCache;
 		ITerrainQuery* m_TerrainQuery;
+		bool m_UsePagedLOD;
+		std::string m_SavePath;
+		std::string m_FilenamePrefix;
+
 		std::string createFileName(unsigned int lv,	unsigned int x, unsigned int y);
 		osg::Geode* createTerrain(const osg::Vec3& origin, const osg::Vec3& size);
 		void populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& object_list,double density_scale);
