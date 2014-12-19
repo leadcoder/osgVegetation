@@ -85,6 +85,20 @@ int main( int argc, char **argv )
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
 
+
+	//setup optimization variables
+	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
+#ifdef WIN32
+	_putenv(opt_env.c_str());
+#else
+	char * writable = new char[opt_env.size() + 1];
+	std::copy(opt_env.begin(), opt_env.end(), writable);
+	writable[opt_env.size()] = '\0'; // don't forget the terminating 0
+	putenv(writable);
+	delete[] writable;
+#endif
+
+
 	enum MaterialEnum
 	{
 		GRASS,
@@ -102,7 +116,7 @@ int main( int argc, char **argv )
 	osgVegetation::BillboardData undergrowth_data(100,true,0.4,true);
 
 	osgVegetation::BillboardLayer  grass2("Images/veg_grass02.dds"); 
-	grass2.Density = 1.0;
+	grass2.Density = 0.6;
 	grass2.Height.set(0.3,0.6);
 	grass2.Width.set(0.25,0.35);
 	grass2.Scale.set(1.5,3);
@@ -150,18 +164,20 @@ int main( int argc, char **argv )
 	birch.Materials.push_back(material_map[WOODS]);
 	tree_data.Layers.push_back(birch);
 
-	//osgVegetation::VegetationScattering bs(terrain.get(),400);
-	//osg::Node* bb_node = bs.create(bblayers);
+
+	std::string save_path("c:/temp/paged/");
+	//add path to enable viewer to find LODS
+	osgDB::Registry::instance()->getDataFilePathList().push_back(save_path);  
+	
 	osgVegetation::TerrainQuery tq(terrain.get());
 	tq.setMaterialTextureSuffix(".tga");
 	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
-	osg::Node* ug_node = scattering.create(undergrowth_data);
+	osg::Node* ug_node = scattering.create(undergrowth_data,save_path, "ug_");
 	group->addChild(ug_node);
-	//osgVegetation::QuadTreeScattering scattering2(terrain.get(),&tq);
-	//osg::Node* tree_node = scattering.create(tree_data);
-	//group->addChild(tree_node);
-	
-	osgDB::writeNodeFile(*ug_node,"c:/temp/undergrowth_veg.ive");
+	osgVegetation::QuadTreeScattering scattering2(terrain.get(),&tq);
+	osg::Node* tree_node = scattering2.create(tree_data,save_path,"og_");
+	group->addChild(tree_node);
+	osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
 	//osgDB::writeNodeFile(*tree_node,"c:/temp/tree_veg.ive");
 	
 	osg::Light* pLight = new osg::Light;
