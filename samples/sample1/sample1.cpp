@@ -73,6 +73,7 @@ int main( int argc, char **argv )
 	
 	//Add data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("c:/temp/paged");  
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
@@ -104,7 +105,7 @@ int main( int argc, char **argv )
 	osg::Node* tree_node = scattering.create(tree_data);
 	group->addChild(tree_node);
 	
-	//osgDB::writeNodeFile(*tree_node,"c:/temp/bbveg.ive");
+	osgDB::writeNodeFile(*tree_node,"c:/temp/paged/bbveg.ive");
 	
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
