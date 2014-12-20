@@ -190,8 +190,6 @@ namespace osgVegetation
 				plod->setFileName( c_index, filename );
 				plod->setRange(c_index,0,cutoff);
 				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
-
-				
 				return plod;
 			}
 			else

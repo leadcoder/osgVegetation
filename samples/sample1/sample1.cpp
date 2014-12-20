@@ -121,19 +121,29 @@ int main( int argc, char **argv )
 	
 	tree_data.Layers.push_back(spruce);
 
-	const std::string save_path("c:/temp/paged/");
-	osgDB::Registry::instance()->getDataFilePathList().push_back(save_path);  
+	bool use_paged_LOD = false;
+	std::string save_path;
+	if(use_paged_LOD)
+	{
+		save_path = "c:/temp/paged/";
+		osgDB::Registry::instance()->getDataFilePathList().push_back(save_path); 
+	}
 
 	osg::ComputeBoundsVisitor  cbv;
 	osg::BoundingBox &bb(cbv.getBoundingBox());
 	terrain->accept(cbv);
 
+	//test to use smaller bb
+	//osg::Vec3 bb_size = bb._max - bb._min;
+	//bb._min = bb._min + bb_size*0.25;
+	//bb._max = bb._max - bb_size*0.25;
+
 	osgVegetation::TerrainQuery tq(terrain.get());
 	osgVegetation::QuadTreeScattering scattering(&tq);
-	//osg::Node* tree_node = scattering.create(tree_data,save_path);
 	osg::Node* tree_node = scattering.generate(bb,tree_data,save_path);
 	group->addChild(tree_node);
-	osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
+	
+	//osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
 	
 	
 	osg::Light* pLight = new osg::Light;

@@ -16,6 +16,8 @@
 #include <osg/Image>
 #include <osg/Texture2DArray>
 #include <osgDB/ReadFile>
+#include <osgDB/WriteFile>
+#include <osgDB/FileUtils>
 #include "BillboardLayer.h"
 
 
@@ -237,16 +239,40 @@ namespace osgVegetation
 				"    FragData0 = finalColor;\n"
 				"}\n";
 
-			osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
-			//vertex_shader->setFileName("C:/temp/paged/master.ive.glsl");
-			//osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX);
-			//vertex_shader->loadShaderSourceFromFile("C:/temp/paged/master.ive.glsl");
+			//first check if shaders files exist!
+			const std::string btr_vertex_file("btr_vertex.glsl");
+			const std::string btr_fragment_file("btr_fragment.glsl");
+
+			osg::Shader* vertex_shader = NULL;
+			if(osgDB::fileExists(btr_vertex_file))
+			{
+				vertex_shader = new osg::Shader(osg::Shader::VERTEX);
+				vertex_shader->setFileName(btr_vertex_file);
+				vertex_shader->loadShaderSourceFromFile(btr_vertex_file);
+				
+			}
+			else
+			{
+				vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
+				//Save shader
+				osgDB::writeShaderFile(*vertex_shader,btr_vertex_file);
+			}
 			program->addShader(vertex_shader);
 
-			osg::Shader* fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
-			//fragment_shader->setFileName("C:/temp/paged/master.ive_1.glsl");
-			//osg::Shader* fragment_shader = new osg::Shader(osg::Shader::FRAGMENT);
-			//fragment_shader->loadShaderSourceFromFile("C:/temp/paged/master.ive_1.glsl");
+			
+			osg::Shader* fragment_shader = NULL;
+			if(osgDB::fileExists(btr_fragment_file))
+			{
+				fragment_shader = new osg::Shader(osg::Shader::FRAGMENT);
+				fragment_shader->setFileName(btr_fragment_file);
+				fragment_shader->loadShaderSourceFromFile(btr_fragment_file);
+			}
+			else
+			{
+				fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
+				//Save shader
+				osgDB::writeShaderFile(*fragment_shader,btr_fragment_file);
+			}
 			program->addShader(fragment_shader);
 		}
 		return dstate;
@@ -363,27 +389,6 @@ namespace osgVegetation
 		n[13].set( roundness,-1,0);
 		n[14].set( roundness,-1,0);
 		n[15].set(-roundness,-1,0);
-
-
-		/*n[0].set(-roundness,-1,0);
-		n[1].set( roundness,-1,0);
-		n[2].set( roundness,-1,0);
-		n[3].set(-roundness,-1,0);
-
-		n[4].set(-roundness,1,0);
-		n[5].set( roundness,1,0);
-		n[6].set( roundness,1,0);
-		n[7].set(-roundness,1,0);
-
-		n[8].set( -1, roundness,0);
-		n[9].set( -1,-roundness,0);
-		n[10].set(-1,-roundness,0);
-		n[11].set(-1, roundness,0);
-
-		n[12].set(1, roundness,0);
-		n[13].set(1,-roundness,0);
-		n[14].set(1,-roundness,0);
-		n[15].set(1, roundness,0);*/
 
 		t[0].set(0.0f,0.0f);
 		t[1].set(1.0f,0.0f);
