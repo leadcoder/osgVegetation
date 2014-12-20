@@ -15,16 +15,18 @@ namespace osgVegetation
 	{
 	public:
 		BillboardLayer(const std::string &tex_name) : TextureName(tex_name),
-			Height(1,1),
-			Width(1,1),
-			Scale(1,1),
-			ColorIntensity(1,1),
-			Density(1),
+			Height(1.0, 1.0),
+			Width(1.0, 1.0),
+			Scale(1.0, 1.0),
+			ColorIntensity(1.0, 1.0),
+			Density(1.0),
+			MixInColorRatio(0.0),
 			_TextureIndex(0)
 
 		{
 
 		}
+
 
 		bool hasMaterial(const MaterialColor& mat) const
 		{
@@ -62,15 +64,19 @@ namespace osgVegetation
 		*/
 		double Density;
 
-		/*
+		/**
 			Color intensity interval
 		*/
 		osg::Vec2 ColorIntensity;
 
 		/**
+			Percentage to of ground texture color to use for billboard coloring
+		*/
+		double MixInColorRatio;
+
+		/**
 			Material vector that specify where to scatter billboards
 		*/
-
 		std::vector<MaterialColor> Materials;
 		
 		//internal data holding texture index inside texture array

@@ -35,7 +35,7 @@ namespace osgVegetation
 
 	}
 
-	
+
 
 	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardLayerVector &layers) 
 	{
@@ -65,11 +65,11 @@ namespace osgVegetation
 			else
 				layers[i]._TextureIndex = index_map[layers[i].TextureName];
 		}
-	
+
 		osg::Texture2DArray* tex = new osg::Texture2DArray;
 		tex->setTextureSize(tex_width, tex_height, num_textures);
 		tex->setUseHardwareMipMapGeneration(true);   
-		
+
 		for(size_t i = 0; i < layers.size();i++)
 		{
 			tex->setImage(index_map[layers[i].TextureName], image_map[layers[i].TextureName]);
@@ -77,7 +77,7 @@ namespace osgVegetation
 
 		osg::StateSet *dstate = new osg::StateSet;
 		dstate->setTextureAttribute(0, tex,	osg::StateAttribute::ON);
-		
+
 		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
 		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL,m_AlphaRefValue);
 
@@ -86,9 +86,9 @@ namespace osgVegetation
 			dstate->setAttributeAndModes(new osg::CullFace(),osg::StateAttribute::OFF);
 		else
 			dstate->setAttributeAndModes(new osg::CullFace(),osg::StateAttribute::ON);
-			
+
 		//dstate->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
-		
+
 		if(m_AlphaBlend)
 		{
 			dstate->setAttributeAndModes( new osg::BlendFunc, osg::StateAttribute::ON );
@@ -107,30 +107,30 @@ namespace osgVegetation
 			vertexShaderSource << 
 				"#version 430 compatibility\n"
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
-				"uniform samplerBuffer dataBuffer;\n"
-				"uniform float fadeInDist;\n"
+				"uniform samplerBuffer DataBufferTexture;\n"
+				"uniform float FadeInDist;\n"
 				"out vec2 TexCoord;\n";
 			if(m_PPL)
 			{
 				vertexShaderSource << 
-				"out vec3 Normal;\n"
-			    "out vec3 LightDir;\n";
+					"out vec3 Normal;\n"
+					"out vec3 LightDir;\n";
 			}
 			vertexShaderSource << 
-			    "out vec4 Color;\n"
+				"out vec4 Color;\n"
 				"out vec3 Ambient;\n"
-				"out float veg_type; \n"
+				"out float VegetationType; \n"
 				"const vec3 LightPosition = vec3(0.0, 0.0, 4.0);\n" 
 				"void main()\n"
 				"{\n"
 				"   vec3 normal;\n"
 				"   int instanceAddress = gl_InstanceID * 3;\n"
-				"   vec3 position = texelFetch(dataBuffer, instanceAddress).xyz;\n"
-				"   Color         = texelFetch(dataBuffer, instanceAddress + 1);\n"
-				"   vec4 data     = texelFetch(dataBuffer, instanceAddress + 2);\n";
-				if(m_TrueBillboards)
-				{
-					vertexShaderSource << 
+				"   vec3 position = texelFetch(DataBufferTexture, instanceAddress).xyz;\n"
+				"   Color         = texelFetch(DataBufferTexture, instanceAddress + 1);\n"
+				"   vec4 data     = texelFetch(DataBufferTexture, instanceAddress + 2);\n";
+			if(m_TrueBillboards)
+			{
+				vertexShaderSource << 
 					"   mat4 modelView = gl_ModelViewMatrix * mat4( data.x, 0.0, 0.0, 0.0,\n"
 					"              0.0, data.x, 0.0, 0.0,\n"
 					"              0.0, 0.0, data.y, 0.0,\n"
@@ -138,61 +138,61 @@ namespace osgVegetation
 					"   modelView[0][0] = data.x; modelView[0][1] = 0.0;modelView[0][2] = 0.0;\n"
 					"   modelView[1][0] = 0;      modelView[1][1] = data.y;modelView[1][2] = 0.0;\n"
 					"   vec4 prePos = modelView * vec4(gl_Vertex.xyz,1.0) ;\n"
-					"   prePos.y = prePos.y - data.y*gl_Vertex.z * clamp(((-prePos.z-fadeInDist)/(fadeInDist*0.2)), 0.0, 1.0);\n"
+					"   prePos.y = prePos.y - data.y*gl_Vertex.z * clamp(((-prePos.z-FadeInDist)/(FadeInDist*0.2)), 0.0, 1.0);\n"
 					"   gl_Position = gl_ProjectionMatrix * prePos ;\n";
-					
-					if(m_TerrainNormal)
-					{
-						vertexShaderSource << 
-							"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
-					}
-					else
-					{
-						//skip standard normal transformation for billboards, 
-						//we want normal in eye-space and we know how to handle this transformation by hand
-						vertexShaderSource << 
-							"   normal = normalize(vec3(gl_Normal.x,0,-gl_Normal.y));\n";
-					}
+
+				if(m_TerrainNormal)
+				{
+					vertexShaderSource << 
+						"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
 				}
 				else
 				{
+					//skip standard normal transformation for billboards, 
+					//we want normal in eye-space and we know how to handle this transformation by hand
 					vertexShaderSource << 
+						"   normal = normalize(vec3(gl_Normal.x,0,-gl_Normal.y));\n";
+				}
+			}
+			else
+			{
+				vertexShaderSource << 
 					"   mat4 mvpMatrix = gl_ModelViewProjectionMatrix * mat4( data.x, 0.0, 0.0, 0.0,\n"
 					"              0.0, data.x, 0.0, 0.0,\n"
 					"              0.0, 0.0, data.y, 0.0,\n"
 					"              position.x, position.y, position.z, 1.0);\n"
 					"   gl_Position = mvpMatrix * gl_Vertex;\n";
-					//"   normal = normalize(gl_NormalMatrix * gl_Normal);\n";
-					if(m_TerrainNormal)
-					{
-						vertexShaderSource << 
-							"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
-					}
-					else
-					{
-						//skip standard normal transformation for billboards, 
-						//we want normal in eye-space and we know how to handle this transformation by hand
-						vertexShaderSource << 
-							"   normal = normalize(vec3(gl_Normal.x,0,-gl_Normal.y));\n";
-					}
-				}
-				
-				if(m_PPL)
+				//"   normal = normalize(gl_NormalMatrix * gl_Normal);\n";
+				if(m_TerrainNormal)
 				{
 					vertexShaderSource << 
-						"   Normal = normal;\n"
-						"   LightDir = normalize(gl_LightSource[0].position.xyz);\n"
-						"   Ambient  = gl_LightSource[0].ambient.xyz;\n";
+						"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
 				}
 				else
 				{
-					vertexShaderSource <<
+					//skip standard normal transformation for billboards, 
+					//we want normal in eye-space and we know how to handle this transformation by hand
+					vertexShaderSource << 
+						"   normal = normalize(vec3(gl_Normal.x,0,-gl_Normal.y));\n";
+				}
+			}
+
+			if(m_PPL)
+			{
+				vertexShaderSource << 
+					"   Normal = normal;\n"
+					"   LightDir = normalize(gl_LightSource[0].position.xyz);\n"
+					"   Ambient  = gl_LightSource[0].ambient.xyz;\n";
+			}
+			else
+			{
+				vertexShaderSource <<
 					"   vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
 					"   float NdotL = max(dot(normal, lightDir), 0.0);\n"
 					"   Color.xyz = NdotL*Color.xyz + gl_LightSource[0].ambient.xyz*Color.xyz;\n";
-				}
-				vertexShaderSource << 
-				"   veg_type = data.z;\n"
+			}
+			vertexShaderSource << 
+				"   VegetationType = data.z;\n"
 				"   TexCoord = gl_MultiTexCoord0.st;\n"
 				"}\n";
 
@@ -202,15 +202,15 @@ namespace osgVegetation
 				"#extension GL_EXT_gpu_shader4 : enable\n"
 				"#extension GL_EXT_texture_array : enable\n"
 				"uniform sampler2DArray baseTexture; \n"
-				"uniform float fadeInDist;\n"
-				"in float veg_type; \n"
+				"uniform float FadeInDist;\n"
+				"in float VegetationType; \n"
 				"in vec3 Ambient; \n"
 				"in vec2 TexCoord;\n";
 			if(m_PPL)
 			{
 				fragmentShaderSource << 
-				"in vec3 Normal;\n"
-				"in vec3 LightDir;\n";
+					"in vec3 Normal;\n"
+					"in vec3 LightDir;\n";
 			}	
 
 			fragmentShaderSource <<
@@ -218,22 +218,22 @@ namespace osgVegetation
 				"layout(location = 0, index = 0) out vec4 FragData0;\n"
 				"void main(void) \n"
 				"{\n"
-				"    vec4 finalColor = texture2DArray( baseTexture, vec3(TexCoord, veg_type)); \n";
-		    if(m_PPL)
+				"    vec4 finalColor = texture2DArray( baseTexture, vec3(TexCoord, VegetationType)); \n";
+			if(m_PPL)
 			{
-			fragmentShaderSource << 
-				"   float NdotL = max(dot(normalize(Normal), LightDir), 0.0);\n"
-				"   finalColor.xyz = NdotL*finalColor.xyz*Color.xyz + Ambient.xyz*finalColor.xyz*Color.xyz;\n";
+				fragmentShaderSource << 
+					"   float NdotL = max(dot(normalize(Normal), LightDir), 0.0);\n"
+					"   finalColor.xyz = NdotL*finalColor.xyz*Color.xyz + Ambient.xyz*finalColor.xyz*Color.xyz;\n";
 			}
 			else
 			{
-			fragmentShaderSource << 
-				"   finalColor.xyz = finalColor.xyz * Color.xyz;\n";
+				fragmentShaderSource << 
+					"   finalColor.xyz = finalColor.xyz * Color.xyz;\n";
 			}
 
 			fragmentShaderSource <<
 				"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
-				"    finalColor.w = finalColor.w * clamp(1 - ((depth-fadeInDist)/(fadeInDist*0.2)), 0.0, 1.0);\n"
+				"    finalColor.w = finalColor.w * clamp(1 - ((depth-FadeInDist)/(FadeInDist*0.1)), 0.0, 1.0);\n"
 				"    FragData0 = finalColor;\n"
 				"}\n";
 
@@ -258,7 +258,7 @@ namespace osgVegetation
 		osg::Vec3Array& v = *(new osg::Vec3Array(8));
 		osg::Vec3Array& n = *(new osg::Vec3Array(8));
 		osg::Vec2Array& t = *(new osg::Vec2Array(8));
-		
+
 		float sw = w*0.5f;
 		v[0].set(pos.x()-sw,pos.y(),pos.z()+0.0f);
 		v[1].set(pos.x()   ,pos.y(),pos.z()+0.0f);
@@ -269,7 +269,7 @@ namespace osgVegetation
 		v[5].set(pos.x()+sw,pos.y(),pos.z()+0.0f);
 		v[6].set(pos.x()+sw,pos.y(),pos.z()+h);
 		v[7].set(pos.x()   ,pos.y(),pos.z()+h);
-		
+
 		double roundness = 1.0;
 
 		n[0].set(-roundness,-1,0);
@@ -281,17 +281,17 @@ namespace osgVegetation
 		n[5].set( roundness,-1,0);
 		n[6].set( roundness,-1,0);
 		n[7].set( 0,-1,0);
-		
+
 		t[0].set(0.0f,0.0f);
 		t[1].set(0.5f,0.0f);
 		t[2].set(0.5f,1.0f);
 		t[3].set(0.0f,1.0f);
-		
+
 		t[4].set(0.5f,0.0f);
 		t[5].set(1.0f,0.0f);
 		t[6].set(1.0f,1.0f);
 		t[7].set(0.5f,1.0f);
-		
+
 		osg::Geometry *geom = new osg::Geometry;
 
 		geom->setVertexArray( &v );
@@ -310,7 +310,7 @@ namespace osgVegetation
 		osg::Vec3Array& v = *(new osg::Vec3Array(16));
 		osg::Vec3Array& n = *(new osg::Vec3Array(16));
 		osg::Vec2Array& t = *(new osg::Vec2Array(16));
-		
+
 		float sw = w*0.5f;
 		v[0].set(pos.x()-sw,pos.y(),pos.z()+0.0f);
 		v[1].set(pos.x()+sw,pos.y(),pos.z()+0.0f);
@@ -321,12 +321,12 @@ namespace osgVegetation
 		v[5].set(pos.x()+sw,pos.y(),pos.z()+h);
 		v[6].set(pos.x()+sw,pos.y(),pos.z()+0.0f);
 		v[7].set(pos.x()-sw,pos.y(),pos.z()+0.0f);
-	
+
 		v[8].set(pos.x(),pos.y()+sw,pos.z()+0.0f);
 		v[9].set(pos.x(),pos.y()-sw,pos.z()+0.0f);
 		v[10].set(pos.x(),pos.y()-sw,pos.z()+h);
 		v[11].set(pos.x(),pos.y()+sw,pos.z()+h);
-		
+
 		v[12].set(pos.x(),pos.y()+sw,pos.z()+h);
 		v[13].set(pos.x(),pos.y()-sw,pos.z()+h);
 		v[14].set(pos.x(),pos.y()-sw,pos.z()+0.0f);
@@ -395,7 +395,7 @@ namespace osgVegetation
 		t[5].set(1.0f,1.0f);
 		t[6].set(1.0f,0.0f);
 		t[7].set(0.0f,0.0f);
-	
+
 		t[8].set(0.0f,0.0f);
 		t[9].set(1.0f,0.0f);
 		t[10].set(1.0f,1.0f);
@@ -405,7 +405,7 @@ namespace osgVegetation
 		t[13].set(1.0f,1.0f);
 		t[14].set(1.0f,0.0f);
 		t[15].set(0.0f,0.0f);
-	
+
 		osg::Geometry *geom = new osg::Geometry;
 
 		geom->setVertexArray( &v );
@@ -456,10 +456,10 @@ namespace osgVegetation
 			tbo->setInternalFormat(GL_RGBA32F_ARB);
 			geometry->getOrCreateStateSet()->setTextureAttribute(1, tbo.get(),osg::StateAttribute::ON);
 			geometry->setInitialBound( bb );
-			osg::Uniform* dataBufferSampler = new osg::Uniform("dataBuffer",1);
+			osg::Uniform* dataBufferSampler = new osg::Uniform("DataBufferTexture",1);
 			geometry->getOrCreateStateSet()->addUniform(dataBufferSampler);
 
-			osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "fadeInDist");
+			osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "FadeInDist");
 			double bb_size = (bb._max.x() - bb._min.x());
 			float radius = sqrt(bb_size*bb_size);
 

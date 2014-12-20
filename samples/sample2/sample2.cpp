@@ -169,13 +169,18 @@ int main( int argc, char **argv )
 	//add path to enable viewer to find LODS
 	osgDB::Registry::instance()->getDataFilePathList().push_back(save_path);  
 	
+	osg::ComputeBoundsVisitor  cbv;
+	osg::BoundingBox &bb(cbv.getBoundingBox());
+	terrain->accept(cbv);
+
+
 	osgVegetation::TerrainQuery tq(terrain.get());
 	tq.setMaterialTextureSuffix(".tga");
-	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
-	osg::Node* ug_node = scattering.create(undergrowth_data,save_path, "ug_");
+	osgVegetation::QuadTreeScattering scattering(&tq);
+	osg::Node* ug_node = scattering.generate(bb,undergrowth_data,save_path, "ug_");
 	group->addChild(ug_node);
-	osgVegetation::QuadTreeScattering scattering2(terrain.get(),&tq);
-	osg::Node* tree_node = scattering2.create(tree_data,save_path,"og_");
+	osgVegetation::QuadTreeScattering scattering2(&tq);
+	osg::Node* tree_node = scattering2.generate(bb,tree_data,save_path,"og_");
 	group->addChild(tree_node);
 	osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
 	//osgDB::writeNodeFile(*tree_node,"c:/temp/tree_veg.ive");

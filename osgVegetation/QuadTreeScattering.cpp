@@ -33,8 +33,7 @@
 
 namespace osgVegetation
 {
-	QuadTreeScattering::QuadTreeScattering(osg::Node* terrain, ITerrainQuery* tq) : m_Terrain(terrain),
-		m_VRT(NULL),
+	QuadTreeScattering::QuadTreeScattering(ITerrainQuery* tq) : m_VRT(NULL),
 		m_TerrainQuery(tq),
 		m_UsePagedLOD(false),
 		m_FilenamePrefix("quadtree_"),
@@ -70,8 +69,8 @@ namespace osgVegetation
 					veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
 					veg_obj->TextureIndex = layer._TextureIndex;
 					veg_obj->Position = inter-m_Offset;
-					veg_obj->Color = color*rand_int*0.5;
-					veg_obj->Color += osg::Vec4(1,1,1,1)*0.5*rand_int;
+					veg_obj->Color = color*rand_int*layer.MixInColorRatio;
+					veg_obj->Color += osg::Vec4(1,1,1,1)*(1.0- layer.MixInColorRatio)*rand_int;
 					object_list.push_back(veg_obj);
 				}
 			}
@@ -107,11 +106,9 @@ namespace osgVegetation
 		//mesh_group is returned so we don't use smart pointer
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
-		//bool final_lod = false;
-		//if(bb_size < m_MinTileSize)
+		
 		bool final_lod = (ld == m_FinalLOD);
 		
-		//if(bb_size < m_ViewDistance)
 		if(ld >= m_StartLOD)
 		{
 			//calculate density ratio for this LOD level
@@ -218,7 +215,7 @@ namespace osgVegetation
 			return mesh_group;
 		
 	}
-	osg::Node* QuadTreeScattering::create(BillboardData &data, const std::string &page_lod_path, const std::string &filename_prefix)
+	osg::Node* QuadTreeScattering::generate(const osg::BoundingBox &boudning_box,BillboardData &data, const std::string &page_lod_path, const std::string &filename_prefix)
 	{
 		m_FilenamePrefix = filename_prefix;
 		if(page_lod_path != "")
@@ -230,24 +227,26 @@ namespace osgVegetation
 		delete m_VRT;
 		m_VRT = new BRTShaderInstancing(data);
 
-		osg::ComputeBoundsVisitor  cbv;
-		osg::BoundingBox &bb(cbv.getBoundingBox());
-		m_Terrain->accept(cbv);
-	
 		m_ViewDistance = data.ViewDistance;
 		m_VRT->setAlphaRefValue(data.AlphaRefValue);
 		m_VRT->setAlphaBlend(data.UseAlphaBlend);
 		m_VRT->setTerrainNormal(data.TerrainNormal);
 		
 		//get max terrain side, we want square area for to begin quad tree splitting
-		double terrain_size = std::max(bb._max.x() - bb._min.x(), bb._max.y() - bb._min.y());
+		double terrain_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
+									   boudning_box._max.y() - boudning_box._min.y());
 		
-		m_Offset = bb._min;
+		//Offset vegetation by using new origin at boudning_box._min
+		m_Offset = boudning_box._min;
+
+		//Create initial bounding box at new origin
 		m_InitBB._min.set(0,0,0);
-		m_InitBB._max = bb._max - bb._min;
+		m_InitBB._max = boudning_box._max - boudning_box._min;
 		
-		bb._max.set(terrain_size, terrain_size, bb._max.z() - bb._min.z());
-		bb._min.set(0,0,0);
+		//Create squared bounding box as starting point for the quadtree process
+		osg::BoundingBox qt_bb;
+		qt_bb._max.set(terrain_size, terrain_size, boudning_box._max.z() - boudning_box._min.z());
+		qt_bb._min.set(0,0,0);
 
 		//add offset matrix
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
@@ -256,34 +255,41 @@ namespace osgVegetation
 		//save for later...
 		m_DensityLODRatio = data.DensityLODRatio;
 		m_ScaleLODRatio = data.ScaleLODRatio;
-
-		//Calculate min tile size based on view distance and number density lod levels 
-		//m_MinTileSize = m_ViewDistance/(data.MaxDensityLODs+1);
-
+		
 		double temp_size  = terrain_size;
+		
+		//reset
 		m_FinalLOD =0;
 		m_StartLOD =0;
 		m_NumberOfTiles = 0;
 		m_CurrentTile = 0;
 
+		//Get LOD level to begin scattering at
 		while(temp_size > m_ViewDistance)
 		{
 			m_StartLOD++;
-			temp_size = temp_size/2.0;
+			temp_size *= 0.5;
 		}
-		m_FinalLOD = m_StartLOD + data.MaxDensityLODs;
 
+		//Final LOD is easy...
+		m_FinalLOD = m_StartLOD + data.LODCount;
+
+		//get total number of tiles to process, used for progress report
 		int ld = 0;
 		while(ld < m_FinalLOD)
 		{
-			ld++;
 			int side = 2 << ld;
-			m_NumberOfTiles += side*side; 
+			m_NumberOfTiles += side*side;
+			ld++;
 		}
 
+		//Start recursive scattering process
 		BillboardVegetationObjectVector trees;
-		osg::Node* outnode = _createLODRec(0, data.Layers, trees, bb,0,0);
+		osg::Node* outnode = _createLODRec(0, data.Layers, trees, qt_bb,0,0);
+
+		//Add state set to top node
 		outnode->setStateSet((osg::StateSet*) m_VRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
+		
 		if(m_UsePagedLOD)
 		{
 			transform->addChild(outnode);
@@ -298,6 +304,7 @@ namespace osgVegetation
 		{
 			transform->addChild(outnode);
 		}
+
 		return transform;
 	}
 }

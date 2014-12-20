@@ -107,7 +107,7 @@ int main( int argc, char **argv )
 	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
 
 	osgVegetation::BillboardData tree_data(400,false,0.08,false);
-	tree_data.MaxDensityLODs = 1;
+	tree_data.LODCount = 1;
 	tree_data.DensityLODRatio = 0.7;
 	tree_data.ScaleLODRatio = 0.5;
 	osgVegetation::BillboardLayer  spruce("billboards/tree0.rgba");
@@ -115,6 +115,8 @@ int main( int argc, char **argv )
 	spruce.Height.set(5,5);
 	spruce.Width.set(2,2);
 	spruce.Scale.set(0.8,0.9);
+	spruce.ColorIntensity.set(4,4);
+	spruce.MixInColorRatio = 1.0;
 	spruce.Materials.push_back(material_map[WOODS]);
 	
 	tree_data.Layers.push_back(spruce);
@@ -122,15 +124,19 @@ int main( int argc, char **argv )
 	const std::string save_path("c:/temp/paged/");
 	osgDB::Registry::instance()->getDataFilePathList().push_back(save_path);  
 
+	osg::ComputeBoundsVisitor  cbv;
+	osg::BoundingBox &bb(cbv.getBoundingBox());
+	terrain->accept(cbv);
+
 	osgVegetation::TerrainQuery tq(terrain.get());
-	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
+	osgVegetation::QuadTreeScattering scattering(&tq);
 	//osg::Node* tree_node = scattering.create(tree_data,save_path);
-	osg::Node* tree_node = scattering.create(tree_data,save_path);
+	osg::Node* tree_node = scattering.generate(bb,tree_data,save_path);
 	group->addChild(tree_node);
 	osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
 	
 	
-	/*osg::Light* pLight = new osg::Light;
+	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
 	pLight->setPosition( osg::Vec4(1,0,1,0) );		// last param	w = 0.0 directional light (direction)
@@ -138,7 +144,7 @@ int main( int argc, char **argv )
 	// light source
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );
-	group->addChild( pLightSource );*/
+	group->addChild( pLightSource );
 	viewer.setSceneData(group);
 
 	return viewer.run();
