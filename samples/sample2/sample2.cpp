@@ -154,10 +154,10 @@ int main( int argc, char **argv )
 	osgVegetation::TerrainQuery tq(terrain.get());
 	tq.setMaterialTextureSuffix(".rgb");
 	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
-	//osg::Node* ug_node = scattering.create(undergrowth_data);
+	osg::Node* ug_node = scattering.create(undergrowth_data,"c:/temp/paged/ug");
 	//group->addChild(ug_node);
 	osgVegetation::QuadTreeScattering scattering2(terrain.get(),&tq);
-	osg::Node* tree_node = scattering2.create(tree_data);
+	osg::Node* tree_node = scattering2.create(tree_data,"c:/temp/paged/tree");
 	group->addChild(tree_node);
 	
 	osgDB::writeNodeFile(*tree_node,"c:/temp/bbveg.ive");
