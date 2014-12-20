@@ -35,6 +35,8 @@ namespace osgVegetation
 
 	}
 
+	
+
 	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardLayerVector &layers) 
 	{
 		int tex_width = 0;
@@ -236,9 +238,15 @@ namespace osgVegetation
 				"}\n";
 
 			osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
+			//vertex_shader->setFileName("C:/temp/paged/master.ive.glsl");
+			//osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX);
+			//vertex_shader->loadShaderSourceFromFile("C:/temp/paged/master.ive.glsl");
 			program->addShader(vertex_shader);
 
 			osg::Shader* fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
+			//fragment_shader->setFileName("C:/temp/paged/master.ive_1.glsl");
+			//osg::Shader* fragment_shader = new osg::Shader(osg::Shader::FRAGMENT);
+			//fragment_shader->loadShaderSourceFromFile("C:/temp/paged/master.ive_1.glsl");
 			program->addShader(fragment_shader);
 		}
 		return dstate;
@@ -458,8 +466,7 @@ namespace osgVegetation
 			fadeInDist->set(radius*2.0f);
 			//fadeInDist->setDataVariance(osg::Object::DYNAMIC);
 			geometry->getOrCreateStateSet()->addUniform(fadeInDist);
-			geode->setStateSet(m_StateSet);
-
+			//geode->setStateSet((osg::StateSet*) m_StateSet->clone(osg::CopyOp::DEEP_COPY_STATESETS));
 		}
 		return geode;
 	}

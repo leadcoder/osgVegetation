@@ -16,6 +16,8 @@
 #include <osg/TexEnv>
 #include <osg/ComputeBoundsVisitor>
 #include <osg/PagedLOD>
+#include <osg/ProxyNode>
+
 
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
@@ -33,17 +35,20 @@ namespace osgVegetation
 {
 	QuadTreeScattering::QuadTreeScattering(osg::Node* terrain, ITerrainQuery* tq) : m_Terrain(terrain),
 		m_VRT(NULL),
-		m_TerrainQuery(tq)
+		m_TerrainQuery(tq),
+		m_UsePagedLOD(false),
+		m_FilenamePrefix("quadtree_"),
+		m_DensityLODRatio(0.5)
 	{
 		
 	}
 
-	void QuadTreeScattering::populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& object_list, double density_scale)
+	void QuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& object_list, double lod_density, double lod_scale)
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
 
-		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*density_scale;
+		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*lod_density;
 		object_list.reserve(object_list.size()+num_objects_to_create);
 
 		for(unsigned int i=0;i<num_objects_to_create;++i)
@@ -60,7 +65,7 @@ namespace osgVegetation
 				{
 					BillboardObject* veg_obj = new BillboardObject;
 					//TODO add color to layer
-					float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y());
+					float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y())*lod_scale;
 					veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
 					veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
 					veg_obj->TextureIndex = layer._TextureIndex;
@@ -73,91 +78,57 @@ namespace osgVegetation
 		}
 	}
 	
-	BillboardVegetationObjectVector QuadTreeScattering::generateVegetation(BillboardLayerVector &layers,const osg::BoundingBox& bb, double density_scale)
+	BillboardVegetationObjectVector QuadTreeScattering::_generateVegetation(BillboardLayerVector &layers,const osg::BoundingBox& bb, double lod_density,double lod_scale)
 	{
 		BillboardVegetationObjectVector trees;
 		double const density= 1;
 		for(size_t i = 0 ; i < layers.size();i++)
 		{
-			populateVegetationLayer(layers[i],bb,trees,density_scale);
+			_populateVegetationLayer(layers[i],bb,trees,lod_density,lod_scale);
 		}
 		return trees;
 	}
 
-	std::string QuadTreeScattering::createFileName( unsigned int lv,	unsigned int x, unsigned int y )
+	std::string QuadTreeScattering::_createFileName( unsigned int lv,	unsigned int x, unsigned int y )
 	{
 		std::stringstream sstream;
-		sstream << "quadtree_L" << lv << "_X" << x << "_Y" << y << ".ive";
+		sstream << m_FilenamePrefix << lv << "_X" << x << "_Y" << y << ".ive";
 		return sstream.str();
 	}
 
-	/*osg::Node* VegetationScattering::createPagedLODRec(int ld, osg::Node* terrain, VegetationLayerVector &layers, VegetationObjectVector &trees,float current_size, float final_patch_size, float target_patch_size, osg::Vec3 center,int x, int y)
+	osg::Node* QuadTreeScattering::_createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
 	{
-	if(current_size < target_patch_size)
-	{
-	osg::Vec3 p_origin(center.x() - current_size*0.5, center.y() - current_size*0.5,center.z());
-	osg::Vec3 p_size(current_size,current_size,1);
-	VegetationObjectVector trees = generateVegetation(terrain,layers,p_origin,p_size);
-	//osg::Node* f_node = createPatch(terrain,layers,p_origin,p_size);
-	//return f_node;
-	}
-
-	osg::Group *group = new osg::Group;
-	osg::Vec3 c1_center(center.x() - current_size*0.25,center.y() - current_size*0.25,center.z());
-	osg::Vec3 c2_center(center.x() - current_size*0.25,center.y() + current_size*0.25,center.z());
-	osg::Vec3 c3_center(center.x() + current_size*0.25,center.y() + current_size*0.25,center.z());
-	osg::Vec3 c4_center(center.x() + current_size*0.25,center.y() - current_size*0.25,center.z());
-
-	group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c1_center, x*2,   y*2));
-	group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c2_center, x*2,   y*2+1));
-	group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c3_center, x*2+1, y*2+1));
-	group->addChild( createPagedLODRec(ld+1,terrain,layers, trees, current_size*0.5, target_patch_size, final_patch_size,c4_center, x*2+1, y*2)); 
-
-	osg::PagedLOD* plod = new osg::PagedLOD;
-	std::string filename = createFileName(ld, x,y);
-	//plod->insertChild( 0, geode.get() );
-	plod->setFileName( 0, filename );
-	osgDB::writeNodeFile( *group, "C:/temp/paged/" + filename );
-	plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-	plod->setCenter( center );
-	float radius = sqrt(current_size*current_size);
-	plod->setRadius( radius);
-	float cutoff = radius*2;
-	//plod->setRange( 0, cutoff, FLT_MAX );
-	plod->setRange( 0, 0.0f, cutoff );
-	return plod;
-	}*/
-
-	
-
-	osg::Node* QuadTreeScattering::createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
-	{
-		m_CurrentTile++;
 		if(ld < 6) //only show progress above lod 6, we dont want to spam the log
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Create Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
-		
-		
+		m_CurrentTile++;
 
+		osg::ref_ptr<osg::Group> children_group = new osg::Group;
 
-		osg::ref_ptr<osg::Group> group = new osg::Group;
+		//mesh_group is returned so we don't use smart pointer
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
-		bool final_lod = false;
-
-		if(bb_size < m_MinTileSize)
-			final_lod = true;
+		//bool final_lod = false;
+		//if(bb_size < m_MinTileSize)
+		bool final_lod = (ld == m_FinalLOD);
 		
-		if(bb_size < m_ViewDistance)
+		//if(bb_size < m_ViewDistance)
+		if(ld >= m_StartLOD)
 		{
-			//calculate density ratio for this lod level
-			int ratio = (m_FinalLOD - ld);
-			int tiles = pow(2.0, ratio);
+			//calculate density ratio for this LOD level
+			float lod = ld - m_StartLOD;
+			float inv_lod = m_FinalLOD - ld;
+			double lod_density = pow(m_DensityLODRatio, inv_lod);
+			double lod_scale = pow(m_ScaleLODRatio, lod);
+			
+			
+			/*int inv_lod = (m_FinalLOD - ld);
+			int tiles = pow(2.0, inv_lod);
 			double density_ratio = tiles*tiles;
-			density_ratio = 1.0/density_ratio;
+			density_ratio = 1.0/density_ratio;*/
 
 			if(trees.size() == 0)
 			{
-				trees = generateVegetation(layers,bb,density_ratio);
+				trees = _generateVegetation(layers,bb,lod_density,lod_scale);
 			}
 			BillboardVegetationObjectVector patch_trees;
 			
@@ -197,29 +168,33 @@ namespace osgVegetation
 				osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
 
 			//first check that we are inside initial bounding box
-			if(b1.intersects(m_InitBB))	group->addChild( createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
-			if(b2.intersects(m_InitBB))	group->addChild( createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
-			if(b3.intersects(m_InitBB)) group->addChild( createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
-			if(b4.intersects(m_InitBB)) group->addChild( createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
+			if(b1.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
+			if(b2.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
+			if(b3.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
+			if(b4.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
 
-			if(true)
+			if(m_UsePagedLOD)
 			{
 				osg::PagedLOD* plod = new osg::PagedLOD;
 				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
 				plod->setCenter(bb.center());
-				
-				
 				double radius = sqrt(bb_size*bb_size);
 				plod->setRadius(radius);
 				float cutoff = radius*2;
 				//regular terrain LOD setup
 				//plod->addChild(mesh_group, cutoff, FLT_MAX );
-				plod->addChild(mesh_group, 0, FLT_MAX );
-				//plod->addChild(group, 0.0f, cutoff );
-				const std::string filename = createFileName(ld, x,y);
-				plod->setFileName( 1, filename );
-				plod->setRange(1,0,cutoff);
-				osgDB::writeNodeFile( *group, "C:/temp/paged/" + filename );
+				int c_index = 0;
+				if(mesh_group->getNumChildren() > 0)
+				{
+					plod->addChild(mesh_group, 0, FLT_MAX );	
+					c_index++;
+				}
+				const std::string filename = _createFileName(ld, x,y);
+				plod->setFileName( c_index, filename );
+				plod->setRange(c_index,0,cutoff);
+				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
+
+				
 				return plod;
 			}
 			else
@@ -235,7 +210,7 @@ namespace osgVegetation
 				//regular terrain LOD setup
 				//plod->addChild(mesh_group, cutoff, FLT_MAX );
 				plod->addChild(mesh_group, 0, FLT_MAX );
-				plod->addChild(group, 0.0f, cutoff );
+				plod->addChild(children_group, 0.0f, cutoff );
 				return plod;
 			}
 		}
@@ -243,9 +218,14 @@ namespace osgVegetation
 			return mesh_group;
 		
 	}
-	
-	osg::Node* QuadTreeScattering::create(BillboardData &data)
+	osg::Node* QuadTreeScattering::create(BillboardData &data, const std::string &page_lod_path, const std::string &filename_prefix)
 	{
+		m_FilenamePrefix = filename_prefix;
+		if(page_lod_path != "")
+		{
+			m_UsePagedLOD = true;
+			m_SavePath = page_lod_path;
+		}
 		
 		delete m_VRT;
 		m_VRT = new BRTShaderInstancing(data);
@@ -253,8 +233,7 @@ namespace osgVegetation
 		osg::ComputeBoundsVisitor  cbv;
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		m_Terrain->accept(cbv);
-		
-
+	
 		m_ViewDistance = data.ViewDistance;
 		m_VRT->setAlphaRefValue(data.AlphaRefValue);
 		m_VRT->setAlphaBlend(data.UseAlphaBlend);
@@ -269,29 +248,56 @@ namespace osgVegetation
 		
 		bb._max.set(terrain_size, terrain_size, bb._max.z() - bb._min.z());
 		bb._min.set(0,0,0);
-		//add offset matrix
 
+		//add offset matrix
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
 
-		m_MinTileSize = m_ViewDistance/4;
+		//save for later...
+		m_DensityLODRatio = data.DensityLODRatio;
+		m_ScaleLODRatio = data.ScaleLODRatio;
+
+		//Calculate min tile size based on view distance and number density lod levels 
+		//m_MinTileSize = m_ViewDistance/(data.MaxDensityLODs+1);
 
 		double temp_size  = terrain_size;
 		m_FinalLOD =0;
+		m_StartLOD =0;
 		m_NumberOfTiles = 0;
 		m_CurrentTile = 0;
-		while(temp_size > m_MinTileSize)
+
+		while(temp_size > m_ViewDistance)
 		{
-			int side = 2 << m_FinalLOD;
-			m_NumberOfTiles += side*side; 
-			temp_size = temp_size/2.0; 
-			m_FinalLOD++;
+			m_StartLOD++;
+			temp_size = temp_size/2.0;
 		}
-	
+		m_FinalLOD = m_StartLOD + data.MaxDensityLODs;
+
+		int ld = 0;
+		while(ld < m_FinalLOD)
+		{
+			ld++;
+			int side = 2 << ld;
+			m_NumberOfTiles += side*side; 
+		}
 
 		BillboardVegetationObjectVector trees;
-		osg::Node* outnode = createLODRec(0, data.Layers, trees, bb,0,0);
-		transform->addChild(outnode);
+		osg::Node* outnode = _createLODRec(0, data.Layers, trees, bb,0,0);
+		outnode->setStateSet((osg::StateSet*) m_VRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
+		if(m_UsePagedLOD)
+		{
+			transform->addChild(outnode);
+			osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.ive");
+			//osg::ProxyNode* pn = new osg::ProxyNode();
+			//pn->setFileName(0,"master.ive");
+			//pn->setDatabasePath("C:/temp/paged");
+			//transform->addChild(pn);
+			//osgDB::writeNodeFile( *transform, m_SavePath + "/transformation.osg" );
+		}
+		else
+		{
+			transform->addChild(outnode);
+		}
 		return transform;
 	}
 }

@@ -78,6 +78,21 @@ int main( int argc, char **argv )
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
 
+
+	//setup optimization variables
+	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
+#ifdef WIN32
+	_putenv(opt_env.c_str());
+#else
+	char * writable = new char[opt_env.size() + 1];
+	std::copy(opt_env.begin(), opt_env.end(), writable);
+	writable[opt_env.size()] = '\0'; // don't forget the terminating 0
+	putenv(writable);
+	delete[] writable;
+#endif
+
+	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
+
 	enum MaterialEnum
 	{
 		GRASS,
@@ -92,22 +107,30 @@ int main( int argc, char **argv )
 	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
 
 	osgVegetation::BillboardData tree_data(400,false,0.08,false);
+	tree_data.MaxDensityLODs = 1;
+	tree_data.DensityLODRatio = 0.7;
+	tree_data.ScaleLODRatio = 0.5;
 	osgVegetation::BillboardLayer  spruce("billboards/tree0.rgba");
-	spruce.Density = 0.3;
-	spruce.Height.set(3,5);
+	spruce.Density = 0.1;
+	spruce.Height.set(5,5);
 	spruce.Width.set(2,2);
-	spruce.Scale.set(0.3,0.9);
+	spruce.Scale.set(0.8,0.9);
 	spruce.Materials.push_back(material_map[WOODS]);
+	
 	tree_data.Layers.push_back(spruce);
+
+	const std::string save_path("c:/temp/paged/");
+	osgDB::Registry::instance()->getDataFilePathList().push_back(save_path);  
 
 	osgVegetation::TerrainQuery tq(terrain.get());
 	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
-	osg::Node* tree_node = scattering.create(tree_data);
+	//osg::Node* tree_node = scattering.create(tree_data,save_path);
+	osg::Node* tree_node = scattering.create(tree_data,save_path);
 	group->addChild(tree_node);
+	osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
 	
-	osgDB::writeNodeFile(*tree_node,"c:/temp/paged/bbveg.ive");
 	
-	osg::Light* pLight = new osg::Light;
+	/*osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
 	pLight->setPosition( osg::Vec4(1,0,1,0) );		// last param	w = 0.0 directional light (direction)
@@ -115,7 +138,7 @@ int main( int argc, char **argv )
 	// light source
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );
-	group->addChild( pLightSource );
+	group->addChild( pLightSource );*/
 	viewer.setSceneData(group);
 
 	return viewer.run();

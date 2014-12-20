@@ -88,7 +88,12 @@ namespace osgVegetation
 					if(image)
 					{
 						//osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
-						material_color = image->getColor(tc);
+						osg::Vec3 tc2 = tc;
+						//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
+						tc2.set(osg::clampTo((double) tc2.x(), (double) 0.0, (double) 1.0),
+							osg::clampTo((double) tc2.y(), (double) 0.0, (double)1.0),(double)tc2.z());
+						material_color = image->getColor(tc2);
+
 					}
 					else
 						material_color = color;
