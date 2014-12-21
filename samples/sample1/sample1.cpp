@@ -73,9 +73,25 @@ int main( int argc, char **argv )
 	
 	//Add data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("c:/temp/paged");  
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
+
+
+	//setup optimization variables
+	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
+#ifdef WIN32
+	_putenv(opt_env.c_str());
+#else
+	char * writable = new char[opt_env.size() + 1];
+	std::copy(opt_env.begin(), opt_env.end(), writable);
+	writable[opt_env.size()] = '\0'; // don't forget the terminating 0
+	putenv(writable);
+	delete[] writable;
+#endif
+
+	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
 
 	enum MaterialEnum
 	{
@@ -91,20 +107,44 @@ int main( int argc, char **argv )
 	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
 
 	osgVegetation::BillboardData tree_data(400,false,0.08,false);
+	tree_data.LODCount = 1;
+	tree_data.DensityLODRatio = 0.7;
+	tree_data.ScaleLODRatio = 0.5;
 	osgVegetation::BillboardLayer  spruce("billboards/tree0.rgba");
-	spruce.Density = 0.3;
-	spruce.Height.set(3,5);
+	spruce.Density = 0.1;
+	spruce.Height.set(5,5);
 	spruce.Width.set(2,2);
-	spruce.Scale.set(0.3,0.9);
+	spruce.Scale.set(0.8,0.9);
+	spruce.ColorIntensity.set(4,4);
+	spruce.MixInColorRatio = 1.0;
 	spruce.Materials.push_back(material_map[WOODS]);
+	
 	tree_data.Layers.push_back(spruce);
 
+	bool use_paged_LOD = false;
+	std::string save_path;
+	if(use_paged_LOD)
+	{
+		save_path = "c:/temp/paged/";
+		osgDB::Registry::instance()->getDataFilePathList().push_back(save_path); 
+	}
+
+	osg::ComputeBoundsVisitor  cbv;
+	osg::BoundingBox &bb(cbv.getBoundingBox());
+	terrain->accept(cbv);
+
+	//test to use smaller bb
+	//osg::Vec3 bb_size = bb._max - bb._min;
+	//bb._min = bb._min + bb_size*0.25;
+	//bb._max = bb._max - bb_size*0.25;
+
 	osgVegetation::TerrainQuery tq(terrain.get());
-	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
-	osg::Node* tree_node = scattering.create(tree_data);
+	osgVegetation::QuadTreeScattering scattering(&tq);
+	osg::Node* tree_node = scattering.generate(bb,tree_data,save_path);
 	group->addChild(tree_node);
 	
-	//osgDB::writeNodeFile(*tree_node,"c:/temp/bbveg.ive");
+	//osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
+	
 	
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						

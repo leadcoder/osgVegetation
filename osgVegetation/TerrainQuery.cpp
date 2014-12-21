@@ -64,7 +64,7 @@ namespace osgVegetation
 				    //check if dds, if so we will try to load alternative image file because we have no utils to decompress dds
 					if(osgDB::getFileExtension(tex_filename) == "dds")
 					{
-						tex_filename = osgDB::getNameLessExtension(tex_filename) + ".png";
+						tex_filename = osgDB::getNameLessExtension(tex_filename) + ".tga";
 						//first check cache
 						osg::Image* image = _loadImage(tex_filename);
 						if(image)
@@ -87,8 +87,13 @@ namespace osgVegetation
 					osg::Image* image = _loadImage(mat_image_filename);
 					if(image)
 					{
-						//osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
-						material_color = image->getColor(tc);
+						osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
+						//osg::Vec3 tc2 = tc;
+						//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
+						tc2.set(osg::clampTo((double) tc2.x(), (double) 0.0, (double) 1.0),
+							osg::clampTo((double) tc2.y(), (double) 0.0, (double)1.0),(double)tc2.z());
+						material_color = image->getColor(tc2);
+
 					}
 					else
 						material_color = color;
@@ -110,8 +115,8 @@ namespace osgVegetation
 		}
 		else
 		{
-			if(m_MaterialCache.size() > 100)
-				m_MaterialCache.clear();
+			//if(m_MaterialCache.size() > 100)
+			//	m_MaterialCache.clear();
 
 			m_MaterialCache[filename] = osgDB::readImageFile(filename);
 			image = m_MaterialCache[filename].get();

@@ -72,18 +72,32 @@ int main( int argc, char **argv )
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
 	
 	//Add data path
-	//osgDB::Registry::instance()->getDataFilePathList().push_back("../data");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/OpenSceneGraph-Data-3.0.0");  
 
 	//Add texture search paths
-	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/tiles");
-	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/material_textures");  
-	osgDB::Registry::instance()->getDataFilePathList().push_back("C:/temp/kvarn/Grid0/color_textures");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/tiles");
+	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/material_textures");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/color_textures");  
 	//osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x1_3_3x3.ive.osg");
 	//osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/Grid0/tiles/0x0_0_0x0.ive");
-	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/temp/kvarn/proxy.osg");
+	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("E:/temp/detail_mapping/proxy.osg");
 
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
+
+
+	//setup optimization variables
+	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
+#ifdef WIN32
+	_putenv(opt_env.c_str());
+#else
+	char * writable = new char[opt_env.size() + 1];
+	std::copy(opt_env.begin(), opt_env.end(), writable);
+	writable[opt_env.size()] = '\0'; // don't forget the terminating 0
+	putenv(writable);
+	delete[] writable;
+#endif
+
 
 	enum MaterialEnum
 	{
@@ -98,14 +112,20 @@ int main( int argc, char **argv )
 	material_map[ROAD] = osgVegetation::MaterialColor(0,0,1,1);
 	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
 
-	osgVegetation::BillboardData undergrowth_data(50,false,0.4,true);
+	//osgVegetation::BillboardData undergrowth_data(50,true,0.4,true);
+	osgVegetation::BillboardData undergrowth_data(50,true,0.4,false);
+	undergrowth_data.LODCount = 2;
+	undergrowth_data.ScaleLODRatio = 0.8;
+	undergrowth_data.DensityLODRatio = 0.4;
 
 	osgVegetation::BillboardLayer  grass2("Images/veg_grass02.dds"); 
-	grass2.Density = 3.1;
-	grass2.Height.set(0.3,0.6);
-	grass2.Width.set(0.25,0.35);
+	grass2.Density = 3.2;
+	grass2.Height.set(0.5,0.6);
+	grass2.Width.set(0.5,0.6);
 	grass2.Scale.set(1.5,3);
-	grass2.ColorIntensity.set(0.6,0.6);
+	grass2.ColorIntensity.set(0.1,0.1);
+	grass2.MixInColorRatio = 3.0;
+	grass2.MixInIntensity = true;
 	
 	grass2.Materials.push_back(material_map[GRASS]);
 	grass2.Materials.push_back(material_map[WOODS]);
@@ -116,51 +136,84 @@ int main( int argc, char **argv )
 	grass3.Height.set(0.6,1.2);
 	grass3.Width.set(0.5,0.7);
 	grass3.Scale.set(1.5,3);
-	grass3.ColorIntensity.set(0.6,0.6);
+	grass3.ColorIntensity.set(0.1,0.1);
+	
+	grass2.MixInColorRatio = 2.5;
+	grass2.MixInIntensity = true;
+
 	grass3.Materials.push_back(material_map[GRASS]);
 	grass3.Materials.push_back(material_map[WOODS]);
 	undergrowth_data.Layers.push_back(grass3);
 
-	osgVegetation::BillboardData tree_data(600,false,0.08,false);
-
+	osgVegetation::BillboardData tree_data(2000,false,0.08,false);
+	tree_data.LODCount = 2;
+	tree_data.ScaleLODRatio = 0.8;
+	tree_data.DensityLODRatio = 0.4;
 	osgVegetation::BillboardLayer  spruce("Images/spruce01.dds");
-	spruce.Density = 0.03;
+	spruce.Density = 0.02;
 	spruce.Height.set(5,5);
 	spruce.Width.set(2,2);
 	spruce.Scale.set(2,3);
-	spruce.ColorIntensity.set(1.0,1.0);
+	spruce.ColorIntensity.set(0.5, 0.5);
+	spruce.MixInColorRatio = 2.0;
+	spruce.MixInIntensity = true;
 	spruce.Materials.push_back(material_map[WOODS]);
 	tree_data.Layers.push_back(spruce);
 
 	osgVegetation::BillboardLayer  pine("Images/pine01.dds"); 
-	pine.Density = 0.03;
+	pine.Density = 0.02;
 	pine.Height.set(5,5);
 	pine.Width.set(2,2);
 	pine.Scale.set(2,3);
-	pine.ColorIntensity.set(1.0,1.0);
+	pine.ColorIntensity.set(0.5, 0.5);
+	pine.MixInColorRatio = 2.0;
+	pine.MixInIntensity = true;
 	pine.Materials.push_back(material_map[WOODS]);
+	
 	tree_data.Layers.push_back(pine);
 
 	osgVegetation::BillboardLayer  birch("Images/birch01.dds");
-	birch.Density = 0.03;
+	birch.Density = 0.012;
 	birch.Height.set(4,4);
 	birch.Width.set(4,4);
 	birch.Scale.set(2,3);
+	birch.ColorIntensity.set(0.5, 0.5);
+	birch.MixInColorRatio = 2.0;
+	birch.MixInIntensity = true;
 	birch.Materials.push_back(material_map[WOODS]);
 	tree_data.Layers.push_back(birch);
 
-	//osgVegetation::VegetationScattering bs(terrain.get(),400);
-	//osg::Node* bb_node = bs.create(bblayers);
-	osgVegetation::TerrainQuery tq(terrain.get());
-	tq.setMaterialTextureSuffix(".rgb");
-	osgVegetation::QuadTreeScattering scattering(terrain.get(),&tq);
-	osg::Node* ug_node = scattering.create(undergrowth_data,"c:/temp/paged/ug");
-	//group->addChild(ug_node);
-	osgVegetation::QuadTreeScattering scattering2(terrain.get(),&tq);
-	osg::Node* tree_node = scattering2.create(tree_data,"c:/temp/paged/tree");
-	group->addChild(tree_node);
+
+	std::string save_path("c:/temp/paged/");
+	//add path to enable viewer to find LODS
+	osgDB::Registry::instance()->getDataFilePathList().push_back(save_path);  
 	
-	osgDB::writeNodeFile(*tree_node,"c:/temp/bbveg.ive");
+	osg::ComputeBoundsVisitor  cbv;
+	osg::BoundingBox &bb(cbv.getBoundingBox());
+	terrain->accept(cbv);
+
+
+	//test to use smaller bb
+	const double bb_scale = 0.1;
+	osg::Vec3 bb_size = (bb._max - bb._min)*bb_scale;
+	osg::Vec3 bb_center = (bb._max + bb._min)*0.5;
+	osg::BoundingBox new_bb;
+	new_bb._min = bb_center - bb_size*0.5;
+	new_bb._max = bb_center + bb_size*0.5;
+	bb._min.set(new_bb._min.x(),new_bb._min.y(),bb._min.z());
+	bb._max.set(new_bb._max.x(),new_bb._max.y(),bb._max.z());
+
+	osgVegetation::TerrainQuery tq(terrain.get());
+
+	tq.setMaterialTextureSuffix("_material.tga");
+	osgVegetation::QuadTreeScattering scattering(&tq);
+	osg::Node* ug_node = scattering.generate(bb,undergrowth_data,save_path, "ug_");
+	group->addChild(ug_node);
+	osgVegetation::QuadTreeScattering scattering2(&tq);
+	osg::Node* tree_node = scattering2.generate(bb,tree_data,save_path,"og_");
+	group->addChild(tree_node);
+	osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
+	//osgDB::writeNodeFile(*tree_node,"c:/temp/tree_veg.ive");
 	
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						

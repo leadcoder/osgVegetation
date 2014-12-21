@@ -19,7 +19,10 @@ namespace osgVegetation
 			ViewDistance(view_distance),		
 			UseAlphaBlend(use_alpha_blend), 
 			AlphaRefValue(alpha_ref_value),
-			TerrainNormal(terrain_normal)
+			TerrainNormal(terrain_normal),
+			DensityLODRatio(0.25f),
+			LODCount(0),
+			ScaleLODRatio(1.0)
 		{
 
 		}
@@ -45,6 +48,25 @@ namespace osgVegetation
 		*/
 		bool TerrainNormal;
 
+
+		/**
+			Number of LOD levels. Default is 0 i.e. disabled.
+			LOD levels can be used to reduce vegetation density at distance.
+		*/
+		int LODCount;
+
+		/**
+			The ratio to reduce density at higher LOD levels. 
+			Default is 1/4, i.e we get predictable number of billboards for each tile in the quadtree.
+		*/
+		float DensityLODRatio;
+
+		/**
+			The ratio to scale billboards at lower LOD levels. 
+			Default is 1.0, ie no scale difference at distant LODs
+		*/
+		float ScaleLODRatio;
+		
 		/**
 			The billboard collection
 		*/
