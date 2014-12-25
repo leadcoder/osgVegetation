@@ -29,6 +29,7 @@ namespace osgVegetation
 		bool m_TrueBillboards;
 		bool m_PPL;
 		bool m_TerrainNormal;
+		bool m_ReceivesShadows;
 		float m_AlphaRefValue;
 		bool  m_AlphaBlend;
 

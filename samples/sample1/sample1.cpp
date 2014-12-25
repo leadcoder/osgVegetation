@@ -39,6 +39,17 @@
 #include <osgGA/TerrainManipulator>
 #include <osgGA/SphericalManipulator>
 
+#include <osgShadow/ShadowedScene>
+#include <osgShadow/ShadowVolume>
+#include <osgShadow/ShadowTexture>
+#include <osgShadow/ShadowMap>
+#include <osgShadow/SoftShadowMap>
+#include <osgShadow/ParallelSplitShadowMap>
+#include <osgShadow/LightSpacePerspectiveShadowMap>
+#include <osgShadow/StandardShadowMap>
+#include <osgShadow/ViewDependentShadowMap>
+
+
 #include <iostream>
 #include <sstream>
 #include "MeshScattering.h"
@@ -134,9 +145,9 @@ int main( int argc, char **argv )
 	terrain->accept(cbv);
 
 	//test to use smaller bb
-	//osg::Vec3 bb_size = bb._max - bb._min;
-	//bb._min = bb._min + bb_size*0.25;
-	//bb._max = bb._max - bb_size*0.25;
+	osg::Vec3 bb_size = bb._max - bb._min;
+	bb._min = bb._min + bb_size*0.25;
+	bb._max = bb._max - bb_size*0.25;
 
 	osgVegetation::TerrainQuery tq(terrain.get());
 	osgVegetation::QuadTreeScattering scattering(&tq);
@@ -149,13 +160,53 @@ int main( int argc, char **argv )
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
-	pLight->setPosition( osg::Vec4(1,0,1,0) );		// last param	w = 0.0 directional light (direction)
+	osg::Vec4 lightPos(1,0,1,0); 
+	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
+	osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
+	lightDir.normalize();
+	pLight->setDirection(lightDir);
 	pLight->setAmbient(osg::Vec4(0.7f, 0.7f, 0.7f, 1.0f) );
 	// light source
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );
 	group->addChild( pLightSource );
-	viewer.setSceneData(group);
+
+
+	static int ReceivesShadowTraversalMask = 0x1;
+	static int CastsShadowTraversalMask = 0x2;
+
+	osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
+	osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
+	settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
+	settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
+	//settings->setMaximumShadowMapDistance(distance);
+	//if (arguments.read("--persp")) settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
+	//if (arguments.read("--ortho")) settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::ORTHOGRAPHIC_SHADOW_MAP);
+
+	unsigned int unit=2;
+	//if (arguments.read("--unit",unit)) settings->setBaseShadowTextureUnit(unit);
+	settings->setBaseShadowTextureUnit(unit);
+
+	double n=0.8;
+	settings->setMinimumShadowMapNearFarRatio(n);
+
+	unsigned int numShadowMaps = 2;
+	settings->setNumShadowMapsPerLight(numShadowMaps);
+
+	//if (arguments.read("--parallel-split") || arguments.read("--ps") ) settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
+	//if (arguments.read("--cascaded")) settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
+	//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
+
+	int mapres = 1024;
+	settings->setTextureSize(osg::Vec2s(mapres,mapres));
+	//settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
+
+	osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
+	shadowedScene->setShadowTechnique(vdsm.get());
+	terrain->setNodeMask(ReceivesShadowTraversalMask);
+	tree_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
+	shadowedScene->addChild(group);
+	viewer.setSceneData(shadowedScene);
 
 	return viewer.run();
 }
