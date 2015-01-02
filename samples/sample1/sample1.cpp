@@ -103,6 +103,8 @@ int main( int argc, char **argv )
 #endif
 
 	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
+	const bool enableShadows = false;
+	const bool use_paged_LOD = false;
 
 	enum MaterialEnum
 	{
@@ -111,6 +113,7 @@ int main( int argc, char **argv )
 		WOODS,
 		DIRT
 	};
+
 	std::map<MaterialEnum,osgVegetation::MaterialColor> material_map;
 	material_map[GRASS] = osgVegetation::MaterialColor(0,0,1,1);
 	material_map[WOODS] = osgVegetation::MaterialColor(1,1,1,1);
@@ -121,6 +124,7 @@ int main( int argc, char **argv )
 	tree_data.LODCount = 1;
 	tree_data.DensityLODRatio = 0.7;
 	tree_data.ScaleLODRatio = 0.5;
+	tree_data.ReceiveShadows = enableShadows; 
 	osgVegetation::BillboardLayer  spruce("billboards/tree0.rgba");
 	spruce.Density = 0.1;
 	spruce.Height.set(5,5);
@@ -132,7 +136,7 @@ int main( int argc, char **argv )
 	
 	tree_data.Layers.push_back(spruce);
 
-	bool use_paged_LOD = false;
+	
 	std::string save_path;
 	if(use_paged_LOD)
 	{
@@ -144,7 +148,7 @@ int main( int argc, char **argv )
 	osg::BoundingBox &bb(cbv.getBoundingBox());
 	terrain->accept(cbv);
 
-	//test to use smaller bb
+	//test to down size bb
 	osg::Vec3 bb_size = bb._max - bb._min;
 	bb._min = bb._min + bb_size*0.25;
 	bb._max = bb._max - bb_size*0.25;
@@ -155,12 +159,13 @@ int main( int argc, char **argv )
 	group->addChild(tree_node);
 	
 	//osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
-	
+	osgDB::writeNodeFile(*group, "c:/temp/terrain_and_veg.osgt");
+
 	
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
-	osg::Vec4 lightPos(1,0,1,0); 
+	osg::Vec4 lightPos(1,0.5,1,0); 
 	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
 	osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
 	lightDir.normalize();
@@ -179,6 +184,8 @@ int main( int argc, char **argv )
 	osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
 	settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
 	settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
+	settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
+
 	//settings->setMaximumShadowMapDistance(distance);
 	//if (arguments.read("--persp")) settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
 	//if (arguments.read("--ortho")) settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::ORTHOGRAPHIC_SHADOW_MAP);
@@ -205,8 +212,17 @@ int main( int argc, char **argv )
 	shadowedScene->setShadowTechnique(vdsm.get());
 	terrain->setNodeMask(ReceivesShadowTraversalMask);
 	tree_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
-	shadowedScene->addChild(group);
-	viewer.setSceneData(shadowedScene);
+
+	if(enableShadows)
+	{
+		shadowedScene->addChild(group);
+		viewer.setSceneData(shadowedScene);
+	}
+	else
+	{
+		viewer.setSceneData(group);
+	}
+	
 
 	return viewer.run();
 }
