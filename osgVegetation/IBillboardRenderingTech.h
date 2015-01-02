@@ -20,6 +20,7 @@ namespace osgVegetation
 		virtual void setAlphaRefValue(float value) = 0;
 		virtual void setAlphaBlend(bool value) = 0;
 		virtual void setTerrainNormal(bool value) = 0;
+		virtual void setReceivesShadows(bool value) = 0;
 	protected:
 	};
 }

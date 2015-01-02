@@ -20,6 +20,7 @@ namespace osgVegetation
 		void setAlphaRefValue(float value) {m_AlphaRefValue = value;}
 		void setAlphaBlend(bool value) {m_AlphaBlend = value;}
 		void setTerrainNormal(bool value) {m_TerrainNormal = value;}
+		void setReceivesShadows(bool value) {m_ReceivesShadows = value;}
 	protected:
 		osg::StateSet* _createStateSet(BillboardLayerVector &layers);
 		osg::Geometry* _createOrthogonalQuadsWithNormals( const osg::Vec3& pos, float w, float h);

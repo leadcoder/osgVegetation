@@ -20,6 +20,7 @@ namespace osgVegetation
 			UseAlphaBlend(use_alpha_blend), 
 			AlphaRefValue(alpha_ref_value),
 			TerrainNormal(terrain_normal),
+			ReceiveShadows(false),
 			DensityLODRatio(0.25f),
 			LODCount(0),
 			ScaleLODRatio(1.0)
@@ -66,6 +67,11 @@ namespace osgVegetation
 			Default is 1.0, ie no scale difference at distant LODs
 		*/
 		float ScaleLODRatio;
+
+		/*
+			Should geometry receive shadows or not. 
+		*/
+		bool ReceiveShadows;
 		
 		/**
 			The billboard collection

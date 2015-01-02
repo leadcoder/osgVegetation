@@ -4,6 +4,7 @@ set(LIB_NAME "osgVegetation")
 include(OSGDep)
 
 SET(CPP_FILES 
+	BRTGeometryShader.cpp
 	BRTShaderInstancing.cpp
 	MRTShaderInstancing.cpp  
 	QuadTreeScattering.cpp

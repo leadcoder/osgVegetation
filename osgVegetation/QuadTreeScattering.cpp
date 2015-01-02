@@ -106,7 +106,7 @@ namespace osgVegetation
 
 	osg::Node* QuadTreeScattering::_createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
 	{
-		if(ld < 6) //only show progress above lod 6, we dont want to spam the log
+		if(ld < 6) //only show progress above lod 6, we don't want to spam the log
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Create Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
 		m_CurrentTile++;
 
@@ -232,20 +232,21 @@ namespace osgVegetation
 		}
 
 		delete m_VRT;
-		m_VRT = new BRTShaderInstancing(data);
 
+		//m_VRT = new BRTShaderInstancing(data);
+		m_VRT = new BRTGeometryShader(data);
 		m_ViewDistance = data.ViewDistance;
 		m_VRT->setAlphaRefValue(data.AlphaRefValue);
 		m_VRT->setAlphaBlend(data.UseAlphaBlend);
 		m_VRT->setTerrainNormal(data.TerrainNormal);
+		m_VRT->setReceivesShadows(data.ReceiveShadows);
 
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
 			boudning_box._max.y() - boudning_box._min.y());
 
 		max_bb_size = std::max(max_bb_size,m_ViewDistance);
-		
-
+	
 		//Offset vegetation by using new origin at boudning_box._min
 		m_Offset = boudning_box._min;
 
