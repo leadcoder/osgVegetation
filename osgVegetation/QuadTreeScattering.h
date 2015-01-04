@@ -42,22 +42,14 @@ namespace osgVegetation
 		*/
 		osg::Node* generate(const osg::BoundingBox &bb, BillboardData &data, const std::string &paged_lod_path = "", const std::string &filename_prefix = "");
 	private:
-		//double m_TileTargetSize;
-		double m_ViewDistance;
-
-		//LOD Data
-		float m_DensityLODRatio;
-		float m_ScaleLODRatio;
-
 		int m_FinalLOD;
 		int m_StartLOD;
 
 		//progress data
 		int m_CurrentTile;
 		int m_NumberOfTiles;
-		int m_DensityLODs;
-
-		//Area boudning box
+		
+		//Area bounding box
 		osg::BoundingBox m_InitBB;
 
 		IBillboardRenderingTech* m_VRT;
@@ -72,8 +64,8 @@ namespace osgVegetation
 		//Helpers
 		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y);
 		osg::Geode* _createTerrain(const osg::Vec3& origin, const osg::Vec3& size);
-		void _populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& object_list, double lod_density, double lod_scale);
-		BillboardVegetationObjectVector _generateVegetation(BillboardLayerVector &layers, const osg::BoundingBox &box, double lod_density, double lod_scale);
-		osg::Node* _createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
+		void _populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& instances, double lod_density, double lod_scale);
+		BillboardVegetationObjectVector _generateVegetation(BillboardData &data, const osg::BoundingBox &box, double lod_density, double lod_scale);
+		osg::Node* _createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
 	};
 }

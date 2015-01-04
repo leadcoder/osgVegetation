@@ -27,7 +27,7 @@ namespace osgVegetation
 		{ 
 			osg::ref_ptr<osg::Node> node = osgDB::readNodeFile(filename); 
 			pagedLODVec.push_back(node);
-			if(pagedLODVec.size() > 100) //flush cache
+			if(pagedLODVec.size() > 100) //flush cache?
 				pagedLODVec.clear();
 			return node.get();
 		}

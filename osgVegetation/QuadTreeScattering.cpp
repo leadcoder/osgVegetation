@@ -36,19 +36,18 @@ namespace osgVegetation
 	QuadTreeScattering::QuadTreeScattering(ITerrainQuery* tq) : m_VRT(NULL),
 		m_TerrainQuery(tq),
 		m_UsePagedLOD(false),
-		m_FilenamePrefix("quadtree_"),
-		m_DensityLODRatio(0.5)
+		m_FilenamePrefix("quadtree_")
 	{
 
 	}
 
-	void QuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& object_list, double lod_density, double lod_scale)
+	void QuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances, double lod_density, double lod_scale)
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
 
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*lod_density;
-		object_list.reserve(object_list.size()+num_objects_to_create);
+		instances.reserve(instances.size()+num_objects_to_create);
 
 		for(unsigned int i=0;i<num_objects_to_create;++i)
 		{
@@ -70,7 +69,7 @@ namespace osgVegetation
 						veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
 						veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
 						veg_obj->TextureIndex = layer._TextureIndex;
-						veg_obj->Position = inter-m_Offset;
+						veg_obj->Position = inter - m_Offset;
 						if(layer.MixInIntensity)
 						{
 							float intensity = (color.r() + color.g() + color.b())/3.0;
@@ -79,20 +78,20 @@ namespace osgVegetation
 						veg_obj->Color = color*layer.MixInColorRatio;
 						veg_obj->Color += osg::Vec4(1,1,1,1)*rand_int;
 						veg_obj->Color.set(veg_obj->Color.r(), veg_obj->Color.g(), veg_obj->Color.b(), 1.0);
-						object_list.push_back(veg_obj);
+						instances.push_back(veg_obj);
 					}
 				}
 			}
 		}
 	}
 
-	BillboardVegetationObjectVector QuadTreeScattering::_generateVegetation(BillboardLayerVector &layers,const osg::BoundingBox& bb, double lod_density,double lod_scale)
+	BillboardVegetationObjectVector QuadTreeScattering::_generateVegetation(BillboardData  &data,const osg::BoundingBox& bb, double lod_density,double lod_scale)
 	{
 		BillboardVegetationObjectVector trees;
 		double const density= 1;
-		for(size_t i = 0 ; i < layers.size();i++)
+		for(size_t i = 0 ; i < data.Layers.size();i++)
 		{
-			_populateVegetationLayer(layers[i],bb,trees,lod_density,lod_scale);
+			_populateVegetationLayer(data.Layers[i],bb,trees,lod_density,lod_scale);
 		}
 		return trees;
 	}
@@ -104,7 +103,7 @@ namespace osgVegetation
 		return sstream.str();
 	}
 
-	osg::Node* QuadTreeScattering::_createLODRec(int ld, BillboardLayerVector &layers, BillboardVegetationObjectVector trees, const osg::BoundingBox &bb,int x, int y)
+	osg::Node* QuadTreeScattering::_createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector instances, const osg::BoundingBox &bb,int x, int y)
 	{
 		if(ld < 6) //only show progress above lod 6, we don't want to spam the log
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Create Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
@@ -112,7 +111,7 @@ namespace osgVegetation
 
 		osg::ref_ptr<osg::Group> children_group = new osg::Group;
 
-		//mesh_group is returned so we don't use smart pointer
+		//mesh_group is returned as raw pointer so we don't use smart pointer
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
 
@@ -123,8 +122,8 @@ namespace osgVegetation
 			//calculate density ratio for this LOD level
 			float lod = ld - m_StartLOD;
 			float inv_lod = m_FinalLOD - ld;
-			double lod_density = pow(m_DensityLODRatio, inv_lod);
-			double lod_scale = pow(m_ScaleLODRatio, lod);
+			double lod_density = pow(data.DensityLODRatio, inv_lod);
+			double lod_scale = pow(data.ScaleLODRatio, lod);
 
 
 			/*int inv_lod = (m_FinalLOD - ld);
@@ -132,9 +131,9 @@ namespace osgVegetation
 			double density_ratio = tiles*tiles;
 			density_ratio = 1.0/density_ratio;*/
 
-			if(trees.size() == 0)
+			if(instances.size() == 0)
 			{
-				trees = _generateVegetation(layers,bb,lod_density,lod_scale);
+				instances = _generateVegetation(data,bb,lod_density,lod_scale);
 			}
 			BillboardVegetationObjectVector patch_trees;
 
@@ -147,11 +146,11 @@ namespace osgVegetation
 			}
 			}*/
 
-			osg::Node* node = m_VRT->create(trees,bb);
-			trees.clear();
+			osg::Node* node = m_VRT->create(instances,bb);
+			instances.clear();
 
 			mesh_group->addChild(node);
-
+			
 			//debug
 			//osgDB::writeNodeFile(*node,"c:/temp/bbveg.ive");
 		}
@@ -174,10 +173,10 @@ namespace osgVegetation
 				osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
 
 			//first check that we are inside initial bounding box
-			if(b1.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,layers,trees,b1, x*2,   y*2));
-			if(b2.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,layers,trees,b2, x*2,   y*2+1));
-			if(b3.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,layers,trees,b3, x*2+1, y*2+1));
-			if(b4.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,layers,trees,b4, x*2+1, y*2)); 
+			if(b1.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,data,instances,b1, x*2,   y*2));
+			if(b2.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,data,instances,b2, x*2,   y*2+1));
+			if(b3.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,data,instances,b3, x*2+1, y*2+1));
+			if(b4.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,data,instances,b4, x*2+1, y*2)); 
 
 			if(m_UsePagedLOD)
 			{
@@ -235,7 +234,7 @@ namespace osgVegetation
 
 		//m_VRT = new BRTShaderInstancing(data);
 		m_VRT = new BRTGeometryShader(data);
-		m_ViewDistance = data.ViewDistance;
+		
 		m_VRT->setAlphaRefValue(data.AlphaRefValue);
 		m_VRT->setAlphaBlend(data.UseAlphaBlend);
 		m_VRT->setTerrainNormal(data.TerrainNormal);
@@ -245,7 +244,7 @@ namespace osgVegetation
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
 			boudning_box._max.y() - boudning_box._min.y());
 
-		max_bb_size = std::max(max_bb_size,m_ViewDistance);
+		max_bb_size = std::max(max_bb_size,data.ViewDistance);
 	
 		//Offset vegetation by using new origin at boudning_box._min
 		m_Offset = boudning_box._min;
@@ -264,9 +263,6 @@ namespace osgVegetation
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
 
 		//save for later...
-		m_DensityLODRatio = data.DensityLODRatio;
-		m_ScaleLODRatio = data.ScaleLODRatio;
-
 		double temp_size  = max_bb_size;
 
 		//reset
@@ -276,7 +272,7 @@ namespace osgVegetation
 		m_CurrentTile = 0;
 
 		//Get LOD level to begin scattering at
-		while(temp_size > m_ViewDistance)
+		while(temp_size > data.ViewDistance)
 		{
 			m_StartLOD++;
 			temp_size *= 0.5;
@@ -289,14 +285,14 @@ namespace osgVegetation
 		int ld = 0;
 		while(ld < m_FinalLOD)
 		{
-			int side = 2 << ld;
-			m_NumberOfTiles += side*side;
+			int side_tile_count = 2 << ld;
+			m_NumberOfTiles += side_tile_count*side_tile_count;
 			ld++;
 		}
 
 		//Start recursive scattering process
-		BillboardVegetationObjectVector trees;
-		osg::Node* outnode = _createLODRec(0, data.Layers, trees, qt_bb,0,0);
+		BillboardVegetationObjectVector instances;
+		osg::Node* outnode = _createLODRec(0, data, instances, qt_bb,0,0);
 
 		//Add state set to top node
 		outnode->setStateSet((osg::StateSet*) m_VRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
