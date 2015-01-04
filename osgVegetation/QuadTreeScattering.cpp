@@ -231,6 +231,7 @@ namespace osgVegetation
 			m_SavePath = page_lod_path;
 		}
 
+		//remove  previous render tech
 		delete m_VRT;
 
 		//m_VRT = new BRTShaderInstancing(data);
