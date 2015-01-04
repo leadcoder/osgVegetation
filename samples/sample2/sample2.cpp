@@ -200,8 +200,8 @@ int main( int argc, char **argv )
 	osg::BoundingBox new_bb;
 	new_bb._min = bb_center - bb_size*0.5;
 	new_bb._max = bb_center + bb_size*0.5;
-	bb._min.set(new_bb._min.x(),new_bb._min.y(),bb._min.z());
-	bb._max.set(new_bb._max.x(),new_bb._max.y(),bb._max.z());
+	//bb._min.set(new_bb._min.x(),new_bb._min.y(),bb._min.z());
+	//bb._max.set(new_bb._max.x(),new_bb._max.y(),bb._max.z());
 
 	osgVegetation::TerrainQuery tq(terrain.get());
 
