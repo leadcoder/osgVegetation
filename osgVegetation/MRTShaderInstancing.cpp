@@ -115,7 +115,7 @@ namespace osgVegetation
 
 	osg::StateSet* MRTShaderInstancing::_createStateSet(MeshData &data) 
 	{
-		//Load textures
+		//Load mesh data
 		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
 		options->setOptionString("dds_flip");
 		for(size_t i = 0; i < data.Layers.size(); i++)
@@ -131,18 +131,13 @@ namespace osgVegetation
 		tex->setWrap( osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP );
 		tex->setImage(osgDB::readImageFile("Images/tree0.rgba"));
 		dstate->setTextureAttributeAndModes(0, tex, osg::StateAttribute::ON );
-
-//			dstate->setTextureAttribute(0, new osg::TexEnv );
 		{
 			osg::Program* program = new osg::Program;
 			dstate->setAttribute(program);
 
 			char vertexShaderSource[] =
-				//"#version 430 compatibility\n"
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
 				"uniform samplerBuffer dataBuffer;\n"
-				//"layout(location = 0) in vec3 VertexPosition;\n"
-				//"layout(location = 8) in vec3 VertexTexCoord;\n"
 				"varying vec2 TexCoord;\n"
 				"varying vec4 Color;\n"
 				"void main()\n"
@@ -167,7 +162,6 @@ namespace osgVegetation
 				"}\n";
 
 			char fragmentShaderSource[] =
-				//"#version 430 core\n"
 				"uniform sampler2D baseTexture; \n"
 				"varying  vec2 TexCoord;\n"
 				"varying  vec4 Color;\n"

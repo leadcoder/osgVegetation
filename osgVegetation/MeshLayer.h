@@ -41,8 +41,11 @@ namespace osgVegetation
 			Percentage to of ground texture color to use for billboard coloring
 		*/
 		double MixInColorRatio;
+		
 		/**
-			Only use intensity from ground texture when color billboard
+			Only use intensity from ground texture (i.e (r+g+b)/3.0) when generating billboard color.
+			This is false by the fault which means that each color 
+			channel from the ground texture is respected.
 		*/
 		bool MixInIntensity;
 		

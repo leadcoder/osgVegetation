@@ -9,12 +9,13 @@
 namespace osgVegetation
 {
 	/**
-		Struct holding data for single billboard layer.
+		Struct holding data for billboard layer.
 	*/
 	struct BillboardLayer
 	{
 	public:
-		BillboardLayer(const std::string &tex_name) : TextureName(tex_name),
+		BillboardLayer(const std::string &tex_name, double view_dist) : TextureName(tex_name),
+			ViewDistance(view_dist),
 			Height(1.0, 1.0),
 			Width(1.0, 1.0),
 			Scale(1.0, 1.0),
@@ -22,12 +23,11 @@ namespace osgVegetation
 			Density(1.0),
 			MixInColorRatio(0.0),
 			MixInIntensity(false),
-			_TextureIndex(0)
-
+			_TextureIndex(-1),
+			_QTLODLevel(-1)
 		{
 
 		}
-
 
 		bool hasMaterial(const MaterialColor& mat) const
 		{
@@ -41,10 +41,15 @@ namespace osgVegetation
 		
 		/**
 			2D Texture used in this billboard layers (note that all textures for 
-			all layers should be in same resolution
+			all layers should be in same resolution.
 		*/
 		std::string TextureName;
 		
+		/**
+			Max view distance
+		*/
+		double ViewDistance;
+
 		/**
 			Height interval (x=min, y=max) for all billboards populated in this layers
 		*/
@@ -76,7 +81,9 @@ namespace osgVegetation
 		double MixInColorRatio;
 
 		/**
-			Only use intensity from ground texture when color billboard
+			Only use intensity from ground texture (i.e (r+g+b)/3.0) when generating billboard color.
+			This is false by the fault which means that each color 
+			channel from the ground texture is respected.
 		*/
 		bool MixInIntensity;
 
@@ -87,6 +94,8 @@ namespace osgVegetation
 		
 		//internal data holding texture index inside texture array
 		int _TextureIndex;
+		//internal data holding quadtree LOD level for this layer
+		int _QTLODLevel;
 	};
 	typedef std::vector<BillboardLayer> BillboardLayerVector;
 }

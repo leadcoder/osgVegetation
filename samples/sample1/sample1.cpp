@@ -120,22 +120,36 @@ int main( int argc, char **argv )
 	material_map[ROAD] = osgVegetation::MaterialColor(0,0,1,1);
 	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
 
-	osgVegetation::BillboardData tree_data(400,false,0.08,false);
-	tree_data.LODCount = 1;
-	tree_data.DensityLODRatio = 0.7;
-	tree_data.ScaleLODRatio = 0.5;
-	tree_data.ReceiveShadows = enableShadows; 
-	osgVegetation::BillboardLayer  spruce("billboards/tree0.rgba");
-	spruce.Density = 0.1;
-	spruce.Height.set(5,5);
-	spruce.Width.set(2,2);
-	spruce.Scale.set(0.8,0.9);
-	spruce.ColorIntensity.set(4,4);
-	spruce.MixInColorRatio = 1.0;
-	spruce.Materials.push_back(material_map[WOODS]);
-	
-	tree_data.Layers.push_back(spruce);
+	osgVegetation::BillboardLayer  tree_l0("billboards/tree0.rgba",400);
+	tree_l0.Density = 0.005;
+	tree_l0.Height.set(5,5);
+	tree_l0.Width.set(2,2);
+	tree_l0.Scale.set(0.8,0.9);
+	tree_l0.ColorIntensity.set(4,4);
+	tree_l0.MixInColorRatio = 1.0;
+	tree_l0.Materials.push_back(material_map[WOODS]);
 
+	//second LOD
+	osgVegetation::BillboardLayer  tree_l1 = tree_l0;
+	tree_l1.Density *= 4;
+	tree_l1.Scale *= 0.8;
+	tree_l1.ViewDistance *= 0.5;
+
+	//third LOD
+	osgVegetation::BillboardLayer  tree_l2 = tree_l1;
+	tree_l2.Density *= 4;
+	tree_l2.Scale *= 0.8;
+	tree_l2.ViewDistance *= 0.5;
+
+	//add all layers, the order is not important
+	osgVegetation::BillboardLayerVector layers;
+	layers.push_back(tree_l2);
+	layers.push_back(tree_l0);
+	layers.push_back(tree_l1);
+
+	//create billboard data by supplying layers and rendering settings.
+	osgVegetation::BillboardData tree_data(layers, false,0.08,false);
+	tree_data.ReceiveShadows = enableShadows;
 	
 	std::string save_path;
 	if(use_paged_LOD)
@@ -148,10 +162,10 @@ int main( int argc, char **argv )
 	osg::BoundingBox &bb(cbv.getBoundingBox());
 	terrain->accept(cbv);
 
-	//test to down size bb
+	//down size bb for faster generation
 	osg::Vec3 bb_size = bb._max - bb._min;
-	bb._min = bb._min + bb_size*0.25;
-	bb._max = bb._max - bb_size*0.25;
+	bb._min = bb._min + bb_size*0.1;
+	bb._max = bb._max - bb_size*0.1;
 
 	osgVegetation::TerrainQuery tq(terrain.get());
 	osgVegetation::QuadTreeScattering scattering(&tq);
@@ -160,7 +174,6 @@ int main( int argc, char **argv )
 	
 	//osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
 	osgDB::writeNodeFile(*group, "c:/temp/terrain_and_veg.osgt");
-
 	
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						

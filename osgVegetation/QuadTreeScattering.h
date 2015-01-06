@@ -61,8 +61,8 @@ namespace osgVegetation
 
 		//Helpers
 		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y);
-		void _populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& instances, double lod_density, double lod_scale);
-		BillboardVegetationObjectVector _generateVegetation(BillboardData &data, const osg::BoundingBox &box, double lod_density, double lod_scale);
+		void _populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& instances);
+		//BillboardVegetationObjectVector _generateVegetation(BillboardData &data, const osg::BoundingBox &box);
 		osg::Node* _createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
 	};
 }

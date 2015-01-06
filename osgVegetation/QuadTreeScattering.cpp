@@ -29,12 +29,12 @@ namespace osgVegetation
 
 	}
 
-	void QuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances, double lod_density, double lod_scale)
+	void QuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances)
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
 
-		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*lod_density;
+		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
 		instances.reserve(instances.size()+num_objects_to_create);
 
 		for(unsigned int i=0;i<num_objects_to_create;++i)
@@ -53,7 +53,7 @@ namespace osgVegetation
 					{
 						BillboardObject* veg_obj = new BillboardObject;
 						//TODO add color to layer
-						float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y())*lod_scale;
+						float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y());
 						veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
 						veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
 						veg_obj->TextureIndex = layer._TextureIndex;
@@ -73,7 +73,7 @@ namespace osgVegetation
 		}
 	}
 
-	BillboardVegetationObjectVector QuadTreeScattering::_generateVegetation(BillboardData  &data,const osg::BoundingBox& bb, double lod_density,double lod_scale)
+	/*BillboardVegetationObjectVector QuadTreeScattering::_generateVegetation(BillboardData  &data,const osg::BoundingBox& bb, double lod_density,double lod_scale)
 	{
 		BillboardVegetationObjectVector trees;
 		double const density= 1;
@@ -82,7 +82,7 @@ namespace osgVegetation
 			_populateVegetationLayer(data.Layers[i],bb,trees,lod_density,lod_scale);
 		}
 		return trees;
-	}
+	}*/
 
 	std::string QuadTreeScattering::_createFileName( unsigned int lv,	unsigned int x, unsigned int y )
 	{
@@ -102,48 +102,24 @@ namespace osgVegetation
 		//mesh_group is returned as raw pointer so we don't use smart pointer
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
-
-		bool final_lod = (ld == m_FinalLOD);
-
-		if(ld >= m_StartLOD)
+	
+		BillboardVegetationObjectVector patch_instances;
+		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
-			//calculate density ratio for this LOD level
-			float lod = ld - m_StartLOD;
-			float inv_lod = m_FinalLOD - ld;
-			double lod_density = pow(data.DensityLODRatio, inv_lod);
-			double lod_scale = pow(data.ScaleLODRatio, lod);
-
-			/*int inv_lod = (m_FinalLOD - ld);
-			int tiles = pow(2.0, inv_lod);
-			double density_ratio = tiles*tiles;
-			density_ratio = 1.0/density_ratio;*/
-
-			if(instances.size() == 0)
+			if(ld == data.Layers[i]._QTLODLevel)
 			{
-				instances = _generateVegetation(data,bb,lod_density,lod_scale);
+				 _populateVegetationLayer(data.Layers[i], bb,patch_instances);
 			}
-			BillboardVegetationObjectVector patch_trees;
+		}
 
-			//get trees inside patch
-			/*for(size_t i = 0; i < trees.size(); i = i++)
-			{
-			//if(bb.contains(trees[i]->Position+m_Offset))
-			{
-			patch_trees.push_back(trees[i]);
-			}
-			}*/
-
-			osg::Node* node = m_VRT->create(instances,bb);
-			instances.clear();
-
+		if(patch_instances.size() > 0)
+		{
+			osg::Node* node = m_VRT->create(patch_instances, bb);
 			mesh_group->addChild(node);
-			
-			//debug
-			//osgDB::writeNodeFile(*node,"c:/temp/bbveg.ive");
 		}
 
 		//split bounding box into four new children
-
+		bool final_lod = (ld == m_FinalLOD);
 		if(!final_lod)
 		{
 			double sx = (bb._max.x() - bb._min.x())*0.5;
@@ -208,6 +184,12 @@ namespace osgVegetation
 			return mesh_group;
 
 	}
+
+	bool BillboardSortPredicate(const BillboardLayer &lhs, const BillboardLayer &rhs)
+	{
+		return lhs.ViewDistance > rhs.ViewDistance;
+	}
+
 	osg::Node* QuadTreeScattering::generate(const osg::BoundingBox &boudning_box,BillboardData &data, const std::string &page_lod_path, const std::string &filename_prefix)
 	{
 		m_FilenamePrefix = filename_prefix;
@@ -232,8 +214,6 @@ namespace osgVegetation
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
 			boudning_box._max.y() - boudning_box._min.y());
 
-		max_bb_size = std::max(max_bb_size,data.ViewDistance);
-	
 		//Offset vegetation by using new origin at boudning_box._min
 		m_Offset = boudning_box._min;
 
@@ -241,34 +221,47 @@ namespace osgVegetation
 		m_InitBB._min.set(0,0,0);
 		m_InitBB._max = boudning_box._max - boudning_box._min;
 
-		//Create squared bounding box as starting point for the quadtree process
-		osg::BoundingBox qt_bb;
-		qt_bb._max.set(max_bb_size, max_bb_size, boudning_box._max.z() - boudning_box._min.z());
-		qt_bb._min.set(0,0,0);
-
+		
 		//add offset matrix
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
-
-		//save for later...
-		double temp_size  = max_bb_size;
-
+		
 		//reset
 		m_FinalLOD =0;
-		m_StartLOD =0;
 		m_NumberOfTiles = 0;
 		m_CurrentTile = 0;
 
-		//Get LOD level to begin scattering at
-		
-		while(temp_size > data.ViewDistance)
+		//distance sort mesh LODs
+		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
-			m_StartLOD++;
-			temp_size *= 0.5;
+			std::sort(data.Layers.begin(), data.Layers.end(), BillboardSortPredicate);
 		}
 
-		//Final LOD is easy...
-		m_FinalLOD = m_StartLOD + data.LODCount;
+		//Get max view dist
+		for(size_t i = 0; i < data.Layers.size(); i++)
+		{
+			max_bb_size = std::max(max_bb_size,data.Layers[i].ViewDistance);
+		}
+
+		//set quad tree LOD level for each billboard layer
+		for(size_t i = 0; i < data.Layers.size(); i++)
+		{
+			double temp_size  = max_bb_size;
+			int ld = 0;
+			while(temp_size > data.Layers[i].ViewDistance)
+			{
+				ld++;
+				temp_size *= 0.5;
+			}
+			data.Layers[i]._QTLODLevel = ld;
+			if(m_FinalLOD < ld)
+				m_FinalLOD = ld;
+		}
+
+		//Create squared bounding box for top level quad tree tile
+		osg::BoundingBox qt_bb;
+		qt_bb._max.set(max_bb_size, max_bb_size, boudning_box._max.z() - boudning_box._min.z());
+		qt_bb._min.set(0,0,0);
 
 		//get total number of tiles to process, used for progress report
 		int ld = 0;
