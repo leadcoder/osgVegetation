@@ -10,20 +10,27 @@
 
 namespace osgVegetation
 {
-	struct MeshLod
+	struct MeshLOD
 	{
-		MeshLod(const std::string &mesh, double max_dist):MeshName(mesh),
+		MeshLOD(const std::string &mesh, double max_dist):MeshName(mesh),
 			MaxDistance(max_dist){}
 		double MaxDistance;
 		std::string MeshName;
-		int _LODLevel;
+		int _StartQTLODLevel;
 		
 	};
+	typedef std::vector<MeshLOD> MeshLODVector;
+	
 
 	struct MeshLayer
 	{
+		MeshLayer(const MeshLODVector &mesh_lods) : MeshLODs(mesh_lods)
+		{
+			
+		}
 		double Density;
-		std::vector<MeshLod> MeshLODs;
+		
+		MeshLODVector MeshLODs;
 		
 		/**
 			Color intensity interval
@@ -55,6 +62,7 @@ namespace osgVegetation
 		osg::Vec2 Scale;
 	
 		std::vector<MaterialColor> Materials;
+
 		bool hasMaterial(const MaterialColor& mat) const
 		{
 			for(size_t i = 0 ; i < Materials.size(); i++)

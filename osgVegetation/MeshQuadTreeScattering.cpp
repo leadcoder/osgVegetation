@@ -1,30 +1,14 @@
 #include "MeshQuadTreeScattering.h"
-#include <osg/AlphaFunc>
-#include <osg/Billboard>
-#include <osg/BlendFunc>
-#include <osg/Depth>
 #include <osg/Geode>
-#include <osg/Geometry>
-#include <osg/Material>
-#include <osg/Math>
 #include <osg/MatrixTransform>
-#include <osg/ShapeDrawable>
 #include <osg/StateSet>
-#include <osg/Texture2D>
-#include <osg/TextureBuffer>
-#include <osg/Image>
-#include <osg/TexEnv>
 #include <osg/ComputeBoundsVisitor>
 #include <osg/PagedLOD>
 #include <osg/ProxyNode>
-
-
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
-#include <osg/Texture2DArray>
-//#include <iostream>
 #include <sstream>
 
 #include "MRTShaderInstancing.h"
@@ -33,7 +17,7 @@
 
 namespace osgVegetation
 {
-	MeshQuadTreeScattering::MeshQuadTreeScattering(ITerrainQuery* tq) : m_VRT(NULL),
+	MeshQuadTreeScattering::MeshQuadTreeScattering(ITerrainQuery* tq) : m_MRT(NULL),
 		m_TerrainQuery(tq),
 		m_UsePagedLOD(false),
 		m_FilenamePrefix("quadtree_")
@@ -41,13 +25,13 @@ namespace osgVegetation
 
 	}
 
-	void MeshQuadTreeScattering::_populateVegetationLayer(const MeshLayer& layer,const  osg::BoundingBox& bb,MeshVegetationObjectVector& instances)
+	void MeshQuadTreeScattering::_populateVegetationLayer(MeshLayer& layer,const  osg::BoundingBox& bb)
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
 
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
-		instances.reserve(instances.size()+num_objects_to_create);
+		layer._Instances.reserve(layer._Instances.size()+num_objects_to_create);
 
 		for(unsigned int i=0;i<num_objects_to_create;++i)
 		{
@@ -64,11 +48,11 @@ namespace osgVegetation
 					if(layer.hasMaterial(mat_color))
 					{
 						MeshObject* veg_obj = new MeshObject;
-						//TODO add color to layer
 						float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y());
 						veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
 						veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
 						veg_obj->Position = inter - m_Offset;
+						veg_obj->Rotation.makeRotate(Utils::random(0.0, osg::PI_2),osg::Vec3(0,0,1));
 						if(layer.MixInIntensity)
 						{
 							float intensity = (color.r() + color.g() + color.b())/3.0;
@@ -77,7 +61,7 @@ namespace osgVegetation
 						veg_obj->Color = color*layer.MixInColorRatio;
 						veg_obj->Color += osg::Vec4(1,1,1,1)*rand_int;
 						veg_obj->Color.set(veg_obj->Color.r(), veg_obj->Color.g(), veg_obj->Color.b(), 1.0);
-						instances.push_back(veg_obj);
+						layer._Instances.push_back(veg_obj);
 					}
 				}
 			}
@@ -108,26 +92,24 @@ namespace osgVegetation
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
 			int mesh_lod = -1;
-			int max_lod = 0;
+			int max_lod = -1;
 			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
 			{
-				if(ld >= data.Layers[i].MeshLODs[j]._LODLevel && data.Layers[i].MeshLODs[j]._LODLevel > max_lod)
+				if(ld >= data.Layers[i].MeshLODs[j]._StartQTLODLevel && data.Layers[i].MeshLODs[j]._StartQTLODLevel > max_lod)
 				{
 					mesh_lod = j;
-					max_lod = data.Layers[i].MeshLODs[j]._LODLevel;
+					max_lod = data.Layers[i].MeshLODs[j]._StartQTLODLevel;
 				}
 
-				if(j == 0 && ld == data.Layers[i].MeshLODs[j]._LODLevel)
+				if(j == 0 && ld == data.Layers[i].MeshLODs[j]._StartQTLODLevel)
 				{
-					//create data
+					//remove previous data
 					data.Layers[i]._Instances.clear();
-					_populateVegetationLayer(data.Layers[i], bb, data.Layers[i]._Instances);
+					//create data
+					_populateVegetationLayer(data.Layers[i], bb);
 				}
 			}
-			
-			
-			
-
+		
 			if(mesh_lod >= 0)
 			{
 				//filter trees inside box
@@ -136,11 +118,13 @@ namespace osgVegetation
 				{
 					if(bb.contains(data.Layers[i]._Instances[j]->Position))
 						patch_instances.push_back(data.Layers[i]._Instances[j]);
+					
+					//Debug stuff
 					//osg::Vec3 p = data.Layers[i]._Instances[j]->Position;
 					//p.set(p.x(),p.y(),p.z() + 1.0);
 					//data.Layers[i]._Instances[j]->Position = p;
 				}
-				osg::Node* node = m_VRT->create(patch_instances, data.Layers[i].MeshLODs[mesh_lod].MeshName, bb);
+				osg::Node* node = m_MRT->create(patch_instances, data.Layers[i].MeshLODs[mesh_lod].MeshName, bb);
 				mesh_group->addChild(node);
 			}
 		}
@@ -209,8 +193,13 @@ namespace osgVegetation
 		}
 		else
 			return mesh_group;
-
 	}
+
+	bool MeshSortPredicate(const MeshLOD &lhs, const MeshLOD &rhs)
+	{
+		return lhs.MaxDistance > rhs.MaxDistance;
+	}
+
 	osg::Node* MeshQuadTreeScattering::generate(const osg::BoundingBox &boudning_box,MeshData &data, const std::string &page_lod_path, const std::string &filename_prefix)
 	{
 		m_FilenamePrefix = filename_prefix;
@@ -221,18 +210,17 @@ namespace osgVegetation
 		}
 
 		//remove  previous render tech
-		delete m_VRT;
+		delete m_MRT;
 
 		//m_VRT = new BRTShaderInstancing(data);
-		m_VRT = new MRTShaderInstancing(data);
+		m_MRT = new MRTShaderInstancing(data);
 		
 
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
 			boudning_box._max.y() - boudning_box._min.y());
 
-		max_bb_size = std::max(max_bb_size,data.ViewDistance);
-	
+		
 		//Offset vegetation by using new origin at boudning_box._min
 		m_Offset = boudning_box._min;
 
@@ -240,31 +228,35 @@ namespace osgVegetation
 		m_InitBB._min.set(0,0,0);
 		m_InitBB._max = boudning_box._max - boudning_box._min;
 
-		//Create squared bounding box as starting point for the quadtree process
-		osg::BoundingBox qt_bb;
-		qt_bb._max.set(max_bb_size, max_bb_size, boudning_box._max.z() - boudning_box._min.z());
-		qt_bb._min.set(0,0,0);
-
+		
 		//add offset matrix
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
 
-		//save for later...
-		
-
+	
 		//reset
 		m_FinalLOD =0;
-		m_StartLOD =0;
 		m_NumberOfTiles = 0;
 		m_CurrentTile = 0;
 
-		//Get LOD level to begin scattering at
-		/*while(temp_size > data.ViewDistance)
+		//distance sort mesh LODs
+		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
-			m_StartLOD++;
-			temp_size *= 0.5;
-		}*/
+			std::sort(data.Layers[i].MeshLODs.begin(), data.Layers[i].MeshLODs.end(), MeshSortPredicate);
+		}
+		
+		
 
+		//Get max view dist
+		for(size_t i = 0; i < data.Layers.size(); i++)
+		{
+			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
+			{
+				max_bb_size = std::max(max_bb_size,data.Layers[i].MeshLODs[j].MaxDistance);
+			}
+		}
+
+		//set start quad tree LOD level for each mesh LOD, i.e. the LOD level to start mesh injection 
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
 			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
@@ -276,7 +268,7 @@ namespace osgVegetation
 					ld++;
 					temp_size *= 0.5;
 				}
-				data.Layers[i].MeshLODs[j]._LODLevel = ld;
+				data.Layers[i].MeshLODs[j]._StartQTLODLevel = ld;
 				if(m_FinalLOD < ld)
 					m_FinalLOD = ld;
 			}
@@ -291,17 +283,31 @@ namespace osgVegetation
 			ld++;
 		}
 
+		//Create squared bounding box as top tile for the quad tree
+		osg::BoundingBox qt_bb;
+		qt_bb._max.set(max_bb_size, max_bb_size, boudning_box._max.z() - boudning_box._min.z());
+		qt_bb._min.set(0,0,0);
+
 		//Start recursive scattering process
 		MeshVegetationObjectVector instances;
 		osg::Node* outnode = _createLODRec(0, data, instances, qt_bb,0,0);
 
 		//Add state set to top node
-		outnode->setStateSet((osg::StateSet*) m_VRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
+		outnode->setStateSet((osg::StateSet*) m_MRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
 
+		//clean up
+		for(size_t i = 0; i < data.Layers.size(); i++)
+		{
+			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
+			{
+				data.Layers[i]._Instances.clear();
+			}
+		}
+		
 		if(m_UsePagedLOD)
 		{
 			transform->addChild(outnode);
-			osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.ive");
+			osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.osgt");
 			//osg::ProxyNode* pn = new osg::ProxyNode();
 			//pn->setFileName(0,"master.ive");
 			//pn->setDatabasePath("C:/temp/paged");
@@ -312,7 +318,6 @@ namespace osgVegetation
 		{
 			transform->addChild(outnode);
 		}
-
 		return transform;
 	}
 }

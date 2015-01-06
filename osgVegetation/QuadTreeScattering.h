@@ -54,8 +54,6 @@ namespace osgVegetation
 
 		IBillboardRenderingTech* m_VRT;
 		osg::Vec3 m_Offset;
-		typedef std::map<std::string,osg::ref_ptr<osg::Image> > MaterialCacheMap; 
-		MaterialCacheMap m_MaterialCache;
 		ITerrainQuery* m_TerrainQuery;
 		bool m_UsePagedLOD;
 		std::string m_SavePath;

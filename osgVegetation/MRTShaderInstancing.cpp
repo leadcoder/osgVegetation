@@ -138,13 +138,13 @@ namespace osgVegetation
 			dstate->setAttribute(program);
 
 			char vertexShaderSource[] =
-				"#version 430 compatibility\n"
+				//"#version 430 compatibility\n"
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
 				"uniform samplerBuffer dataBuffer;\n"
-				"layout(location = 0) in vec3 VertexPosition;\n"
-				"layout(location = 8) in vec3 VertexTexCoord;\n"
-				"out vec2 TexCoord;\n"
-				"out vec4 Color;\n"
+				//"layout(location = 0) in vec3 VertexPosition;\n"
+				//"layout(location = 8) in vec3 VertexTexCoord;\n"
+				"varying vec2 TexCoord;\n"
+				"varying vec4 Color;\n"
 				"void main()\n"
 				"{\n"
 				"   int instanceAddress = gl_InstanceID * 4;\n"
@@ -153,29 +153,28 @@ namespace osgVegetation
 				"   vec4 v3 = texelFetch(dataBuffer, instanceAddress + 2);\n"
 				"   vec4 v4 = texelFetch(dataBuffer, instanceAddress + 3);\n"
 				"   mat4 mvpMatrix = gl_ModelViewProjectionMatrix* \n"
-				//"        mat4( data.x, 0.0, 0.0, 0.0,\n"
-				//"              0.0, data.x, 0.0, 0.0,\n"
-				//"              0.0, 0.0, data.y, 0.0,\n"
-				//"              position.x, position.y, position.z, 1.0);\n"
 				"        mat4( v1.x, v1.y, v1.z, 0.0,\n"
 				"              v2.x, v2.y, v2.z, 0.0,\n"
 				"              v3.x, v3.y, v3.z, 0.0,\n"
 				"              v4.x, v4.y, v4.z, 1.0);\n"
-				"   gl_Position = mvpMatrix * vec4(VertexPosition,1.0) ;\n"
-				"   TexCoord = VertexTexCoord.xy;\n"
 				"   Color = vec4(v1.w, v2.w, v3.w, v4.w);\n"
+				"   gl_Position = mvpMatrix * vec4(gl_Vertex.xyz,1.0) ;\n"
+				"   vec3 normal = normalize(gl_NormalMatrix * gl_Normal);\n"
+				"   vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
+				"   float NdotL = max(dot(normal, lightDir), 0.0);\n"
+				"   Color.xyz = NdotL*Color.xyz*gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz*Color.xyz;\n"
+				"   TexCoord = gl_MultiTexCoord0.st;\n"
 				"}\n";
 
 			char fragmentShaderSource[] =
-				"#version 430 core\n"
+				//"#version 430 core\n"
 				"uniform sampler2D baseTexture; \n"
-				"in vec2 TexCoord;\n"
-				"in vec4 Color;\n"
-				"layout(location = 0, index = 0) out vec4 FragData0;\n"
+				"varying  vec2 TexCoord;\n"
+				"varying  vec4 Color;\n"
 				"void main(void) \n"
 				"{\n"
 				"    vec4 finalColor = texture2D( baseTexture, TexCoord); \n"
-				"    FragData0 = Color*finalColor;\n"
+				"    gl_FragColor = Color*finalColor;\n"
 				"}\n";
 
 			osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource);
@@ -226,10 +225,6 @@ namespace osgVegetation
 				ptr[1] = osg::Vec4f(m[4],m[5],m[6],tree.Color.g());
 				ptr[2] = osg::Vec4f(m[8],m[9],m[10],tree.Color.b());
 				ptr[3] = osg::Vec4f(m[12],m[13],m[14],1.0);
-				
-				//ptr[0] = osg::Vec4f(tree.Position.x(),tree.Position.y(),tree.Position.z(),1.0);
-				//ptr[1] = osg::Vec4f((float)tree.Color.r()/255.0f,(float)tree.Color.g()/255.0f, (float)tree.Color.b()/255.0f, 1.0);
-				//ptr[2] = osg::Vec4f(tree.Width, tree.Height, 0, 1.0);
 			}
 			osg::ref_ptr<osg::TextureBuffer> tbo = new osg::TextureBuffer;
 			tbo->setImage( treeParamsImage.get() );

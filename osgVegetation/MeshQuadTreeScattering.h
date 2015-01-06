@@ -41,8 +41,7 @@ namespace osgVegetation
 		osg::Node* generate(const osg::BoundingBox &bb, MeshData &data, const std::string &paged_lod_path = "", const std::string &filename_prefix = "");
 	private:
 		int m_FinalLOD;
-		int m_StartLOD;
-
+		
 		//progress data
 		int m_CurrentTile;
 		int m_NumberOfTiles;
@@ -50,10 +49,8 @@ namespace osgVegetation
 		//Area bounding box
 		osg::BoundingBox m_InitBB;
 
-		IMeshRenderingTech* m_VRT;
+		IMeshRenderingTech* m_MRT;
 		osg::Vec3 m_Offset;
-		typedef std::map<std::string,osg::ref_ptr<osg::Image> > MaterialCacheMap; 
-		MaterialCacheMap m_MaterialCache;
 		ITerrainQuery* m_TerrainQuery;
 		bool m_UsePagedLOD;
 		std::string m_SavePath;
@@ -61,7 +58,7 @@ namespace osgVegetation
 
 		//Helpers
 		std::string _createFileName(unsigned int lv, unsigned int x, unsigned int y);
-		void _populateVegetationLayer(const MeshLayer& layer,const osg::BoundingBox &box, MeshVegetationObjectVector& instances);
+		void _populateVegetationLayer(MeshLayer& layer,const osg::BoundingBox &box);
 		osg::Node* _createLODRec(int ld, MeshData &data, MeshVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
 	};
 }
