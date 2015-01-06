@@ -1,5 +1,6 @@
 #pragma once
 #include "MaterialColor.h"
+#include "MeshObject.h"
 #include <osg/Referenced>
 #include <osg/vec4>
 #include <osg/vec3>
@@ -9,23 +10,49 @@
 
 namespace osgVegetation
 {
-
 	struct MeshLod
 	{
 		MeshLod(const std::string &mesh, double max_dist):MeshName(mesh),
 			MaxDistance(max_dist){}
 		double MaxDistance;
 		std::string MeshName;
-		std::string ImageName;
+		int _LODLevel;
+		
 	};
 
 	struct MeshLayer
 	{
 		double Density;
 		std::vector<MeshLod> MeshLODs;
-		osg::Vec2 IntensitySpan;
+		
+		/**
+			Color intensity interval
+		*/
+		osg::Vec2 ColorIntensity;
+
+		/**
+			Percentage to of ground texture color to use for billboard coloring
+		*/
+		double MixInColorRatio;
+		/**
+			Only use intensity from ground texture when color billboard
+		*/
+		bool MixInIntensity;
+		
+		/**
+			Height interval (x=min, y=max) for all models populated in this layers
+		*/
 		osg::Vec2 Height;
+
+		/**
+			Width interval (x=min, y=max) for all models populated in this layers
+		*/
 		osg::Vec2 Width;
+
+		/**
+			Overall scale interval (x=min, y=max) for all models populated in this layers (will effect both height and width)
+		*/
+		osg::Vec2 Scale;
 	
 		std::vector<MaterialColor> Materials;
 		bool hasMaterial(const MaterialColor& mat) const
@@ -37,6 +64,8 @@ namespace osgVegetation
 			}
 			return false;
 		}
+
+		MeshVegetationObjectVector _Instances;
 	};
 
 	typedef std::vector<MeshLayer> MeshLayerVector;

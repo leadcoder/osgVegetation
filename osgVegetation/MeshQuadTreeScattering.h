@@ -7,13 +7,11 @@
 #include <osg/vec2>
 #include <osg/Vec4ub>
 #include <osg/Node>
-//#include <osg/LOD>
 #include <osg/ref_ptr>
-
 #include <vector>
-#include "IBillboardRenderingTech.h"
-#include "BillboardLayer.h"
-#include "BillboardData.h"
+#include "IMeshRenderingTech.h"
+#include "MeshLayer.h"
+#include "MeshData.h"
 
 namespace osgVegetation
 {
@@ -27,20 +25,20 @@ namespace osgVegetation
 		low density vegetation saving performance. See the BillboardData structure for more information about LOD settings.
 	*/
 
-	class osgvExport QuadTreeScattering : public osg::Referenced
+	class osgvExport MeshQuadTreeScattering : public osg::Referenced
 	{
 	public:
 		/**
 		@param tq Pointer to TerrainQuery classed used during the scattering step.
 		*/
-		QuadTreeScattering(ITerrainQuery* tq);
+		MeshQuadTreeScattering(ITerrainQuery* tq);
 		/**
 			Generate vegetation data by providing billboard data
 			@param bb Generation area
 			@param data Billboard layers and settings
 			@param paged_lod_path Optional path to save PagedLOD nodes, if provided PagedLOD are used instead of regular LOD nodes
 		*/
-		osg::Node* generate(const osg::BoundingBox &bb, BillboardData &data, const std::string &paged_lod_path = "", const std::string &filename_prefix = "");
+		osg::Node* generate(const osg::BoundingBox &bb, MeshData &data, const std::string &paged_lod_path = "", const std::string &filename_prefix = "");
 	private:
 		int m_FinalLOD;
 		int m_StartLOD;
@@ -52,7 +50,7 @@ namespace osgVegetation
 		//Area bounding box
 		osg::BoundingBox m_InitBB;
 
-		IBillboardRenderingTech* m_VRT;
+		IMeshRenderingTech* m_VRT;
 		osg::Vec3 m_Offset;
 		typedef std::map<std::string,osg::ref_ptr<osg::Image> > MaterialCacheMap; 
 		MaterialCacheMap m_MaterialCache;
@@ -62,9 +60,8 @@ namespace osgVegetation
 		std::string m_FilenamePrefix;
 
 		//Helpers
-		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y);
-		void _populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& instances, double lod_density, double lod_scale);
-		BillboardVegetationObjectVector _generateVegetation(BillboardData &data, const osg::BoundingBox &box, double lod_density, double lod_scale);
-		osg::Node* _createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
+		std::string _createFileName(unsigned int lv, unsigned int x, unsigned int y);
+		void _populateVegetationLayer(const MeshLayer& layer,const osg::BoundingBox &box, MeshVegetationObjectVector& instances);
+		osg::Node* _createLODRec(int ld, MeshData &data, MeshVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
 	};
 }

@@ -16,8 +16,6 @@
 #include <osg/Image>
 #include <osg/Texture2DArray>
 #include <osgDB/ReadFile>
-#include "BillboardLayer.h"
-
 
 namespace osgVegetation
 {
@@ -110,16 +108,21 @@ namespace osgVegetation
 		std::list<osg::PrimitiveSet*> _primitiveSets;
 	};
 
-	osg::StateSet* MRTShaderInstancing::createStateSet(MeshLayerVector &layers) 
+	MRTShaderInstancing::MRTShaderInstancing(MeshData &data)
+	{
+		m_StateSet = _createStateSet(data); 
+	}
+
+	osg::StateSet* MRTShaderInstancing::_createStateSet(MeshData &data) 
 	{
 		//Load textures
 		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
 		options->setOptionString("dds_flip");
-		for(size_t i = 0; i < layers.size(); i++)
+		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
-			for(size_t j = 0; j < layers[i].MeshLODs.size(); j++)
+			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
 			{
-				m_MeshNodeMap[layers[i].MeshLODs[j].MeshName] = osgDB::readNodeFile(layers[i].MeshLODs[j].MeshName); 
+				m_MeshNodeMap[data.Layers[i].MeshLODs[j].MeshName] = osgDB::readNodeFile(data.Layers[i].MeshLODs[j].MeshName); 
 			}
 		}
 		osg::StateSet *dstate = new osg::StateSet;
@@ -135,7 +138,7 @@ namespace osgVegetation
 			dstate->setAttribute(program);
 
 			char vertexShaderSource[] =
-				"#version 440 compatibility\n"
+				"#version 430 compatibility\n"
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
 				"uniform samplerBuffer dataBuffer;\n"
 				"layout(location = 0) in vec3 VertexPosition;\n"
@@ -164,7 +167,7 @@ namespace osgVegetation
 				"}\n";
 
 			char fragmentShaderSource[] =
-				"#version 440 core\n"
+				"#version 430 core\n"
 				"uniform sampler2D baseTexture; \n"
 				"in vec2 TexCoord;\n"
 				"in vec4 Color;\n"
@@ -184,7 +187,7 @@ namespace osgVegetation
 			osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture",0);
 			dstate->addUniform(baseTextureSampler);
 		
-			m_StateSet = dstate; 
+		
 			return dstate;
 		}
 		return NULL;

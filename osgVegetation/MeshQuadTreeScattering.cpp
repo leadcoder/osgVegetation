@@ -1,27 +1,39 @@
-#include "QuadTreeScattering.h"
+#include "MeshQuadTreeScattering.h"
+#include <osg/AlphaFunc>
+#include <osg/Billboard>
+#include <osg/BlendFunc>
+#include <osg/Depth>
 #include <osg/Geode>
 #include <osg/Geometry>
+#include <osg/Material>
+#include <osg/Math>
 #include <osg/MatrixTransform>
+#include <osg/ShapeDrawable>
 #include <osg/StateSet>
+#include <osg/Texture2D>
+#include <osg/TextureBuffer>
+#include <osg/Image>
+#include <osg/TexEnv>
 #include <osg/ComputeBoundsVisitor>
 #include <osg/PagedLOD>
 #include <osg/ProxyNode>
+
 
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
-//#include <osg/Texture2DArray>
+#include <osg/Texture2DArray>
 //#include <iostream>
 #include <sstream>
-#include "BRTGeometryShader.h"
-#include "BRTShaderInstancing.h"
+
+#include "MRTShaderInstancing.h"
 #include "VegetationUtils.h"
 #include "ITerrainQuery.h"
 
 namespace osgVegetation
 {
-	QuadTreeScattering::QuadTreeScattering(ITerrainQuery* tq) : m_VRT(NULL),
+	MeshQuadTreeScattering::MeshQuadTreeScattering(ITerrainQuery* tq) : m_VRT(NULL),
 		m_TerrainQuery(tq),
 		m_UsePagedLOD(false),
 		m_FilenamePrefix("quadtree_")
@@ -29,12 +41,12 @@ namespace osgVegetation
 
 	}
 
-	void QuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances, double lod_density, double lod_scale)
+	void MeshQuadTreeScattering::_populateVegetationLayer(const MeshLayer& layer,const  osg::BoundingBox& bb,MeshVegetationObjectVector& instances)
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
 
-		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density*lod_density;
+		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
 		instances.reserve(instances.size()+num_objects_to_create);
 
 		for(unsigned int i=0;i<num_objects_to_create;++i)
@@ -51,12 +63,11 @@ namespace osgVegetation
 				{
 					if(layer.hasMaterial(mat_color))
 					{
-						BillboardObject* veg_obj = new BillboardObject;
+						MeshObject* veg_obj = new MeshObject;
 						//TODO add color to layer
-						float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y())*lod_scale;
+						float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y());
 						veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
 						veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
-						veg_obj->TextureIndex = layer._TextureIndex;
 						veg_obj->Position = inter - m_Offset;
 						if(layer.MixInIntensity)
 						{
@@ -73,25 +84,14 @@ namespace osgVegetation
 		}
 	}
 
-	BillboardVegetationObjectVector QuadTreeScattering::_generateVegetation(BillboardData  &data,const osg::BoundingBox& bb, double lod_density,double lod_scale)
-	{
-		BillboardVegetationObjectVector trees;
-		double const density= 1;
-		for(size_t i = 0 ; i < data.Layers.size();i++)
-		{
-			_populateVegetationLayer(data.Layers[i],bb,trees,lod_density,lod_scale);
-		}
-		return trees;
-	}
-
-	std::string QuadTreeScattering::_createFileName( unsigned int lv,	unsigned int x, unsigned int y )
+	std::string MeshQuadTreeScattering::_createFileName(unsigned int lv,	unsigned int x, unsigned int y )
 	{
 		std::stringstream sstream;
 		sstream << m_FilenamePrefix << lv << "_X" << x << "_Y" << y << ".ive";
 		return sstream.str();
 	}
 
-	osg::Node* QuadTreeScattering::_createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector instances, const osg::BoundingBox &bb,int x, int y)
+	osg::Node* MeshQuadTreeScattering::_createLODRec(int ld, MeshData &data, MeshVegetationObjectVector instances, const osg::BoundingBox &bb,int x, int y)
 	{
 		if(ld < 6) //only show progress above lod 6, we don't want to spam the log
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Create Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
@@ -105,45 +105,47 @@ namespace osgVegetation
 
 		bool final_lod = (ld == m_FinalLOD);
 
-		if(ld >= m_StartLOD)
+		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
-			//calculate density ratio for this LOD level
-			float lod = ld - m_StartLOD;
-			float inv_lod = m_FinalLOD - ld;
-			double lod_density = pow(data.DensityLODRatio, inv_lod);
-			double lod_scale = pow(data.ScaleLODRatio, lod);
-
-			/*int inv_lod = (m_FinalLOD - ld);
-			int tiles = pow(2.0, inv_lod);
-			double density_ratio = tiles*tiles;
-			density_ratio = 1.0/density_ratio;*/
-
-			if(instances.size() == 0)
+			int mesh_lod = -1;
+			int max_lod = 0;
+			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
 			{
-				instances = _generateVegetation(data,bb,lod_density,lod_scale);
+				if(ld >= data.Layers[i].MeshLODs[j]._LODLevel && data.Layers[i].MeshLODs[j]._LODLevel > max_lod)
+				{
+					mesh_lod = j;
+					max_lod = data.Layers[i].MeshLODs[j]._LODLevel;
+				}
+
+				if(j == 0 && ld == data.Layers[i].MeshLODs[j]._LODLevel)
+				{
+					//create data
+					data.Layers[i]._Instances.clear();
+					_populateVegetationLayer(data.Layers[i], bb, data.Layers[i]._Instances);
+				}
 			}
-			BillboardVegetationObjectVector patch_trees;
-
-			//get trees inside patch
-			/*for(size_t i = 0; i < trees.size(); i = i++)
-			{
-			//if(bb.contains(trees[i]->Position+m_Offset))
-			{
-			patch_trees.push_back(trees[i]);
-			}
-			}*/
-
-			osg::Node* node = m_VRT->create(instances,bb);
-			instances.clear();
-
-			mesh_group->addChild(node);
 			
-			//debug
-			//osgDB::writeNodeFile(*node,"c:/temp/bbveg.ive");
+			
+			
+
+			if(mesh_lod >= 0)
+			{
+				//filter trees inside box
+				MeshVegetationObjectVector patch_instances;
+				for(size_t j = 0; j < data.Layers[i]._Instances.size(); j++)
+				{
+					if(bb.contains(data.Layers[i]._Instances[j]->Position))
+						patch_instances.push_back(data.Layers[i]._Instances[j]);
+					//osg::Vec3 p = data.Layers[i]._Instances[j]->Position;
+					//p.set(p.x(),p.y(),p.z() + 1.0);
+					//data.Layers[i]._Instances[j]->Position = p;
+				}
+				osg::Node* node = m_VRT->create(patch_instances, data.Layers[i].MeshLODs[mesh_lod].MeshName, bb);
+				mesh_group->addChild(node);
+			}
 		}
 
 		//split bounding box into four new children
-
 		if(!final_lod)
 		{
 			double sx = (bb._max.x() - bb._min.x())*0.5;
@@ -174,11 +176,12 @@ namespace osgVegetation
 				plod->setRadius(radius);
 				float cutoff = radius*2;
 				//regular terrain LOD setup
-				//plod->addChild(mesh_group, cutoff, FLT_MAX );
+				
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
-					plod->addChild(mesh_group, 0, FLT_MAX );	
+					//plod->addChild(mesh_group, 0, FLT_MAX );
+					plod->addChild(mesh_group, cutoff, FLT_MAX );
 					c_index++;
 				}
 				const std::string filename = _createFileName(ld, x,y);
@@ -198,8 +201,8 @@ namespace osgVegetation
 
 				float cutoff = radius*2;
 				//regular terrain LOD setup
-				//plod->addChild(mesh_group, cutoff, FLT_MAX );
-				plod->addChild(mesh_group, 0, FLT_MAX );
+				plod->addChild(mesh_group, cutoff, FLT_MAX );
+				//plod->addChild(mesh_group, 0, FLT_MAX );
 				plod->addChild(children_group, 0.0f, cutoff );
 				return plod;
 			}
@@ -208,7 +211,7 @@ namespace osgVegetation
 			return mesh_group;
 
 	}
-	osg::Node* QuadTreeScattering::generate(const osg::BoundingBox &boudning_box,BillboardData &data, const std::string &page_lod_path, const std::string &filename_prefix)
+	osg::Node* MeshQuadTreeScattering::generate(const osg::BoundingBox &boudning_box,MeshData &data, const std::string &page_lod_path, const std::string &filename_prefix)
 	{
 		m_FilenamePrefix = filename_prefix;
 		if(page_lod_path != "")
@@ -221,12 +224,8 @@ namespace osgVegetation
 		delete m_VRT;
 
 		//m_VRT = new BRTShaderInstancing(data);
-		m_VRT = new BRTGeometryShader(data);
+		m_VRT = new MRTShaderInstancing(data);
 		
-		m_VRT->setAlphaRefValue(data.AlphaRefValue);
-		m_VRT->setAlphaBlend(data.UseAlphaBlend);
-		m_VRT->setTerrainNormal(data.TerrainNormal);
-		m_VRT->setReceivesShadows(data.ReceiveShadows);
 
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
@@ -251,7 +250,7 @@ namespace osgVegetation
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
 
 		//save for later...
-		double temp_size  = max_bb_size;
+		
 
 		//reset
 		m_FinalLOD =0;
@@ -260,16 +259,29 @@ namespace osgVegetation
 		m_CurrentTile = 0;
 
 		//Get LOD level to begin scattering at
-		
-		while(temp_size > data.ViewDistance)
+		/*while(temp_size > data.ViewDistance)
 		{
 			m_StartLOD++;
 			temp_size *= 0.5;
+		}*/
+
+		for(size_t i = 0; i < data.Layers.size(); i++)
+		{
+			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
+			{
+				double temp_size  = max_bb_size;
+				int ld = 0;
+				while(temp_size > data.Layers[i].MeshLODs[j].MaxDistance)
+				{
+					ld++;
+					temp_size *= 0.5;
+				}
+				data.Layers[i].MeshLODs[j]._LODLevel = ld;
+				if(m_FinalLOD < ld)
+					m_FinalLOD = ld;
+			}
 		}
-
-		//Final LOD is easy...
-		m_FinalLOD = m_StartLOD + data.LODCount;
-
+		
 		//get total number of tiles to process, used for progress report
 		int ld = 0;
 		while(ld < m_FinalLOD)
@@ -280,7 +292,7 @@ namespace osgVegetation
 		}
 
 		//Start recursive scattering process
-		BillboardVegetationObjectVector instances;
+		MeshVegetationObjectVector instances;
 		osg::Node* outnode = _createLODRec(0, data, instances, qt_bb,0,0);
 
 		//Add state set to top node

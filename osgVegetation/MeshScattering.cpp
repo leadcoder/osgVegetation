@@ -49,7 +49,6 @@
 #include <osgGA/SphericalManipulator>
 #include <iostream>
 #include <sstream>
-#include "terrain_coords.h"
 #include "BRTGeometryShader.h"
 #include "BRTShaderInstancing.h"
 #include "MRTShaderInstancing.h"

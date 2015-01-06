@@ -9,6 +9,7 @@ SET(CPP_FILES
 	MRTShaderInstancing.cpp  
 	QuadTreeScattering.cpp
 	TerrainQuery.cpp
+	MeshQuadTreeScattering.cpp
 )
 
 SET(H_FILES
@@ -22,7 +23,9 @@ SET(H_FILES
 	IMeshRenderingTech.h
 	MaterialColor.h	
 	MeshLayer.h
+	MeshData.h
 	MeshObject.h
+	MeshQuadTreeScattering.h
 	QuadTreeScattering.h
 	ITerrainQuery.h
 	TerrainQuery.h
