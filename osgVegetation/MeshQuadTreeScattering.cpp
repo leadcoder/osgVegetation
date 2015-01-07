@@ -244,8 +244,6 @@ namespace osgVegetation
 		{
 			std::sort(data.Layers[i].MeshLODs.begin(), data.Layers[i].MeshLODs.end(), MeshSortPredicate);
 		}
-		
-		
 
 		//Get max view dist
 		for(size_t i = 0; i < data.Layers.size(); i++)

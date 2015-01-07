@@ -4,6 +4,7 @@
 #include <osg/vec4>
 #include <osg/vec3>
 #include <osg/vec2>
+#include <osg/Fog>
 #include <osg/Vec4ub>
 #include <osg/ref_ptr>
 
@@ -15,15 +16,20 @@ namespace osgVegetation
 	*/
 	struct BillboardData
 	{
-		BillboardData(const BillboardLayerVector &layers, bool use_alpha_blend, float alpha_ref_value, bool terrain_normal) : 
+		BillboardData(const BillboardLayerVector &layers, 
+			bool use_alpha_blend, 
+			float alpha_ref_value, 
+			bool terrain_normal):	
 			Layers(layers),
 			UseAlphaBlend(use_alpha_blend), 
 			AlphaRefValue(alpha_ref_value),
 			TerrainNormal(terrain_normal),
 			ReceiveShadows(false)
+			
 		{
 
 		}
+
 		/*
 			Enable alpha blending for all layers
 		*/
@@ -46,6 +52,9 @@ namespace osgVegetation
 			Should geometry receive shadows or not. 
 		*/
 		bool ReceiveShadows;
+
+
+
 		
 		/**
 			The billboard collection

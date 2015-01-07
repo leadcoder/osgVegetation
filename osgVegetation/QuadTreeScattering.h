@@ -7,7 +7,7 @@
 #include <osg/vec2>
 #include <osg/Vec4ub>
 #include <osg/Node>
-//#include <osg/LOD>
+#include <osg/Fog>
 #include <osg/ref_ptr>
 
 #include <vector>
@@ -33,7 +33,7 @@ namespace osgVegetation
 		/**
 		@param tq Pointer to TerrainQuery classed used during the scattering step.
 		*/
-		QuadTreeScattering(ITerrainQuery* tq);
+		QuadTreeScattering(ITerrainQuery* tq, bool use_fog = false, osg::Fog::Mode fog_mode = osg::Fog::LINEAR);
 		/**
 			Generate vegetation data by providing billboard data
 			@param bb Generation area
@@ -58,6 +58,8 @@ namespace osgVegetation
 		bool m_UsePagedLOD;
 		std::string m_SavePath;
 		std::string m_FilenamePrefix;
+		bool m_UseFog;
+		osg::Fog::Mode m_FogMode;
 
 		//Helpers
 		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y);

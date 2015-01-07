@@ -52,7 +52,6 @@
 
 #include <iostream>
 #include <sstream>
-#include "MeshScattering.h"
 #include "MRTShaderInstancing.h"
 #include "QuadTreeScattering.h"
 #include "TerrainQuery.h"
@@ -88,6 +87,7 @@ int main( int argc, char **argv )
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
+	
 
 
 	//setup optimization variables
@@ -105,6 +105,22 @@ int main( int argc, char **argv )
 	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
 	const bool enableShadows = false;
 	const bool use_paged_LOD = false;
+	const bool use_fog = true;
+	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
+
+	if(use_fog)
+	{
+		osg::StateSet* state = group->getOrCreateStateSet();
+		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
+		state->setMode(GL_FOG, osg::StateAttribute::ON);
+		state->setAttributeAndModes(fog.get());
+		fog->setMode(fog_mode);
+		fog->setDensity(0.00001);
+		fog->setEnd(800);
+		fog->setStart(30);
+		fog->setColor(osg::Vec4(1.0, 1.0, 1.0,1.0));
+	}
+
 
 	enum MaterialEnum
 	{
@@ -125,7 +141,7 @@ int main( int argc, char **argv )
 	tree_l0.Height.set(5,5);
 	tree_l0.Width.set(2,2);
 	tree_l0.Scale.set(0.8,0.9);
-	tree_l0.ColorIntensity.set(4,4);
+	tree_l0.ColorIntensity.set(2,2);
 	tree_l0.MixInColorRatio = 1.0;
 	tree_l0.Materials.push_back(material_map[WOODS]);
 
@@ -168,7 +184,7 @@ int main( int argc, char **argv )
 	bb._max = bb._max - bb_size*0.1;
 
 	osgVegetation::TerrainQuery tq(terrain.get());
-	osgVegetation::QuadTreeScattering scattering(&tq);
+	osgVegetation::QuadTreeScattering scattering(&tq,use_fog,fog_mode);
 	osg::Node* tree_node = scattering.generate(bb,tree_data,save_path);
 	group->addChild(tree_node);
 	
@@ -183,7 +199,7 @@ int main( int argc, char **argv )
 	osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
 	lightDir.normalize();
 	pLight->setDirection(lightDir);
-	pLight->setAmbient(osg::Vec4(0.7f, 0.7f, 0.7f, 1.0f) );
+	pLight->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f) );
 	// light source
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );
@@ -197,14 +213,10 @@ int main( int argc, char **argv )
 	osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
 	settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
 	settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
-	settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
+	//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
 
-	//settings->setMaximumShadowMapDistance(distance);
-	//if (arguments.read("--persp")) settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
-	//if (arguments.read("--ortho")) settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::ORTHOGRAPHIC_SHADOW_MAP);
-
+	
 	unsigned int unit=2;
-	//if (arguments.read("--unit",unit)) settings->setBaseShadowTextureUnit(unit);
 	settings->setBaseShadowTextureUnit(unit);
 
 	double n=0.8;

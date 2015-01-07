@@ -21,10 +21,13 @@
 
 namespace osgVegetation
 {
-	QuadTreeScattering::QuadTreeScattering(ITerrainQuery* tq) : m_VRT(NULL),
-		m_TerrainQuery(tq),
-		m_UsePagedLOD(false),
-		m_FilenamePrefix("quadtree_")
+	QuadTreeScattering::QuadTreeScattering(ITerrainQuery* tq, bool use_fog, osg::Fog::Mode fog_mode) : 
+			m_VRT(NULL),
+			m_TerrainQuery(tq),
+			m_UseFog(use_fog),
+			m_FogMode(fog_mode),
+			m_UsePagedLOD(false),
+			m_FilenamePrefix("quadtree_")
 	{
 
 	}
@@ -72,18 +75,7 @@ namespace osgVegetation
 			}
 		}
 	}
-
-	/*BillboardVegetationObjectVector QuadTreeScattering::_generateVegetation(BillboardData  &data,const osg::BoundingBox& bb, double lod_density,double lod_scale)
-	{
-		BillboardVegetationObjectVector trees;
-		double const density= 1;
-		for(size_t i = 0 ; i < data.Layers.size();i++)
-		{
-			_populateVegetationLayer(data.Layers[i],bb,trees,lod_density,lod_scale);
-		}
-		return trees;
-	}*/
-
+	
 	std::string QuadTreeScattering::_createFileName( unsigned int lv,	unsigned int x, unsigned int y )
 	{
 		std::stringstream sstream;
@@ -182,7 +174,6 @@ namespace osgVegetation
 		}
 		else
 			return mesh_group;
-
 	}
 
 	bool BillboardSortPredicate(const BillboardLayer &lhs, const BillboardLayer &rhs)
@@ -202,14 +193,9 @@ namespace osgVegetation
 		//remove  previous render tech
 		delete m_VRT;
 
-		//m_VRT = new BRTShaderInstancing(data);
-		m_VRT = new BRTGeometryShader(data);
-		
-		m_VRT->setAlphaRefValue(data.AlphaRefValue);
-		m_VRT->setAlphaBlend(data.UseAlphaBlend);
-		m_VRT->setTerrainNormal(data.TerrainNormal);
-		m_VRT->setReceivesShadows(data.ReceiveShadows);
-
+		//m_VRT = new BRTShaderInstancing(data,m_UseFog,m_FogMode);
+		m_VRT = new BRTGeometryShader(data,m_UseFog,m_FogMode);
+	
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
 			boudning_box._max.y() - boudning_box._min.y());

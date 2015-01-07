@@ -41,7 +41,6 @@
 
 #include <iostream>
 #include <sstream>
-#include "MeshScattering.h"
 #include "MRTShaderInstancing.h"
 #include "QuadTreeScattering.h"
 #include "TerrainQuery.h"

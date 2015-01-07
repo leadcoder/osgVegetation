@@ -20,17 +20,15 @@
 namespace osgVegetation
 {
 
-	BRTGeometryShader::BRTGeometryShader(BillboardData &data) : m_TrueBillboards(false),
-		m_PPL(false),
-		m_TerrainNormal(data.TerrainNormal),
-		m_AlphaRefValue(data.AlphaRefValue),
-		m_AlphaBlend(data.UseAlphaBlend),
-		m_ReceivesShadows(false)
+	BRTGeometryShader::BRTGeometryShader(BillboardData &data,  bool use_fog, osg::Fog::Mode fog_mode) : m_PPL(false),
+		m_UseFog(use_fog),
+		m_FogMode(fog_mode),
+		m_TrueBillboards(true)
 	{
 		m_StateSet = _createStateSet(data);
 	}
 
-	osg::Program* BRTGeometryShader::_createShaders() const
+	osg::Program* BRTGeometryShader::_createShaders(BillboardData &data) const
 	{
 		std::stringstream vertexSource;
 
@@ -55,10 +53,9 @@ namespace osgVegetation
 			"varying vec3 Normal;\n"
 			"varying vec3 Color; \n"
 			"varying float TextureIndex; \n"
-
 			"void DynamicShadow(vec4 ecPosition )                               \n"
 			"{                                                                      \n";
-		if(m_ReceivesShadows)
+		if(data.ReceiveShadows)
 		{
 			geomSource <<
 				"	 ecPosition = gl_ModelViewMatrix * ecPosition;						\n"
@@ -74,7 +71,7 @@ namespace osgVegetation
 		}
 		geomSource <<
 			"} \n" 
-		
+
 			"void main(void)\n"
 			"{\n"
 			"    vec4 position = gl_PositionIn[0];\n"
@@ -83,8 +80,13 @@ namespace osgVegetation
 			"    TextureIndex = info.z;\n"
 			"    Color = info2.xyz;\n"
 			"    vec2 scale = info.xy;\n"
-			"    float distance = length((gl_ModelViewMatrix * vec4(position.x, position.y, position.z, 1.0)).xyz);\n"
-		//	"  scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n"
+			"    scale.x *= 0.5;\n"
+			"    float distance = length((gl_ModelViewMatrix * vec4(position.x, position.y, position.z, 1.0)).xyz);\n";
+		if(!data.ReceiveShadows) //shadows and vertex fading don't mix well
+		{
+			geomSource << "	 scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
+		}
+		geomSource << 
 			"    vec4 e;\n";
 		if(m_TrueBillboards)
 		{
@@ -95,7 +97,7 @@ namespace osgVegetation
 				"              position.x, position.y, position.z, 1.0);\n"
 				"  modelView[0][0] = scale.x; modelView[0][1] = 0.0;     modelView[0][2] = 0.0;\n"
 				"  modelView[1][0] = 0;       modelView[1][1] = scale.y; modelView[1][2] = 0.0;\n";
-			if(m_TerrainNormal)
+			if(data.TerrainNormal)
 			{
 				geomSource <<
 					"    e = vec4(-1.0,0.0,0.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,0.0); Normal = vec3(0.0,1.0,0.0); EmitVertex();\n"
@@ -106,11 +108,11 @@ namespace osgVegetation
 			else
 			{
 				geomSource <<
-
-					"    e = vec4(-1.0,0.0,0.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,0.0); Normal = normalize(vec3(-1.0,0.0,1.0)); EmitVertex();\n"
-					"    e = vec4(1.0,0.0,0.0,1.0);   gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(1.0,0.0); Normal = normalize(vec3(1.0,0.0,1.0)); EmitVertex();\n"
-					"    e = vec4(-1.0,0.0,1.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,1.0); Normal = normalize(vec3(-1.0,0.0,1.0)); EmitVertex();\n"
-					"    e = vec4(1.0,0.0,1.0,1.0);   gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(1.0,1.0); Normal = normalize(vec3(1.0,0.0,1.0)); EmitVertex();\n";
+					"	 float roundness = 1.0;\n"
+					"    e = vec4(-1.0,0.0,0.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,0.0); Normal = normalize(vec3(-roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = vec4(1.0,0.0,0.0,1.0);   gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(1.0,0.0); Normal = normalize(vec3( roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = vec4(-1.0,0.0,1.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,1.0); Normal = normalize(vec3(-roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = vec4(1.0,0.0,1.0,1.0);   gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(1.0,1.0); Normal = normalize(vec3( roundness,0.0,1.0)); EmitVertex();\n";
 			}
 			geomSource <<
 				"    EndPrimitive();\n"
@@ -119,50 +121,62 @@ namespace osgVegetation
 		else
 		{
 			geomSource <<
-				"    float w = scale.y;\n"
-				"    float h = scale.x;\n";
-			if(m_TerrainNormal)
+				"	 float rand_rad = mod(position.x, 3.14);\n"
+				"    float sw = scale.x*sin(rand_rad);\n"
+				"    float cw = scale.x*cos(rand_rad);\n"
+				"    float h = scale.y;\n";
+			if(data.TerrainNormal)
 			{
 				geomSource <<
-				"    e = position + vec4(-w,0.0,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-				"    e = position + vec4(w,0.0,0.0,0.0);   gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-				"    e = position + vec4(-w,0.0,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-				"    e = position + vec4(w,0.0,h,0.0);     gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-				"    EndPrimitive();\n"
-				"    e = position + vec4(0.0,-w,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-				"    e = position + vec4(0.0,w,0.0,0.0);   gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-				"    e = position + vec4(0.0,-w,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-				"    e = position + vec4(0.0,w,h,0.0);     gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-				"    EndPrimitive();\n";
-				
+					"    e = position + vec4(-sw,-cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4( sw, cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4(-sw,-cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4( sw, cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
+					"    EndPrimitive();\n"
+					"    e = position + vec4(-cw, sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4( cw,-sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4(-cw, sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4( cw,-sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
+					"    EndPrimitive();\n";
 			}
 			else
 			{
 				geomSource <<
-					"    e = position + vec4(-w,0.0,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,-1.0,0.0)); EmitVertex();\n"
-					"    e = position + vec4(w,0.0,0.0,0.0);   gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,-1.0,0.0)); EmitVertex();\n"
-					"    e = position + vec4(-w,0.0,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,-1.0,0.0)); EmitVertex();\n"
-					"    e = position + vec4(w,0.0,h,0.0);     gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,-1.0,0.0)); EmitVertex();\n"
+					"	 float roundness = 0.0;\n"
+					"    e = position + vec4(-sw,-cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(vec3(-roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4( sw, cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(vec3( roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4(-sw,-cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(vec3(-roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4( sw, cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(vec3( roundness,0.0,1.0)); EmitVertex();\n"
 					"    EndPrimitive();\n"
-					"    e = position + vec4(0.0,-w,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(1.0,0.0,0.0)); EmitVertex();\n"
-					"    e = position + vec4(0.0,w,0.0,0.0);   gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(1.0,0.0,0.0)); EmitVertex();\n"
-					"    e = position + vec4(0.0,-w,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(1.0,0.0,0.0)); EmitVertex();\n"
-					"    e = position + vec4(0.0,w,h,0.0);     gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(1.0,0.0,0.0)); EmitVertex();\n"
+					"    e = position + vec4(-cw, sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(vec3(-roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4( cw,-sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(vec3( roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4(-cw, sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(vec3(-roundness,0.0,1.0)); EmitVertex();\n"
+					"    e = position + vec4( cw,-sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(vec3( roundness,0.0,1.0)); EmitVertex();\n"
 					"    EndPrimitive();\n";
+
+					/*"    e = position + vec4(-sw,-cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(cw,-sw,0.0)); EmitVertex();\n"
+					"    e = position + vec4( sw, cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(cw,-sw,0.0)); EmitVertex();\n"
+					"    e = position + vec4(-sw,-cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(cw,-sw,0.0)); EmitVertex();\n"
+					"    e = position + vec4( sw, cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(cw,-sw,0.0)); EmitVertex();\n"
+					"    EndPrimitive();\n"
+					"    e = position + vec4(-cw, sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(-sw,-cw,0.0)); EmitVertex();\n"
+					"    e = position + vec4( cw,-sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(-sw,-cw,0.0)); EmitVertex();\n"
+					"    e = position + vec4(-cw, sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(-sw,-cw,0.0)); EmitVertex();\n"
+					"    e = position + vec4( cw,-sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(-sw,-cw,0.0)); EmitVertex();\n"
+					"    EndPrimitive();\n";*/
 			}
 			geomSource << "}\n";
 		}
 
 		std::stringstream fragSource;
-		//static const char* fragSource = {
 		fragSource <<	"#version 120\n"
 			"#extension GL_EXT_gpu_shader4 : enable\n"
 			"#extension GL_EXT_texture_array : enable\n"
 			"uniform sampler2DArray baseTexture; \n"
-			"uniform sampler2DShadow shadowTexture0;                                 \n"
-			"uniform int shadowTextureUnit0;                                         \n"
-			"uniform sampler2DShadow shadowTexture1;                                 \n"
-			"uniform int shadowTextureUnit1;                                         \n"
+			"uniform sampler2DShadow shadowTexture0; \n"
+			"uniform int shadowTextureUnit0; \n"
+			"uniform sampler2DShadow shadowTexture1; \n"
+			"uniform int shadowTextureUnit1; \n"
 			"uniform float FadeInDist; \n"
 			"varying vec2 TexCoord; \n"
 			"varying vec3 Normal; \n"
@@ -171,25 +185,47 @@ namespace osgVegetation
 			"\n"
 			"void main(void) \n"
 			"{ \n"
-			"   vec4 finalColor = texture2DArray( baseTexture, vec3(TexCoord, TextureIndex)); \n"
-			"   finalColor.xyz = finalColor.xyz * Color;\n"
-			"   float depth = gl_FragCoord.z / gl_FragCoord.w;"
+			"   vec4 outColor = texture2DArray( baseTexture, vec3(TexCoord, TextureIndex)); \n"
+			"   outColor.xyz *= Color; \n"
+			"   float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
 			"   vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
 			"   vec3 normal = -Normal;\n"
 			"   if (gl_FrontFacing) normal = -normal;\n"
-			"   float NdotL = max(dot(normal, lightDir), 0);\n"
-			"   finalColor.xyz = NdotL*finalColor.xyz;// + gl_LightSource[0].ambient.xyz*finalColor.xyz;\n";
-		if(m_ReceivesShadows)
+			"	//add diffuse lighting \n"
+			"   float NdotL = max(dot(normal, lightDir), 0);\n";
+		if(data.ReceiveShadows)
 		{
 			fragSource <<
 				"  float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n"
 				"  float shadow1 = shadow2DProj( shadowTexture1, gl_TexCoord[shadowTextureUnit1] ).r;   \n"
-				"  finalColor.xyz = finalColor.xyz *  shadow0*shadow1;                     \n";
+				"  NdotL *= shadow0*shadow1; \n";
 		}
+		fragSource <<
+			"   outColor.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz);\n"
+			"   outColor.w = outColor.w * clamp(1.0 - ((depth-FadeInDist)/(FadeInDist*0.1)), 0.0, 1.0);\n";
+		if(m_UseFog)
+		{
+			switch(m_FogMode)
+			{
+			case osg::Fog::LINEAR:
+				// Linear fog
+				fragSource << "float fogFactor = (gl_Fog.end - depth) * gl_Fog.scale;\n";
+				break;
+			case osg::Fog::EXP:
+				// Exp fog
+				fragSource << "float fogFactor = exp(-gl_Fog.density * depth);\n";
+				break;
+			case osg::Fog::EXP2:
+				// Exp fog
+				fragSource << "float fogFactor = exp(-pow((gl_Fog.density * depth), 2.0));\n";
+				break;
+			}
 			fragSource <<
-			//"   finalColor.w = finalColor.w * clamp(1 - ((depth - FadeInDist)/10), 0.0, 1.0);"
-			"   finalColor.w = finalColor.w * clamp(1.0 - ((depth-FadeInDist)/(FadeInDist*0.1)), 0.0, 1.0);\n"
-			"   gl_FragColor = finalColor;\n"
+				"fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
+				"outColor.xyz = mix(gl_Fog.color.xyz, outColor.xyz, fogFactor);\n";
+		}
+		fragSource <<
+			"   gl_FragColor = outColor;\n"
 			"}\n";
 
 		osg::Program* pgm = new osg::Program;
@@ -243,10 +279,10 @@ namespace osgVegetation
 		m_StateSet = new osg::StateSet;
 		m_StateSet->setTextureAttribute(0, tex,	osg::StateAttribute::ON);
 		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
-		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL,m_AlphaRefValue);
+		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL,data.AlphaRefValue);
 		m_StateSet->setAttributeAndModes( alphaFunc, osg::StateAttribute::ON );
 
-		if(m_AlphaBlend)
+		if(data.UseAlphaBlend)
 		{
 			m_StateSet->setAttributeAndModes( new osg::BlendFunc, osg::StateAttribute::ON );
 			m_StateSet->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
@@ -257,7 +293,7 @@ namespace osgVegetation
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);
 		m_StateSet->addUniform(baseTextureSampler);
 		m_StateSet->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
-		m_StateSet->setAttribute( _createShaders() );
+		m_StateSet->setAttribute( _createShaders(data) );
 		return m_StateSet;
 	}
 
@@ -272,8 +308,7 @@ namespace osgVegetation
 		for(size_t i = 0; i < objects.size(); i++)
 		{
 			v->push_back(objects[i]->Position);
-
-			v->push_back(osg::Vec3(objects[i]->Height,objects[i]->Width,objects[i]->TextureIndex));
+			v->push_back(osg::Vec3(objects[i]->Width,objects[i]->Height,objects[i]->TextureIndex));
 			v->push_back(osg::Vec3(objects[i]->Color.r(), objects[i]->Color.g(),objects[i]->Color.b()));
 		}
 		geometry->setVertexArray( v );
