@@ -103,7 +103,7 @@ int main( int argc, char **argv )
 #endif
 
 	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
-	const bool enableShadows = false;
+	const bool enableShadows = true;
 	const bool use_paged_LOD = false;
 	const bool use_fog = true;
 	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
@@ -194,7 +194,7 @@ int main( int argc, char **argv )
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
-	osg::Vec4 lightPos(1,0.5,1,0); 
+	osg::Vec4 lightPos(1,1.0,1,0); 
 	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
 	osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
 	lightDir.normalize();
@@ -248,6 +248,15 @@ int main( int argc, char **argv )
 		viewer.setSceneData(group);
 	}
 	
-
-	return viewer.run();
+	while (!viewer.done())
+	{
+		float t = viewer.getFrameStamp()->getSimulationTime()*0.4;
+		lightPos.set(sinf(t),cosf(t),0.7f,0.0f);
+		pLight->setPosition(lightPos);
+		osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
+		lightDir.normalize();
+		pLight->setDirection(lightDir);
+		viewer.frame();
+	}
+	return 1;
 }
