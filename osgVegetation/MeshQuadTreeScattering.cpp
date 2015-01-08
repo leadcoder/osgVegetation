@@ -95,13 +95,13 @@ namespace osgVegetation
 			int max_lod = -1;
 			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
 			{
-				if(ld >= data.Layers[i].MeshLODs[j]._StartQTLODLevel && data.Layers[i].MeshLODs[j]._StartQTLODLevel > max_lod)
+				if(ld >= data.Layers[i].MeshLODs[j]._StartQTLevel && data.Layers[i].MeshLODs[j]._StartQTLevel > max_lod)
 				{
 					mesh_lod = j;
-					max_lod = data.Layers[i].MeshLODs[j]._StartQTLODLevel;
+					max_lod = data.Layers[i].MeshLODs[j]._StartQTLevel;
 				}
 
-				if(j == 0 && ld == data.Layers[i].MeshLODs[j]._StartQTLODLevel)
+				if(j == 0 && ld == data.Layers[i].MeshLODs[j]._StartQTLevel)
 				{
 					//remove previous data
 					data.Layers[i]._Instances.clear();
@@ -254,19 +254,28 @@ namespace osgVegetation
 			}
 		}
 
-		//set start quad tree LOD level for each mesh LOD, i.e. the LOD level to start mesh injection 
+		//set start quad tree level for each mesh LOD, i.e. the LOD level to start mesh injection 
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
 			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
 			{
 				double temp_size  = max_bb_size;
 				int ld = 0;
+				//Get first QT level that can hold mesh LOD distance
 				while(temp_size > data.Layers[i].MeshLODs[j].MaxDistance)
 				{
 					ld++;
 					temp_size *= 0.5;
 				}
-				data.Layers[i].MeshLODs[j]._StartQTLODLevel = ld;
+				//Check that we don't get same LOD level as previous mesh LOD
+				if(j > 0 && ld == data.Layers[i].MeshLODs[j-1]._StartQTLevel)
+				{
+					//push down this mesh-LOD down the quad tree
+					ld = data.Layers[i].MeshLODs[j-1]._StartQTLevel + 1;
+				}
+
+				data.Layers[i].MeshLODs[j]._StartQTLevel = ld;
+				
 				if(m_FinalLOD < ld)
 					m_FinalLOD = ld;
 			}

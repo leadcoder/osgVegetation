@@ -103,7 +103,7 @@ int main( int argc, char **argv )
 #endif
 
 	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
-	const bool enableShadows = false;
+	const bool enableShadows = true;
 	const bool use_paged_LOD = false;
 	const bool use_fog = true;
 	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
@@ -166,7 +166,15 @@ int main( int argc, char **argv )
 	//create billboard data by supplying layers and rendering settings.
 	osgVegetation::BillboardData tree_data(layers, false,0.08,false);
 	tree_data.ReceiveShadows = enableShadows;
+	tree_data.CastShadows = enableShadows;
+	tree_data.UseFog = use_fog;
+	tree_data.FogMode = fog_mode;
 	
+	//if(enableShadows)
+		tree_data.Type = osgVegetation::BT_CROSS_QUADS;
+	//else
+	//	tree_data.Type = osgVegetation::BT_SCREEN_ALIGNED;
+
 	std::string save_path;
 	if(use_paged_LOD)
 	{
@@ -184,7 +192,7 @@ int main( int argc, char **argv )
 	bb._max = bb._max - bb_size*0.1;
 
 	osgVegetation::TerrainQuery tq(terrain.get());
-	osgVegetation::BillboardQuadTreeScattering scattering(&tq,use_fog,fog_mode);
+	osgVegetation::BillboardQuadTreeScattering scattering(&tq);
 	osg::Node* tree_node = scattering.generate(bb,tree_data,save_path);
 	group->addChild(tree_node);
 	

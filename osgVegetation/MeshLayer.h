@@ -14,14 +14,27 @@ namespace osgVegetation
 	{
 		MeshLOD(const std::string &mesh, double max_dist):MeshName(mesh),
 			MaxDistance(max_dist){}
+		/**
+			Max Distance this Mesh is visible at
+		*/
 		double MaxDistance;
+
+		/**
+			Mesh file for this LOD
+		*/
 		std::string MeshName;
-		int _StartQTLODLevel;
+
+		/*
+			Internal data holding the quad tree level where this mesh should be injected
+		*/
+		int _StartQTLevel;
 		
 	};
 	typedef std::vector<MeshLOD> MeshLODVector;
 	
-
+	/*
+		Mesh layer holding Mesh LOD vector and 
+	*/
 	struct MeshLayer
 	{
 		MeshLayer(const MeshLODVector &mesh_lods) : MeshLODs(mesh_lods)
@@ -64,6 +77,9 @@ namespace osgVegetation
 		*/
 		osg::Vec2 Scale;
 	
+		/**
+			Terrains materials that control scattering for this layer 
+		*/
 		std::vector<MaterialColor> Materials;
 
 		bool hasMaterial(const MaterialColor& mat) const
@@ -76,6 +92,9 @@ namespace osgVegetation
 			return false;
 		}
 
+		/*
+			Internal data used during scattering
+		*/
 		MeshVegetationObjectVector _Instances;
 	};
 

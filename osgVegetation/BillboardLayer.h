@@ -24,7 +24,7 @@ namespace osgVegetation
 			MixInColorRatio(0.0),
 			MixInIntensity(false),
 			_TextureIndex(-1),
-			_QTLODLevel(-1)
+			_QTLevel(-1)
 		{
 
 		}
@@ -91,11 +91,11 @@ namespace osgVegetation
 			Material vector that specify where to scatter billboards
 		*/
 		std::vector<MaterialColor> Materials;
-		
+	
 		//internal data holding texture index inside texture array
 		int _TextureIndex;
-		//internal data holding quadtree LOD level for this layer
-		int _QTLODLevel;
+		//internal data holding quadtree level for this layer
+		int _QTLevel;
 	};
 	typedef std::vector<BillboardLayer> BillboardLayerVector;
 }

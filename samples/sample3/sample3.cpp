@@ -105,9 +105,7 @@ int main( int argc, char **argv )
 	putenv(writable);
 	delete[] writable;
 #endif
-
-	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
-	const bool enableShadows = true;
+	const bool enableShadows = false;
 	const bool use_paged_LOD = false;
 
 	enum MaterialEnum
@@ -170,10 +168,6 @@ int main( int argc, char **argv )
 		return 0;
 	}
 
-	//osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
-	//osgDB::writeNodeFile(*group, "c:/temp/terrain_and_veg.osgt");
-
-
 	osg::Light* pLight = new osg::Light;
 	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
@@ -199,12 +193,7 @@ int main( int argc, char **argv )
 	settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
 	settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
 
-	//settings->setMaximumShadowMapDistance(distance);
-	//if (arguments.read("--persp")) settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
-	//if (arguments.read("--ortho")) settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::ORTHOGRAPHIC_SHADOW_MAP);
-
 	unsigned int unit=2;
-	//if (arguments.read("--unit",unit)) settings->setBaseShadowTextureUnit(unit);
 	settings->setBaseShadowTextureUnit(unit);
 
 	double n=0.8;
@@ -212,10 +201,6 @@ int main( int argc, char **argv )
 
 	unsigned int numShadowMaps = 2;
 	settings->setNumShadowMapsPerLight(numShadowMaps);
-
-	//if (arguments.read("--parallel-split") || arguments.read("--ps") ) settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
-	//if (arguments.read("--cascaded")) settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
-	//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
 
 	int mapres = 1024;
 	settings->setTextureSize(osg::Vec2s(mapres,mapres));

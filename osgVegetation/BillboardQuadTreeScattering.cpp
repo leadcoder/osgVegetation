@@ -21,11 +21,9 @@
 
 namespace osgVegetation
 {
-	BillboardQuadTreeScattering::BillboardQuadTreeScattering(ITerrainQuery* tq, bool use_fog, osg::Fog::Mode fog_mode) : 
+	BillboardQuadTreeScattering::BillboardQuadTreeScattering(ITerrainQuery* tq) : 
 			m_BRT(NULL),
 			m_TerrainQuery(tq),
-			m_UseFog(use_fog),
-			m_FogMode(fog_mode),
 			m_UsePagedLOD(false),
 			m_FilenamePrefix("quadtree_")
 	{
@@ -98,7 +96,7 @@ namespace osgVegetation
 		BillboardVegetationObjectVector patch_instances;
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
-			if(ld == data.Layers[i]._QTLODLevel)
+			if(ld == data.Layers[i]._QTLevel)
 			{
 				 _populateVegetationLayer(data.Layers[i], bb,patch_instances);
 			}
@@ -193,8 +191,8 @@ namespace osgVegetation
 		//remove  previous render tech
 		delete m_BRT;
 
-		m_BRT = new BRTShaderInstancing(data,m_UseFog,m_FogMode);
-		//m_VRT = new BRTGeometryShader(data,m_UseFog,m_FogMode);
+		//m_BRT = new BRTShaderInstancing(data);
+		m_BRT = new BRTGeometryShader(data);
 	
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
@@ -239,7 +237,7 @@ namespace osgVegetation
 				ld++;
 				temp_size *= 0.5;
 			}
-			data.Layers[i]._QTLODLevel = ld;
+			data.Layers[i]._QTLevel = ld;
 			if(m_FinalLOD < ld)
 				m_FinalLOD = ld;
 		}

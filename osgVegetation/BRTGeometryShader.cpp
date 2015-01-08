@@ -20,11 +20,13 @@
 namespace osgVegetation
 {
 
-	BRTGeometryShader::BRTGeometryShader(BillboardData &data,  bool use_fog, osg::Fog::Mode fog_mode) : m_PPL(false),
-		m_UseFog(use_fog),
-		m_FogMode(fog_mode),
-		m_TrueBillboards(false)
+	BRTGeometryShader::BRTGeometryShader(BillboardData &data) : m_PPL(false)
 	{
+		m_TrueBillboards = (data.Type == BT_SCREEN_ALIGNED);
+		
+		if(data.CastShadows) //need to cross quads if we use shadows
+			m_TrueBillboards = false;
+
 		m_StateSet = _createStateSet(data);
 	}
 
@@ -80,11 +82,12 @@ namespace osgVegetation
 			"    TextureIndex = info.z;\n"
 			"    Color = info2.xyz;\n"
 			"    vec2 scale = info.xy;\n"
-			"    scale.x *= 0.5;\n"
-			"    float distance = length((gl_ModelViewMatrix * vec4(position.x, position.y, position.z, 1.0)).xyz);\n";
-		if(!data.ReceiveShadows) //shadows and vertex fading don't mix well
+			"    scale.x *= 0.5;\n";
+		if(!data.CastShadows) //shadow casting and vertex fading don't mix well
 		{
-			//geomSource << "	 scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
+			geomSource << 
+				"    float distance = length((gl_ModelViewMatrix * vec4(position.x, position.y, position.z, 1.0)).xyz);\n"
+				"	 scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
 		}
 		geomSource << 
 			"    vec4 e;\n";
@@ -192,9 +195,9 @@ namespace osgVegetation
 		fragSource <<
 			"   outColor.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz);\n"
 			"   outColor.w = outColor.w * clamp(1.0 - ((depth-FadeInDist)/(FadeInDist*0.1)), 0.0, 1.0);\n";
-		if(m_UseFog)
+		if(data.UseFog)
 		{
-			switch(m_FogMode)
+			switch(data.FogMode)
 			{
 			case osg::Fog::LINEAR:
 				// Linear fog
@@ -237,39 +240,6 @@ namespace osgVegetation
 	}
 	osg::StateSet* BRTGeometryShader::_createStateSet(BillboardData &data)
 	{
-		//Load textures
-		/*const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
-		options->setOptionString("dds_flip");
-		std::map<std::string, osg::Image*> image_map;
-		std::map<std::string, int> index_map;
-		int num_textures = 0;
-		for(size_t i = 0; i < data.Layers.size();i++)
-		{
-			const std::string image_name = data.Layers[i].TextureName;
-			if(image_map.find(image_name) == image_map.end() )
-			{
-				osg::Image* image = osgDB::readImageFile(image_name,options);
-				if(!image)
-					throw std::exception(std::string("Failed to load image:" + image_name).c_str());
-
-				image_map[image_name] = image;
-				index_map[image_name] = num_textures;
-				data.Layers[i]._TextureIndex = num_textures;
-				num_textures++;
-			}
-			else
-				data.Layers[i]._TextureIndex = index_map[image_name];
-
-		}
-		osg::Texture2DArray* tex = new osg::Texture2DArray;
-		tex->setTextureSize(512, 512, num_textures);
-		tex->setUseHardwareMipMapGeneration(true);   
-
-		for(size_t i = 0; i < data.Layers.size();i++)
-		{
-			tex->setImage(index_map[data.Layers[i].TextureName], image_map[data.Layers[i].TextureName]);
-		}*/
-
 		osg::ref_ptr<osg::Texture2DArray> tex = Utils::loadTextureArray(data);
 
 		m_StateSet = new osg::StateSet;
@@ -283,9 +253,7 @@ namespace osgVegetation
 			m_StateSet->setAttributeAndModes( new osg::BlendFunc, osg::StateAttribute::ON );
 			m_StateSet->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 		}
-
 		m_StateSet->setMode( GL_LIGHTING, osg::StateAttribute::ON);
-
 		const int num_textures = tex->getNumImages();
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);
 		m_StateSet->addUniform(baseTextureSampler);

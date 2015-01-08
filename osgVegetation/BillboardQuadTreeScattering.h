@@ -20,11 +20,9 @@ namespace osgVegetation
 	class ITerrainQuery;
 
 	/**
-		Class used for vegetation generation. Vegetation is stored in quad tree 
-		structure based on the osg::LOD node. The start tile is based on the terrain size and then recursivly 
-		divided until the vegetation view distance is reached. The user can also let LOD nodes above the final hold
-		vegetation data (with decreased density). This feature enable terrain far away (from camera) to hold 
-		low density vegetation saving performance. See the BillboardData structure for more information about LOD settings.
+		Class used for billboard generation. Billboards are stored in quad tree 
+		structure based on the osg::LOD node. The start tile is based on supplied bounding box and then recursivly 
+		divided until the the shortest vegetation layer distance is reached. 
 	*/
 
 	class osgvExport BillboardQuadTreeScattering : public osg::Referenced
@@ -33,7 +31,7 @@ namespace osgVegetation
 		/**
 		@param tq Pointer to TerrainQuery classed used during the scattering step.
 		*/
-		BillboardQuadTreeScattering(ITerrainQuery* tq, bool use_fog = false, osg::Fog::Mode fog_mode = osg::Fog::LINEAR);
+		BillboardQuadTreeScattering(ITerrainQuery* tq);
 		/**
 			Generate vegetation data by providing billboard data
 			@param bb Generation area
@@ -51,16 +49,20 @@ namespace osgVegetation
 		
 		//Area bounding box
 		osg::BoundingBox m_InitBB;
-
+		
+		
 		IBillboardRenderingTech* m_BRT;
-		osg::Vec3 m_Offset;
+		
+		//Offset based on initial bounding box, used to avoid floating point precision problem 
+		osg::Vec3 m_Offset; 
+		
 		ITerrainQuery* m_TerrainQuery;
+
+		//paged LOD stuff
 		bool m_UsePagedLOD;
 		std::string m_SavePath;
 		std::string m_FilenamePrefix;
-		bool m_UseFog;
-		osg::Fog::Mode m_FogMode;
-
+	
 		//Helpers
 		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y);
 		void _populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& instances);

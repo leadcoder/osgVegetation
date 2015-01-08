@@ -24,11 +24,11 @@
 
 namespace osgVegetation
 {
-	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data, bool use_fog, osg::Fog::Mode fog_mode) : m_TrueBillboards(false),
-		m_PPL(false),
-		m_UseFog(use_fog),
-		m_FogMode(fog_mode)
+	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data) : m_PPL(false)
 	{
+		m_TrueBillboards = (data.Type == BT_SCREEN_ALIGNED);
+		if(data.CastShadows) //need to cross quads if we use shadows
+			m_TrueBillboards = false;
 		m_StateSet = _createStateSet(data);
 	}
 
@@ -39,42 +39,6 @@ namespace osgVegetation
 
 	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardData &data) 
 	{
-		/*int tex_width = 0;
-		int tex_height = 0;
-		//Load textures
-		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
-		options->setOptionString("dds_flip");
-		std::map<std::string, osg::Image*> image_map;
-		std::map<std::string, int> index_map;
-		int num_textures = 0;
-		for(size_t i = 0; i < data.Layers.size();i++)
-		{
-			if(image_map.find(data.Layers[i].TextureName) == image_map.end() )
-			{
-				osg::Image* image = osgDB::readImageFile(data.Layers[i].TextureName,options);
-				if(image && tex_width == 0) // first image decide array size
-				{
-					tex_width = image->s();
-					tex_height = image->t();
-				}
-				image_map[data.Layers[i].TextureName] = image;
-				index_map[data.Layers[i].TextureName] = num_textures;
-				data.Layers[i]._TextureIndex = num_textures;
-				num_textures++;
-			}
-			else
-				data.Layers[i]._TextureIndex = index_map[data.Layers[i].TextureName];
-		}
-
-		osg::Texture2DArray* tex = new osg::Texture2DArray;
-		tex->setTextureSize(tex_width, tex_height, num_textures);
-		tex->setUseHardwareMipMapGeneration(true);   
-
-		for(size_t i = 0; i < data.Layers.size();i++)
-		{
-			tex->setImage(index_map[data.Layers[i].TextureName], image_map[data.Layers[i].TextureName]);
-		}*/
-
 		osg::ref_ptr<osg::Texture2DArray> tex = Utils::loadTextureArray(data);
 
 		osg::StateSet *dstate = new osg::StateSet;
@@ -147,9 +111,14 @@ namespace osgVegetation
 				"   Color         = texelFetch(DataBufferTexture, instanceAddress + 1);\n"
 				"   vec4 data     = texelFetch(DataBufferTexture, instanceAddress + 2);\n"
 				"   vec2 scale     = data.xy;\n"
-				"   VegetationType = data.z;\n"
-				"   float distance = length((gl_ModelViewMatrix * vec4(position.x, position.y, position.z, 1.0)).xyz);\n"
-				"   scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n"
+				"   VegetationType = data.z;\n";
+				if(!data.CastShadows) //shadow casting and vertex fading don't mix well
+				{
+					vertexShaderSource << 
+					"   float distance = length((gl_ModelViewMatrix * vec4(position.x, position.y, position.z, 1.0)).xyz);\n"
+					"   scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
+				}
+				vertexShaderSource << 
 				"   mat4 modelView = gl_ModelViewMatrix * mat4( scale.x, 0.0, 0.0, 0.0,\n"
 				"              0.0, scale.x, 0.0, 0.0,\n"
 				"              0.0, 0.0, scale.y, 0.0,\n"
@@ -267,9 +236,9 @@ namespace osgVegetation
 			}
 			fragmentShaderSource <<
 				"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n";
-			if(m_UseFog)
+			if(data.UseFog)
 			{
-				switch(m_FogMode)
+				switch(data.FogMode)
 				{
 				case osg::Fog::LINEAR:
 					// Linear fog

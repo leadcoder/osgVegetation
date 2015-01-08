@@ -4,18 +4,20 @@ set(LIB_NAME "osgVegetation")
 include(OSGDep)
 
 SET(CPP_FILES 
+	BillboardQuadTreeScattering.cpp
 	BRTGeometryShader.cpp
 	BRTShaderInstancing.cpp
 	MRTShaderInstancing.cpp  
-	QuadTreeScattering.cpp
 	TerrainQuery.cpp
 	MeshQuadTreeScattering.cpp
+	VegetationUtils.cpp
 )
 
 SET(H_FILES
 	BillboardData.h
 	BillboardLayer.h
 	BillboardObject.h
+	BillboardQuadTreeScattering.h
 	BRTGeometryShader.h
 	BRTShaderInstancing.h
 	Common.h
@@ -26,7 +28,6 @@ SET(H_FILES
 	MeshData.h
 	MeshObject.h
 	MeshQuadTreeScattering.h
-	QuadTreeScattering.h
 	ITerrainQuery.h
 	TerrainQuery.h
 	VegetationUtils.h
