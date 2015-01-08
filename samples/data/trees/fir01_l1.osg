@@ -17,7 +17,7 @@ Group {
         renderBinMode USE
         binNumber 10
         binName DepthSortedBin
-        GL_CULL_FACE OFF
+        GL_CULL_FACE ON
         GL_LIGHTING ON
         GL_ALPHA_TEST ON
         GL_BLEND OFF
@@ -69,13 +69,17 @@ Group {
         useVertexBufferObjects TRUE
         PrimitiveSets 1
         {
-          DrawElementsUShort TRIANGLES 12
+          DrawElementsUShort TRIANGLES 24
           {
             0 1 2 0 2 3 4 5 6 4
             6 7 
+			10 9 8 
+			11 10 8
+			14 13 12
+			15 14 12
 		  }
         }
-        VertexArray Vec3Array 8
+        VertexArray Vec3Array 16
         {
           0 4.2627 -0.0728768
           0 4.2627 16.0335
@@ -85,9 +89,19 @@ Group {
           4.2627 0 16.0335
           -4.2627 0 16.0335
           -4.2627 0 0
+		  
+		   0 4.2627 -0.0728768
+          0 4.2627 16.0335
+          0 -4.2627 16.0335
+          0 -4.2627 -0.0728768
+          4.2627 0 0
+          4.2627 0 16.0335
+          -4.2627 0 16.0335
+          -4.2627 0 0
+		  
         }
         NormalBinding PER_VERTEX
-        NormalArray Vec3Array 8
+        NormalArray Vec3Array 16
         {
           1 0 0
           1 0 0
@@ -97,15 +111,34 @@ Group {
           0 -1 0
           0 -1 0
           0 -1 0
+		  
+		  -1 0 0
+          -1 0 0
+          -1 0 0
+          -1 0 0
+          0 1 0
+          0 1 0
+          0 1 0
+          0 1 0
+		  
         }
         ColorBinding OVERALL
         ColorArray Vec4Array 1
         {
           1 1 1 1
         }
-        TexCoordArray 0 Vec2Array 8
+        TexCoordArray 0 Vec2Array 16
         {
           1 0
+          1 1
+          0 1
+          0 0
+          1 0
+          1 1
+          0 1
+          0 0
+		  
+		  1 0
           1 1
           0 1
           0 0
