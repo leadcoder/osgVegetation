@@ -5,6 +5,8 @@
 #include <osg/vec3>
 #include <osg/vec2>
 #include <osg/ref_ptr>
+#include <string>
+#include <vector>
 
 namespace osgVegetation
 {

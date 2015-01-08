@@ -7,10 +7,15 @@ SET(CPP_FILES
 	BillboardQuadTreeScattering.cpp
 	BRTGeometryShader.cpp
 	BRTShaderInstancing.cpp
-	MRTShaderInstancing.cpp  
+	MRTShaderInstancing.cpp
+	Serializer.cpp	
 	TerrainQuery.cpp
 	MeshQuadTreeScattering.cpp
 	VegetationUtils.cpp
+	tinystr.cpp
+	tinyxml.cpp
+	tinyxmlerror.cpp
+	tinyxmlparser.cpp
 )
 
 SET(H_FILES
@@ -28,6 +33,7 @@ SET(H_FILES
 	MeshData.h
 	MeshObject.h
 	MeshQuadTreeScattering.h
+	Serializer.h
 	ITerrainQuery.h
 	TerrainQuery.h
 	VegetationUtils.h
