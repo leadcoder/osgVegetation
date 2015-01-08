@@ -19,6 +19,7 @@
 #include <osgDB/WriteFile>
 #include <osgDB/FileUtils>
 #include "BillboardLayer.h"
+#include "VegetationUtils.h"
 
 
 namespace osgVegetation
@@ -38,7 +39,7 @@ namespace osgVegetation
 
 	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardData &data) 
 	{
-		int tex_width = 0;
+		/*int tex_width = 0;
 		int tex_height = 0;
 		//Load textures
 		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
@@ -72,7 +73,9 @@ namespace osgVegetation
 		for(size_t i = 0; i < data.Layers.size();i++)
 		{
 			tex->setImage(index_map[data.Layers[i].TextureName], image_map[data.Layers[i].TextureName]);
-		}
+		}*/
+
+		osg::ref_ptr<osg::Texture2DArray> tex = Utils::loadTextureArray(data);
 
 		osg::StateSet *dstate = new osg::StateSet;
 		dstate->setTextureAttribute(0, tex,	osg::StateAttribute::ON);
@@ -93,6 +96,7 @@ namespace osgVegetation
 			dstate->setAttributeAndModes( new osg::BlendFunc, osg::StateAttribute::ON );
 			dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 		}
+		const int num_textures = tex->getNumImages();
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);
 		dstate->addUniform(baseTextureSampler);
 

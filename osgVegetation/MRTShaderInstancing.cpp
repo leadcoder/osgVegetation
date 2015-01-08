@@ -122,7 +122,11 @@ namespace osgVegetation
 		{
 			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
 			{
-				m_MeshNodeMap[data.Layers[i].MeshLODs[j].MeshName] = osgDB::readNodeFile(data.Layers[i].MeshLODs[j].MeshName); 
+				const std::string mesh_name = data.Layers[i].MeshLODs[j].MeshName;
+				osg::ref_ptr<osg::Node> mesh = osgDB::readNodeFile(mesh_name);
+				if(!mesh.valid())
+					throw std::exception(std::string("Failed to load mesh:" + mesh_name).c_str());
+				m_MeshNodeMap[mesh_name] = mesh;
 			}
 		}
 		osg::StateSet *dstate = new osg::StateSet;
@@ -157,7 +161,7 @@ namespace osgVegetation
 				"   vec3 normal = normalize(gl_NormalMatrix * gl_Normal);\n"
 				"   vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
 				"   float NdotL = max(dot(normal, lightDir), 0.0);\n"
-				"   Color.xyz = NdotL*Color.xyz*gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz*Color.xyz;\n"
+				"   Color.xyz = NdotL*Color.xyz*gl_LightSource[0].diffuse.xyz*gl_FrontMaterial.diffuse.xyz + gl_LightSource[0].ambient.xyz*Color.xyz*gl_FrontMaterial.ambient.xyz;\n"
 				"   TexCoord = gl_MultiTexCoord0.st;\n"
 				"}\n";
 

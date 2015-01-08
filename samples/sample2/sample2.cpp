@@ -42,7 +42,7 @@
 #include <iostream>
 #include <sstream>
 #include "MRTShaderInstancing.h"
-#include "QuadTreeScattering.h"
+#include "BillboardQuadTreeScattering.h"
 #include "TerrainQuery.h"
 
 int main( int argc, char **argv )
@@ -218,10 +218,10 @@ int main( int argc, char **argv )
 	osgVegetation::TerrainQuery tq(terrain.get());
 
 	tq.setMaterialTextureSuffix("_material.tga");
-	osgVegetation::QuadTreeScattering scattering(&tq);
+	osgVegetation::BillboardQuadTreeScattering scattering(&tq);
 	osg::Node* ug_node = scattering.generate(bb,undergrowth_data,save_path, "ug_");
 	group->addChild(ug_node);
-	osgVegetation::QuadTreeScattering scattering2(&tq);
+	osgVegetation::BillboardQuadTreeScattering scattering2(&tq);
 	osg::Node* tree_node = scattering2.generate(bb,tree_data,save_path,"og_");
 	group->addChild(tree_node);
 	osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");

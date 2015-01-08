@@ -238,22 +238,27 @@ namespace osgVegetation
 	osg::StateSet* BRTGeometryShader::_createStateSet(BillboardData &data)
 	{
 		//Load textures
-		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
+		/*const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
 		options->setOptionString("dds_flip");
 		std::map<std::string, osg::Image*> image_map;
 		std::map<std::string, int> index_map;
 		int num_textures = 0;
 		for(size_t i = 0; i < data.Layers.size();i++)
 		{
-			if(image_map.find(data.Layers[i].TextureName) == image_map.end() )
+			const std::string image_name = data.Layers[i].TextureName;
+			if(image_map.find(image_name) == image_map.end() )
 			{
-				image_map[data.Layers[i].TextureName] = osgDB::readImageFile(data.Layers[i].TextureName,options);
-				index_map[data.Layers[i].TextureName] = num_textures;
+				osg::Image* image = osgDB::readImageFile(image_name,options);
+				if(!image)
+					throw std::exception(std::string("Failed to load image:" + image_name).c_str());
+
+				image_map[image_name] = image;
+				index_map[image_name] = num_textures;
 				data.Layers[i]._TextureIndex = num_textures;
 				num_textures++;
 			}
 			else
-				data.Layers[i]._TextureIndex = index_map[data.Layers[i].TextureName];
+				data.Layers[i]._TextureIndex = index_map[image_name];
 
 		}
 		osg::Texture2DArray* tex = new osg::Texture2DArray;
@@ -263,7 +268,9 @@ namespace osgVegetation
 		for(size_t i = 0; i < data.Layers.size();i++)
 		{
 			tex->setImage(index_map[data.Layers[i].TextureName], image_map[data.Layers[i].TextureName]);
-		}
+		}*/
+
+		osg::ref_ptr<osg::Texture2DArray> tex = Utils::loadTextureArray(data);
 
 		m_StateSet = new osg::StateSet;
 		m_StateSet->setTextureAttribute(0, tex,	osg::StateAttribute::ON);
@@ -279,6 +286,7 @@ namespace osgVegetation
 
 		m_StateSet->setMode( GL_LIGHTING, osg::StateAttribute::ON);
 
+		const int num_textures = tex->getNumImages();
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);
 		m_StateSet->addUniform(baseTextureSampler);
 		m_StateSet->setMode( GL_LIGHTING, osg::StateAttribute::OFF );

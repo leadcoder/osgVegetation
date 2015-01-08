@@ -85,6 +85,11 @@ int main( int argc, char **argv )
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");  
 	osgDB::Registry::instance()->getDataFilePathList().push_back("c:/temp/paged");  
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
+	if(!terrain)
+	{
+		std::cerr  << "Terrain mesh not found\n";
+		return 0;
+	}
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
 
@@ -102,7 +107,7 @@ int main( int argc, char **argv )
 #endif
 
 	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
-	const bool enableShadows = false;
+	const bool enableShadows = true;
 	const bool use_paged_LOD = false;
 
 	enum MaterialEnum
@@ -121,15 +126,15 @@ int main( int argc, char **argv )
 
 	osgVegetation::MeshLODVector lods;
 
-	lods.push_back(osgVegetation::MeshLOD("tree.ive",300));
-	lods.push_back(osgVegetation::MeshLOD("trees/pine01_no_alpha.osg",50));
+	lods.push_back(osgVegetation::MeshLOD("trees/fir01_l0.osg",50));
+	lods.push_back(osgVegetation::MeshLOD("trees/fir01_l1.osg",200));
 
 	osgVegetation::MeshData tree_data;
 	tree_data.ReceiveShadows = enableShadows; 
 	osgVegetation::MeshLayer  spruce(lods);
-	spruce.Density = 0.1;
-	spruce.Height.set(1,1);
-	spruce.Width.set(1,1);
+	spruce.Density = 0.02;
+	spruce.Height.set(0.5,0.5);
+	spruce.Width.set(0.5,0.5);
 	spruce.Scale.set(0.8,0.9);
 	spruce.ColorIntensity.set(1,1);
 	spruce.MixInColorRatio = 0.0;
@@ -149,13 +154,21 @@ int main( int argc, char **argv )
 
 	//test to down size bb
 	osg::Vec3 bb_size = bb._max - bb._min;
-	bb._min = bb._min + bb_size*0.3;
-	bb._max = bb._max - bb_size*0.3;
-
+	//bb._min = bb._min + bb_size*0.3;
+	//bb._max = bb._max - bb_size*0.3;
+	osg::Node* tree_node = NULL;
 	osgVegetation::TerrainQuery tq(terrain.get());
-	osgVegetation::MeshQuadTreeScattering scattering(&tq);
-	osg::Node* tree_node = scattering.generate(bb,tree_data,save_path);
-	group->addChild(tree_node);
+	try{
+		osgVegetation::MeshQuadTreeScattering scattering(&tq);
+		tree_node = scattering.generate(bb,tree_data,save_path);
+		group->addChild(tree_node);
+	}
+
+	catch(std::exception& e)
+	{
+		std::cerr << e.what();
+		return 0;
+	}
 
 	//osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
 	//osgDB::writeNodeFile(*group, "c:/temp/terrain_and_veg.osgt");
@@ -170,6 +183,7 @@ int main( int argc, char **argv )
 	lightDir.normalize();
 	pLight->setDirection(lightDir);
 	pLight->setAmbient(osg::Vec4(0.7f, 0.7f, 0.7f, 1.0f) );
+	//pLight->setDiffuse(osg::Vec4(0.0f, 0.0f, 0.0f, 1.0f) );
 	// light source
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );

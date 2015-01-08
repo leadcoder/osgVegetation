@@ -53,7 +53,7 @@
 #include <iostream>
 #include <sstream>
 #include "MRTShaderInstancing.h"
-#include "QuadTreeScattering.h"
+#include "BillboardQuadTreeScattering.h"
 #include "TerrainQuery.h"
 
 int main( int argc, char **argv )
@@ -103,7 +103,7 @@ int main( int argc, char **argv )
 #endif
 
 	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
-	const bool enableShadows = true;
+	const bool enableShadows = false;
 	const bool use_paged_LOD = false;
 	const bool use_fog = true;
 	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
@@ -184,7 +184,7 @@ int main( int argc, char **argv )
 	bb._max = bb._max - bb_size*0.1;
 
 	osgVegetation::TerrainQuery tq(terrain.get());
-	osgVegetation::QuadTreeScattering scattering(&tq,use_fog,fog_mode);
+	osgVegetation::BillboardQuadTreeScattering scattering(&tq,use_fog,fog_mode);
 	osg::Node* tree_node = scattering.generate(bb,tree_data,save_path);
 	group->addChild(tree_node);
 	
