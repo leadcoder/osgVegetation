@@ -30,7 +30,7 @@ namespace osgVegetation
 
 	}
 
-	void BillboardQuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances)
+	void BillboardQuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances) const
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
@@ -74,7 +74,7 @@ namespace osgVegetation
 		}
 	}
 	
-	std::string BillboardQuadTreeScattering::_createFileName( unsigned int lv,	unsigned int x, unsigned int y )
+	std::string BillboardQuadTreeScattering::_createFileName( unsigned int lv,	unsigned int x, unsigned int y ) const
 	{
 		std::stringstream sstream;
 		sstream << m_FilenamePrefix << lv << "_X" << x << "_Y" << y << ".ive";

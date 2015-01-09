@@ -19,21 +19,24 @@ namespace osgVegetation
 		int num_textures = 0;
 		for(size_t i = 0; i < data.Layers.size();i++)
 		{
+			const std::string texture_name = data.Layers[i].TextureName;
 			if(image_map.find(data.Layers[i].TextureName) == image_map.end() )
 			{
-				osg::Image* image = osgDB::readImageFile(data.Layers[i].TextureName,options);
+				osg::Image* image = osgDB::readImageFile(texture_name,options);
+				if(image == NULL)
+					throw std::exception(std::string("Failed to load texture:" + texture_name).c_str());
 				if(image && tex_width == 0) // first image decide array size
 				{
 					tex_width = image->s();
 					tex_height = image->t();
 				}
-				image_map[data.Layers[i].TextureName] = image;
-				index_map[data.Layers[i].TextureName] = num_textures;
+				image_map[texture_name] = image;
+				index_map[texture_name] = num_textures;
 				data.Layers[i]._TextureIndex = num_textures;
 				num_textures++;
 			}
 			else
-				data.Layers[i]._TextureIndex = index_map[data.Layers[i].TextureName];
+				data.Layers[i]._TextureIndex = index_map[texture_name];
 		}
 
 		osg::ref_ptr<osg::Texture2DArray> tex = new osg::Texture2DArray;

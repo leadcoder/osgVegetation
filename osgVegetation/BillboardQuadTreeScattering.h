@@ -64,8 +64,8 @@ namespace osgVegetation
 		std::string m_FilenamePrefix;
 	
 		//Helpers
-		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y);
-		void _populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& instances);
+		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y) const;
+		void _populateVegetationLayer(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& instances) const;
 		osg::Node* _createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
 	};
 }
