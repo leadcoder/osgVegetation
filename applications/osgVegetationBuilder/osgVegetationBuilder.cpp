@@ -34,7 +34,13 @@ int main( int argc, char **argv )
 	delete[] writable;
 #endif
 	/////////////////////////////////////////////////////
-	arguments.getApplicationUsage()->addCommandLineOption("--config <filename>","Configuration file");
+	arguments.getApplicationUsage()->addCommandLineOption("--vegetation_config <filename>","Configuration file");
+	arguments.getApplicationUsage()->addCommandLineOption("--out","out file");
+	arguments.getApplicationUsage()->addCommandLineOption("--terrain","Terrain file");
+
+	arguments.getApplicationUsage()->addCommandLineOption("--bounding_box <x.min x-max y-min y-max>","Optional bounding box");
+	arguments.getApplicationUsage()->addCommandLineOption("--paged_lod","Optional save paged LOD database");
+	arguments.getApplicationUsage()->addCommandLineOption("--save_terrain","Optional inject terrain in database");
 
 	unsigned int helpType = 0;
 	if ((helpType = arguments.readHelpType()))
@@ -52,12 +58,36 @@ int main( int argc, char **argv )
 
 	osg::BoundingBox bounding_box;
 	bool useBBox = false;
+
 	double xmin=0,xmax=0,ymin=0,ymax=0,zmin=-1,zmax=1;
 	
 	if(arguments.read("--bounding_box",xmin,ymin,xmax,ymax))
 	{
 		useBBox = true;
 	}
+
+	bool pagedLOD = false;
+	if(arguments.read("--paged_lod"))
+	{
+		pagedLOD = true;
+	}
+
+	bool save_terrain = false;
+	if(arguments.read("--save_terrain"))
+	{
+		save_terrain = true;
+	}
+
+	std::string out_file;
+	if(!arguments.read("--out", out_file))
+	{
+		std::cerr << "No out file specified\n";
+		return 0;
+	}
+
+	std::string out_path;
+	if(pagedLOD)
+		out_path = osgDB::getFilePath(out_file);
 
 	//Load terrain
 	osg::ref_ptr<osg::Group> group = new osg::Group;
@@ -92,20 +122,30 @@ int main( int argc, char **argv )
 	std::string config_file;
 	if(!arguments.read("--vegetation_config",config_file))
 	{
-		std::cerr << "no config provided\n";
+		std::cerr << "No config provided\n";
 		return 0;
 	}
 
 	osgVegetation::Serializer serializer;
 	try
 	{
+
 		osgVegetation::BillboardData bb_data = serializer.loadBillboardData(config_file);
+
+		const std::string config_path = osgDB::getFilePath(config_file);
+		osgDB::Registry::instance()->getDataFilePathList().push_back(config_path);  
+
 		osgVegetation::TerrainQuery tq(terrain);
 		osgVegetation::BillboardQuadTreeScattering scattering(&tq);
-		osg::Node* bb_node = scattering.generate(bounding_box,bb_data);
+		osg::Node* bb_node = scattering.generate(bounding_box,bb_data,out_path,"bb_");
+		if(save_terrain)
+		{
+			group->addChild(bb_node);
+			osgDB::writeNodeFile(*group,out_file);
+		}
+		else
+			osgDB::writeNodeFile(*bb_node,out_file);
 		
-		group->addChild(bb_node);
-		osgDB::writeNodeFile(*group,"c:/temp/tree_veg.ive");
 	}
 
 	catch(std::exception& e)
