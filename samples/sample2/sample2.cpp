@@ -41,9 +41,8 @@
 
 #include <iostream>
 #include <sstream>
-#include "MeshScattering.h"
 #include "MRTShaderInstancing.h"
-#include "QuadTreeScattering.h"
+#include "BillboardQuadTreeScattering.h"
 #include "TerrainQuery.h"
 
 int main( int argc, char **argv )
@@ -111,78 +110,91 @@ int main( int argc, char **argv )
 	material_map[WOODS] = osgVegetation::MaterialColor(0,1,0,1);
 	material_map[ROAD] = osgVegetation::MaterialColor(0,0,1,1);
 	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
-
-	//osgVegetation::BillboardData undergrowth_data(50,true,0.4,true);
-	osgVegetation::BillboardData undergrowth_data(50,true,0.4,false);
-	undergrowth_data.LODCount = 2;
-	undergrowth_data.ScaleLODRatio = 0.8;
-	undergrowth_data.DensityLODRatio = 0.4;
-
-	osgVegetation::BillboardLayer  grass2("Images/veg_grass02.dds"); 
-	grass2.Density = 3.2;
-	grass2.Height.set(0.5,0.6);
-	grass2.Width.set(0.5,0.6);
-	grass2.Scale.set(1.5,3);
-	grass2.ColorIntensity.set(0.1,0.1);
-	grass2.MixInColorRatio = 3.0;
-	grass2.MixInIntensity = true;
 	
-	grass2.Materials.push_back(material_map[GRASS]);
-	grass2.Materials.push_back(material_map[WOODS]);
-	undergrowth_data.Layers.push_back(grass2);
-
-	osgVegetation::BillboardLayer  grass3("Images/veg_plant03.dds"); 
-	grass3.Density = 0.1;
-	grass3.Height.set(0.6,1.2);
-	grass3.Width.set(0.5,0.7);
-	grass3.Scale.set(1.5,3);
-	grass3.ColorIntensity.set(0.1,0.1);
+	osgVegetation::BillboardLayer  grass_l0("Images/veg_grass02.dds",50); 
+	grass_l0.Density = 3.2;
+	grass_l0.Height.set(0.5,0.6);
+	grass_l0.Width.set(0.5,0.6);
+	grass_l0.Scale.set(1.5,3);
+	grass_l0.ColorIntensity.set(0.1,0.1);
+	grass_l0.MixInColorRatio = 3.0;
+	grass_l0.MixInIntensity = true;
+	grass_l0.Materials.push_back(material_map[GRASS]);
+	grass_l0.Materials.push_back(material_map[WOODS]);
 	
-	grass2.MixInColorRatio = 2.5;
-	grass2.MixInIntensity = true;
+	osgVegetation::BillboardLayer  grass_l1 = grass_l0;
+	grass_l1.ViewDistance *= 0.5; 
+	grass_l1.Density *= 4;
+	grass_l1.Scale *= 0.8;
 
-	grass3.Materials.push_back(material_map[GRASS]);
-	grass3.Materials.push_back(material_map[WOODS]);
-	undergrowth_data.Layers.push_back(grass3);
+	osgVegetation::BillboardLayer  grass_l2 = grass_l1;
+	grass_l2.ViewDistance *= 0.5; 
+	grass_l2.Density *= 4;
+	grass_l2.Scale *= 0.8;
 
-	osgVegetation::BillboardData tree_data(2000,false,0.08,false);
-	tree_data.LODCount = 2;
-	tree_data.ScaleLODRatio = 0.8;
-	tree_data.DensityLODRatio = 0.4;
-	osgVegetation::BillboardLayer  spruce("Images/spruce01.dds");
-	spruce.Density = 0.02;
-	spruce.Height.set(5,5);
-	spruce.Width.set(2,2);
-	spruce.Scale.set(2,3);
-	spruce.ColorIntensity.set(0.5, 0.5);
-	spruce.MixInColorRatio = 2.0;
-	spruce.MixInIntensity = true;
-	spruce.Materials.push_back(material_map[WOODS]);
-	tree_data.Layers.push_back(spruce);
+	osgVegetation::BillboardLayer plant_l0("Images/veg_plant03.dds",100); 
+	plant_l0.Density = 0.1;
+	plant_l0.Height.set(0.6,1.2);
+	plant_l0.Width.set(0.5,0.7);
+	plant_l0.Scale.set(1.5,3);
+	plant_l0.ColorIntensity.set(0.1,0.1);
+	plant_l0.MixInColorRatio = 2.5;
+	plant_l0.MixInIntensity = true;
+	plant_l0.Materials.push_back(material_map[GRASS]);
+	plant_l0.Materials.push_back(material_map[WOODS]);
 
-	osgVegetation::BillboardLayer  pine("Images/pine01.dds"); 
-	pine.Density = 0.02;
-	pine.Height.set(5,5);
-	pine.Width.set(2,2);
-	pine.Scale.set(2,3);
-	pine.ColorIntensity.set(0.5, 0.5);
-	pine.MixInColorRatio = 2.0;
-	pine.MixInIntensity = true;
-	pine.Materials.push_back(material_map[WOODS]);
+	osgVegetation::BillboardLayer  plant_l1 = plant_l0;
+	plant_l1.ViewDistance *= 0.5; 
+	plant_l1.Density *= 4;
+	plant_l1.Scale *= 0.8;
+
 	
-	tree_data.Layers.push_back(pine);
+	osgVegetation::BillboardLayerVector ug_layers;
+	ug_layers.push_back(grass_l0);
+	ug_layers.push_back(grass_l1);
+	ug_layers.push_back(grass_l2);
+	ug_layers.push_back(plant_l0);
+	ug_layers.push_back(plant_l1);
+	
+	osgVegetation::BillboardData undergrowth_data(ug_layers,true,0.4,false);
+	
+	//Tree layers
+	osgVegetation::BillboardLayer  spruce_l0("Images/spruce01.dds",2000);
+	spruce_l0.Density = 0.02;
+	spruce_l0.Height.set(5,5);
+	spruce_l0.Width.set(2,2);
+	spruce_l0.Scale.set(2,3);
+	spruce_l0.ColorIntensity.set(0.5, 0.5);
+	spruce_l0.MixInColorRatio = 2.0;
+	spruce_l0.MixInIntensity = true;
+	spruce_l0.Materials.push_back(material_map[WOODS]);
+	
+	osgVegetation::BillboardLayer pine_l0("Images/pine01.dds",2000); 
+	pine_l0.Density = 0.02;
+	pine_l0.Height.set(5,5);
+	pine_l0.Width.set(2,2);
+	pine_l0.Scale.set(2,3);
+	pine_l0.ColorIntensity.set(0.5, 0.5);
+	pine_l0.MixInColorRatio = 2.0;
+	pine_l0.MixInIntensity = true;
+	pine_l0.Materials.push_back(material_map[WOODS]);
 
-	osgVegetation::BillboardLayer  birch("Images/birch01.dds");
-	birch.Density = 0.012;
-	birch.Height.set(4,4);
-	birch.Width.set(4,4);
-	birch.Scale.set(2,3);
-	birch.ColorIntensity.set(0.5, 0.5);
-	birch.MixInColorRatio = 2.0;
-	birch.MixInIntensity = true;
-	birch.Materials.push_back(material_map[WOODS]);
-	tree_data.Layers.push_back(birch);
+	osgVegetation::BillboardLayer  birch_l0("Images/birch01.dds",2000);
+	birch_l0.Density = 0.012;
+	birch_l0.Height.set(4,4);
+	birch_l0.Width.set(4,4);
+	birch_l0.Scale.set(2,3);
+	birch_l0.ColorIntensity.set(0.5, 0.5);
+	birch_l0.MixInColorRatio = 2.0;
+	birch_l0.MixInIntensity = true;
+	birch_l0.Materials.push_back(material_map[WOODS]);
 
+	osgVegetation::BillboardLayerVector og_layers;
+	og_layers.push_back(spruce_l0);
+	og_layers.push_back(pine_l0);
+	og_layers.push_back(birch_l0);
+
+	osgVegetation::BillboardData tree_data(og_layers,false,0.08,false);
 
 	std::string save_path("c:/temp/paged/");
 	//add path to enable viewer to find LODS
@@ -206,10 +218,10 @@ int main( int argc, char **argv )
 	osgVegetation::TerrainQuery tq(terrain.get());
 
 	tq.setMaterialTextureSuffix("_material.tga");
-	osgVegetation::QuadTreeScattering scattering(&tq);
+	osgVegetation::BillboardQuadTreeScattering scattering(&tq);
 	osg::Node* ug_node = scattering.generate(bb,undergrowth_data,save_path, "ug_");
 	group->addChild(ug_node);
-	osgVegetation::QuadTreeScattering scattering2(&tq);
+	osgVegetation::BillboardQuadTreeScattering scattering2(&tq);
 	osg::Node* tree_node = scattering2.generate(bb,tree_data,save_path,"og_");
 	group->addChild(tree_node);
 	osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");

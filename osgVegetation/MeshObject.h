@@ -32,4 +32,13 @@ namespace osgVegetation
 	};
 	typedef std::vector<osg::ref_ptr<MeshObject> > MeshVegetationObjectVector;
 	typedef std::map<int, MeshVegetationObjectVector> MeshVegetationMap;
+
+	class MeshObjectClass : public osg::Referenced
+	{
+	public:
+		MeshObjectClass()
+		{
+
+		}
+	};
 }

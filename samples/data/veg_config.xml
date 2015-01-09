@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VegetationData>
+	<MaterialMapping>
+		<Material MatName="WOODS" r="255" g="255" b="255" a="255"/>
+		<Material MatName="ROAD" r="256" g="0" b="0" a="255"/>
+	</MaterialMapping>
+
+	<BillboardData 
+	UseAlphaBlend="false"
+	AlphaRefValue="0.5"
+	ReceiveShadows="false"
+	CastShadows="false"
+	TerrainNormal="false"
+	UseFog="false"
+	FogMode="LINEAR"
+	Type="BT_CROSS_QUADS">
+		<BillboardLayers>
+			<!--Far distance-->
+			<BillboardLayer 
+				TextureName="billboards/tree0.rgba"
+				ViewDistance="400"
+				Density="0.005"
+				MinScale="0.8" MaxScale="0.9"
+				MinWidth="2" MaxWidth="2"
+				MinHeight="5" MaxHeight="5"
+				MinColorIntensity="2" MaxColorIntensity="2"
+				MixInIntensity="false"
+				MixInColorRatio="1.0"
+				Materials ="WOODS">
+			</BillboardLayer>
+			<!-- Intermediate distance-->
+			<BillboardLayer 
+				TextureName="billboards/tree0.rgba"
+				ViewDistance="200"
+				Density="0.02"
+				MinScale="0.6" MaxScale="0.7"
+				MinWidth="2" MaxWidth="2"
+				MinHeight="5" MaxHeight="5"
+				MinColorIntensity="2" MaxColorIntensity="2"
+				MixInIntensity="false"
+				MixInColorRatio="1.0"
+				Materials ="WOODS">
+			</BillboardLayer>
+			<!-- Near distance-->
+			<BillboardLayer 
+				TextureName="billboards/tree0.rgba"
+				ViewDistance="100"
+				Density="0.08"
+				MinScale="0.4" MaxScale="0.5"
+				MinWidth="2" MaxWidth="2"
+				MinHeight="5" MaxHeight="5"
+				MinColorIntensity="2" MaxColorIntensity="2"
+				MixInIntensity="false"
+				MixInColorRatio="1.0"
+				Materials ="WOODS">
+			</BillboardLayer>
+		</BillboardLayers>
+	</BillboardData>
+</VegetationData>
