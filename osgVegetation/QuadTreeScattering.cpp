@@ -230,7 +230,7 @@ namespace osgVegetation
 			m_SavePath = page_lod_path;
 		}
 
-		//remove  previous render tech
+		//remove any previous render technique
 		delete m_VRT;
 
 		//m_VRT = new BRTShaderInstancing(data);
@@ -254,7 +254,7 @@ namespace osgVegetation
 		m_InitBB._min.set(0,0,0);
 		m_InitBB._max = boudning_box._max - boudning_box._min;
 
-		//Create squared bounding box as starting point for the quadtree process
+		//Create squared bounding box as starting point for the quad tree process
 		osg::BoundingBox qt_bb;
 		qt_bb._max.set(max_bb_size, max_bb_size, boudning_box._max.z() - boudning_box._min.z());
 		qt_bb._min.set(0,0,0);
