@@ -5,4 +5,4 @@ targeting OSG for the generated database.
 
 ## License
 
-See the LICENSE file for license rights and limitations (MIT).
+See the COPYING file for license rights and limitations (MIT).
