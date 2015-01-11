@@ -26,9 +26,10 @@ SET(H_FILES
 	BRTGeometryShader.h
 	BRTShaderInstancing.h
 	Common.h
+	CoverageColor.h
+	CoverageData.h
 	IBillboardRenderingTech.h
 	IMeshRenderingTech.h
-	MaterialColor.h	
 	MeshLayer.h
 	MeshData.h
 	MeshObject.h
