@@ -1,32 +1,11 @@
-#include <osg/AlphaFunc>
-#include <osg/Billboard>
-#include <osg/BlendFunc>
-#include <osg/Depth>
-#include <osg/Geode>
 #include <osg/Geometry>
-#include <osg/Material>
 #include <osg/Math>
 #include <osg/MatrixTransform>
-#include <osg/PolygonOffset>
-#include <osg/Projection>
-#include <osg/ShapeDrawable>
 #include <osg/StateSet>
-#include <osg/Switch>
-#include <osg/Texture2D>
-#include <osg/TextureBuffer>
-#include <osg/Image>
-#include <osg/TexEnv>
-#include <osg/VertexProgram>
-#include <osg/FragmentProgram>
 #include <osg/ComputeBoundsVisitor>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
-#include <osg/Texture2DArray>
-#include <osgUtil/LineSegmentIntersector>
-#include <osgUtil/IntersectionVisitor>
-#include <osgUtil/SmoothingVisitor>
-#include <osgText/Text>
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
 #include <osgGA/StateSetManipulator>
@@ -55,9 +34,35 @@
 #include "MRTShaderInstancing.h"
 #include "BillboardQuadTreeScattering.h"
 #include "TerrainQuery.h"
+#include "CoverageData.h"
+
+//Define some coverage material names
+#define WOODS "WOODS"
+#define GRASS "GRASS"
+#define ROAD "ROAD"
+#define DIRT "DIRT"
 
 int main( int argc, char **argv )
 {
+	//Global settings
+	const bool enableShadows = true;
+	const bool use_paged_LOD = false;
+	const bool use_fog = true;
+	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
+
+
+	//setup optimization variables
+	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
+#ifdef WIN32
+	_putenv(opt_env.c_str());
+#else
+	char * writable = new char[opt_env.size() + 1];
+	std::copy(opt_env.begin(), opt_env.end(), writable);
+	writable[opt_env.size()] = '\0'; // don't forget the terminating 0
+	putenv(writable);
+	delete[] writable;
+#endif
+
 	// use an ArgumentParser object to manage the program arguments.
 	osg::ArgumentParser arguments(&argc,argv);
 
@@ -81,61 +86,20 @@ int main( int argc, char **argv )
 	keyswitchManipulator->addMatrixManipulator( '7', "Spherical", new osgGA::SphericalManipulator() );
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
 	
-	//Add data path
+	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");  
-	osgDB::Registry::instance()->getDataFilePathList().push_back("c:/temp/paged");  
+	
+	//load terrain
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
+
+	//Create root node
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
-	
 
 
-	//setup optimization variables
-	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
-#ifdef WIN32
-	_putenv(opt_env.c_str());
-#else
-	char * writable = new char[opt_env.size() + 1];
-	std::copy(opt_env.begin(), opt_env.end(), writable);
-	writable[opt_env.size()] = '\0'; // don't forget the terminating 0
-	putenv(writable);
-	delete[] writable;
-#endif
+	//Create billboard layers
 
-	//char* opt_var = getenv( "OSG_OPTIMIZER" ); // C4996
-	const bool enableShadows = true;
-	const bool use_paged_LOD = false;
-	const bool use_fog = true;
-	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
-
-	if(use_fog)
-	{
-		osg::StateSet* state = group->getOrCreateStateSet();
-		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
-		state->setMode(GL_FOG, osg::StateAttribute::ON);
-		state->setAttributeAndModes(fog.get());
-		fog->setMode(fog_mode);
-		fog->setDensity(0.00001);
-		fog->setEnd(800);
-		fog->setStart(30);
-		fog->setColor(osg::Vec4(1.0, 1.0, 1.0,1.0));
-	}
-
-
-	enum MaterialEnum
-	{
-		GRASS,
-		ROAD,
-		WOODS,
-		DIRT
-	};
-
-	std::map<MaterialEnum,osgVegetation::MaterialColor> material_map;
-	material_map[GRASS] = osgVegetation::MaterialColor(0,0,1,1);
-	material_map[WOODS] = osgVegetation::MaterialColor(1,1,1,1);
-	material_map[ROAD] = osgVegetation::MaterialColor(0,0,1,1);
-	material_map[DIRT] = osgVegetation::MaterialColor(1,0,0,1);
-
+	//First LOD start at 400m
 	osgVegetation::BillboardLayer  tree_l0("billboards/tree0.rgba",400);
 	tree_l0.Density = 0.005;
 	tree_l0.Height.set(5,5);
@@ -143,21 +107,22 @@ int main( int argc, char **argv )
 	tree_l0.Scale.set(0.8,0.9);
 	tree_l0.ColorIntensity.set(2,2);
 	tree_l0.MixInColorRatio = 1.0;
-	tree_l0.Materials.push_back(material_map[WOODS]);
+	tree_l0.CoverageMaterials.push_back(WOODS);
 
-	//second LOD
+	//second LOD start at 200m, also increase density and decrease scale
 	osgVegetation::BillboardLayer  tree_l1 = tree_l0;
-	tree_l1.Density *= 4;
+	tree_l1.Density *= 4; //scale density 4 times to match quad tree structure
 	tree_l1.Scale *= 0.8;
 	tree_l1.ViewDistance *= 0.5;
 
-	//third LOD
+	//third LOD start at 100m
 	osgVegetation::BillboardLayer  tree_l2 = tree_l1;
 	tree_l2.Density *= 4;
 	tree_l2.Scale *= 0.8;
 	tree_l2.ViewDistance *= 0.5;
 
-	//add all layers, the order is not important
+	//add all layers, the order is not important, 
+	//the layers will be sorted by distance before generation
 	osgVegetation::BillboardLayerVector layers;
 	layers.push_back(tree_l2);
 	layers.push_back(tree_l0);
@@ -174,7 +139,7 @@ int main( int argc, char **argv )
 		tree_data.Type = osgVegetation::BT_CROSS_QUADS;
 	//else
 	//	tree_data.Type = osgVegetation::BT_SCREEN_ALIGNED;
-
+	
 	std::string save_path;
 	if(use_paged_LOD)
 	{
@@ -186,21 +151,48 @@ int main( int argc, char **argv )
 	osg::BoundingBox &bb(cbv.getBoundingBox());
 	terrain->accept(cbv);
 
-	//down size bb for faster generation
-	osg::Vec3 bb_size = bb._max - bb._min;
+	//down size bb for faster generation...useful for testing purpose
+	/*osg::Vec3 bb_size = bb._max - bb._min;
 	bb._min = bb._min + bb_size*0.1;
-	bb._max = bb._max - bb_size*0.1;
+	bb._max = bb._max - bb_size*0.1;*/
 
-	osgVegetation::TerrainQuery tq(terrain.get());
+	//coverage data used by the terrain query class
+	osgVegetation::CoverageData cd;
+	//...add the materials, here we match material name with colors
+	cd.CoverageMaterials.push_back(osgVegetation::CoverageData::CoverageMaterial(GRASS,osgVegetation::CoverageColor(0,0,1,1)));
+	cd.CoverageMaterials.push_back(osgVegetation::CoverageData::CoverageMaterial(WOODS,osgVegetation::CoverageColor(1,1,1,1)));
+	cd.CoverageMaterials.push_back(osgVegetation::CoverageData::CoverageMaterial(ROAD,osgVegetation::CoverageColor(0,0,1,1)));
+	cd.CoverageMaterials.push_back(osgVegetation::CoverageData::CoverageMaterial(DIRT,osgVegetation::CoverageColor(1,0,0,1)));
+
+	//Create terrain query class and by feeding terrain and coverage data
+	osgVegetation::TerrainQuery tq(terrain.get(),cd);
+
+	//create scattering class
 	osgVegetation::BillboardQuadTreeScattering scattering(&tq);
+
+	//Start generation
 	osg::Node* tree_node = scattering.generate(bb,tree_data,save_path);
+
+	//We are done, add vegetation to root node
 	group->addChild(tree_node);
 	
-	//osgDB::writeNodeFile(*group, save_path + "terrain_and_veg.ive");
-	osgDB::writeNodeFile(*group, "c:/temp/terrain_and_veg.osgt");
-	
+		
+	if(use_fog)
+	{
+		//Add fog
+		osg::StateSet* state = group->getOrCreateStateSet();
+		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
+		state->setMode(GL_FOG, osg::StateAttribute::ON);
+		state->setAttributeAndModes(fog.get());
+		fog->setMode(fog_mode);
+		fog->setDensity(0.00001);
+		fog->setEnd(800);
+		fog->setStart(30);
+		fog->setColor(osg::Vec4(1.0, 1.0, 1.0,1.0));
+	}
+
+	//Add light and shadows
 	osg::Light* pLight = new osg::Light;
-	//pLight->setLightNum( 4 );						
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
 	osg::Vec4 lightPos(1,1.0,1,0); 
 	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
@@ -208,11 +200,10 @@ int main( int argc, char **argv )
 	lightDir.normalize();
 	pLight->setDirection(lightDir);
 	pLight->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f) );
-	// light source
+	
 	osg::LightSource* pLightSource = new osg::LightSource;    
 	pLightSource->setLight( pLight );
 	group->addChild( pLightSource );
-
 
 	static int ReceivesShadowTraversalMask = 0x1;
 	static int CastsShadowTraversalMask = 0x2;
@@ -222,7 +213,6 @@ int main( int argc, char **argv )
 	settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
 	settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
 	//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
-
 	
 	unsigned int unit=2;
 	settings->setBaseShadowTextureUnit(unit);
@@ -258,6 +248,7 @@ int main( int argc, char **argv )
 	
 	while (!viewer.done())
 	{
+		//animate light
 		float t = viewer.getFrameStamp()->getSimulationTime()*0.4;
 		lightPos.set(sinf(t),cosf(t),0.7f,0.0f);
 		pLight->setPosition(lightPos);

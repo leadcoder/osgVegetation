@@ -4,19 +4,19 @@
 #include <osg/vec4>
 #include <osg/vec3>
 #include <osg/vec2>
-
+#include "CoverageColor.h"
 namespace osgVegetation
 {
 	/**
 		Interface for terrain queries
 	*/
-	class osgvExport ITerrainQuery 
+	class osgvExport ITerrainQuery : public osg::Referenced
 	{
 	public:
 		virtual ~ITerrainQuery(){};
 		/**
 			Get terrain data for provided location
 		*/
-		virtual bool getTerrainData(osg::Vec3& location, osg::Vec4 &color, osg::Vec4 &material_color, osg::Vec3 &inter) = 0;
+		virtual bool getTerrainData(osg::Vec3& location, osg::Vec4 &color, std::string &coverage_name , CoverageColor &coverage_color, osg::Vec3 &inter) = 0;
 	};
 }

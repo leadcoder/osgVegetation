@@ -37,15 +37,16 @@ namespace osgVegetation
 		{
 			osg::Vec3 pos(Utils::random(origin.x(),origin.x()+size.x()),Utils::random(origin.y(),origin.y()+size.y()),0);
 			osg::Vec3 inter;
-			osg::Vec4 color;
-			osg::Vec4 mat_color;
+			osg::Vec4 base_color;
+			osg::Vec4 coverage_color;
 			float rand_int = Utils::random(layer.ColorIntensity.x(),layer.ColorIntensity.y());
 			osg::Vec3 offset_pos = pos + m_Offset;
 			if(m_InitBB.contains(pos))
 			{
-				if(m_TerrainQuery->getTerrainData(offset_pos,color,mat_color,inter))
+				std::string coverage_name;
+				if(m_TerrainQuery->getTerrainData(offset_pos,base_color,coverage_name,coverage_color,inter))
 				{
-					if(layer.hasMaterial(mat_color))
+					if(layer.hasCoverage(coverage_name))
 					{
 						MeshObject* veg_obj = new MeshObject;
 						float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y());
@@ -55,10 +56,10 @@ namespace osgVegetation
 						veg_obj->Rotation.makeRotate(Utils::random(0.0, osg::PI_2),osg::Vec3(0,0,1));
 						if(layer.MixInIntensity)
 						{
-							float intensity = (color.r() + color.g() + color.b())/3.0;
-							color.set(intensity,intensity,intensity,color.a());
+							float intensity = (base_color.r() + base_color.g() + base_color.b())/3.0;
+							base_color.set(intensity,intensity,intensity,base_color.a());
 						}
-						veg_obj->Color = color*layer.MixInColorRatio;
+						veg_obj->Color = base_color*layer.MixInColorRatio;
 						veg_obj->Color += osg::Vec4(1,1,1,1)*rand_int;
 						veg_obj->Color.set(veg_obj->Color.r(), veg_obj->Color.g(), veg_obj->Color.b(), 1.0);
 						layer._Instances.push_back(veg_obj);

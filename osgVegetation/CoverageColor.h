@@ -4,5 +4,5 @@
 
 namespace osgVegetation
 {
-	typedef osg::Vec4 MaterialColor;
+	typedef osg::Vec4 CoverageColor;
 }

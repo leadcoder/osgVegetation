@@ -1,13 +1,17 @@
 #include "Serializer.h"
 #include "tinyxml.h"
 #include "BillboardLayer.h"
+#include "CoverageData.h"
+#include "TerrainQuery.h"
 #include <sstream>
 #include <iterator>
 
 namespace osgVegetation
 {
 
-	BillboardData Serializer::loadBillboardData(const std::string &filename) const
+
+
+	std::vector<BillboardData> Serializer::loadBillboardData(const std::string &filename) const
 	{
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())
@@ -25,44 +29,23 @@ namespace osgVegetation
 		{
 			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: MaterialMapping").c_str());
 		}
-		MaterialMapping mapping = loadMaterialMapping(mm_elem);
-		
+		std::vector<BillboardData> bb_vector;
+
 		TiXmlElement *bd_elem = vd_elem->FirstChildElement("BillboardData");
-		if(bd_elem == NULL) 
+		while(bd_elem)
 		{
-			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: BillboardData").c_str());
+			BillboardData bb_data= loadBillboardData(bd_elem);
+			bb_vector.push_back(bb_data);
+			bd_elem  = bd_elem->NextSiblingElement("BillboardData");
 		}
 		
-		BillboardData bb_data= loadBillboardData(bd_elem,mapping);
-
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
 		delete xmlDoc;
-		return bb_data;
+		return bb_vector;
 	}
 
-	Serializer::MaterialMapping Serializer::loadMaterialMapping(TiXmlElement *mm_elem) const
-	{
-		MaterialMapping mapping;
-		TiXmlElement *mat_elem = mm_elem->FirstChildElement("Material");
-		while(mat_elem)
-		{
-			if(!mat_elem->Attribute("MatName"))
-				throw std::exception(std::string("Serializer::loadMaterialMapping - Failed to find attribute: MatName").c_str());
-			const std::string name = mat_elem->Attribute("MatName");
-			int r,g,b,a;
-			mat_elem->QueryIntAttribute("r",&r);
-			mat_elem->QueryIntAttribute("g",&g);
-			mat_elem->QueryIntAttribute("b",&b);
-			mat_elem->QueryIntAttribute("a",&a);
-			const MaterialColor color (float(r)/255.0,float(g)/255.0,float(b)/255.0,float(a)/255.0);
-			mapping[name] = color;
-			mat_elem  = mat_elem->NextSiblingElement("Material");
-		}
-		return mapping;
-	}
-
-	BillboardData Serializer::loadBillboardData(TiXmlElement *bd_elem, const MaterialMapping& mapping) const
+	BillboardData Serializer::loadBillboardData(TiXmlElement *bd_elem) const
 	{
 		BillboardLayerVector layers;
 		TiXmlElement *elem = bd_elem->FirstChildElement("BillboardLayers");
@@ -110,17 +93,7 @@ namespace osgVegetation
 				std::stringstream ss(materials);
 				std::istream_iterator<std::string> begin(ss);
 				std::istream_iterator<std::string> end;
-				std::vector<std::string> mat_vector(begin, end);
-				for(size_t i = 0 ; i < mat_vector.size();i++)
-				{
-					const std::string mat_name = mat_vector[i];
-					MaterialMapping::const_iterator iter = mapping.find(mat_name);
-					if(iter == mapping.end())
-						throw std::exception(std::string("Serializer::loadBillboardData - Failed to find material:"+ mat_name).c_str());
-					const MaterialColor color = iter->second;
-					layer.Materials.push_back(color);
-				}
-				
+				layer.CoverageMaterials = std::vector<std::string>(begin, end);
 				layers.push_back(layer);
 				bl_elem  = bl_elem->NextSiblingElement("BillboardLayer");
 			}
@@ -160,6 +133,64 @@ namespace osgVegetation
 
 		return bb_data;
 	}
+
+	osg::ref_ptr<ITerrainQuery> Serializer::loadTerrainQuery(osg::Node* terrain, const std::string &filename) const
+	{
+		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
+		if (!xmlDoc->LoadFile())
+		{
+			throw std::exception(std::string("Serializer::loadTerrainQuery - Failed to load file:" + filename).c_str());
+		}
+		TiXmlElement *tq_elem = xmlDoc->FirstChildElement("TerrainQuery");
+		if(tq_elem == NULL) 
+		{
+			throw std::exception(std::string("Serializer::loadTerrainQuery - Failed to find tag: TerrainQuery").c_str());
+		}
+
+		TiXmlElement *cd_elem = tq_elem->FirstChildElement("CoverageData");
+		if(cd_elem == NULL) 
+		{
+			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: MaterialMapping").c_str());
+		}
+		CoverageData cd = loadCoverageData(cd_elem);
+
+		//Here we can add option to load other terrain query implementations
+		TerrainQuery* tq = new TerrainQuery(terrain,cd);
+		
+		if(tq_elem->Attribute("CoverageTextureSuffix"))
+		{
+			const std::string suffix = tq_elem->Attribute("CoverageTextureSuffix");
+			tq->setCoverageTextureSuffix(suffix);
+		}
+	
+		xmlDoc->Clear();
+		// Delete our allocated document and return data
+		delete xmlDoc;
+		return tq;
+	}
+
+
+	CoverageData Serializer::loadCoverageData(TiXmlElement *cd_elem) const
+	{
+		CoverageData data;
+		TiXmlElement *mat_elem = cd_elem->FirstChildElement("CoverageMaterial");
+		while(mat_elem)
+		{
+			if(!mat_elem->Attribute("MatName"))
+				throw std::exception(std::string("Serializer::loadMaterialMapping - Failed to find attribute: MatName").c_str());
+			const std::string name = mat_elem->Attribute("MatName");
+			int r,g,b,a;
+			mat_elem->QueryIntAttribute("r",&r);
+			mat_elem->QueryIntAttribute("g",&g);
+			mat_elem->QueryIntAttribute("b",&b);
+			mat_elem->QueryIntAttribute("a",&a);
+			const CoverageColor color (float(r)/255.0,float(g)/255.0,float(b)/255.0,float(a)/255.0);
+			data.CoverageMaterials.push_back(CoverageData::CoverageMaterial(name,color));
+			mat_elem  = mat_elem->NextSiblingElement("CoverageMaterial");
+		}
+		return data;
+	}
+
 	
 	
 }

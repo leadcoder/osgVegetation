@@ -43,20 +43,21 @@ namespace osgVegetation
 			osg::Vec3 pos(Utils::random(origin.x(),origin.x()+size.x()),Utils::random(origin.y(),origin.y()+size.y()),0);
 			osg::Vec3 inter;
 			osg::Vec4 color;
-			osg::Vec4 mat_color;
+			osg::Vec4 coverage_color;
 			float rand_int = Utils::random(layer.ColorIntensity.x(),layer.ColorIntensity.y());
 			osg::Vec3 offset_pos = pos + m_Offset;
 			if(m_InitBB.contains(pos))
 			{
-				if(m_TerrainQuery->getTerrainData(offset_pos,color,mat_color,inter))
+				std::string material_name;
+				if(m_TerrainQuery->getTerrainData(offset_pos, color, material_name, coverage_color, inter))
 				{
-					if(layer.hasMaterial(mat_color))
+					if(layer.hasCoverage(material_name))
 					{
 						BillboardObject* veg_obj = new BillboardObject;
 						//TODO add color to layer
 						float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y());
-						veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
-						veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
+						veg_obj->Width = Utils::random(layer.Width.x(), layer.Width.y())*tree_scale;
+						veg_obj->Height = Utils::random(layer.Height.x(), layer.Height.y())*tree_scale;
 						veg_obj->TextureIndex = layer._TextureIndex;
 						veg_obj->Position = inter - m_Offset;
 						if(layer.MixInIntensity)
@@ -163,8 +164,6 @@ namespace osgVegetation
 				plod->setRadius(radius);
 
 				float cutoff = radius*2;
-				//regular terrain LOD setup
-				//plod->addChild(mesh_group, cutoff, FLT_MAX );
 				plod->addChild(mesh_group, 0, FLT_MAX );
 				plod->addChild(children_group, 0.0f, cutoff );
 				return plod;
