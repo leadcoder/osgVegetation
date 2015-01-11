@@ -35,7 +35,7 @@ namespace osgVegetation
 
 	TerrainQuery::TerrainQuery(osg::Node* terrain, const CoverageData &cd) : m_Terrain(terrain), 
 		m_CoverageData(cd),
-		m_CoverageTextureSuffix("_material.png")
+		m_CoverageTextureSuffix("_coverage.png")
 	{
 		m_MeshCache = new osgSim::DatabaseCacheReadCallback;
 		m_IntersectionVisitor.setReadCallback(m_MeshCache);
