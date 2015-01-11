@@ -66,13 +66,9 @@ namespace osgVegetation
 					if(osgDB::getFileExtension(tex_filename) == "dds")
 					{
 						tex_filename = osgDB::getNameLessExtension(tex_filename) + ".tga";
-						//first check cache
 						osg::Image* image = _loadImage(tex_filename);
-						if(image)
-						{
-							osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
-							texture_color = image->getColor(tc2);
-						}
+						osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
+						texture_color = image->getColor(tc2);
 					}
 					else
 						texture_color = texture->getImage(0)->getColor(tc);
@@ -86,18 +82,12 @@ namespace osgVegetation
 						mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + m_CoverageTextureSuffix;
 
 					osg::Image* image = _loadImage(mat_image_filename);
-					if(image)
-					{
-						osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
-						//osg::Vec3 tc2 = tc;
-						//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
-						tc2.set(osg::clampTo((double) tc2.x(), (double) 0.0, (double) 1.0),
+					osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
+					//osg::Vec3 tc2 = tc;
+					//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
+					tc2.set(osg::clampTo((double) tc2.x(), (double) 0.0, (double) 1.0),
 							osg::clampTo((double) tc2.y(), (double) 0.0, (double)1.0),(double)tc2.z());
-						coverage_color = image->getColor(tc2);
-					}
-					else //use base texture as coverage texture 
-						coverage_color = texture_color;
-
+					coverage_color = image->getColor(tc2);
 					coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
 				}
 				inter = intersection.getWorldIntersectPoint();
@@ -123,6 +113,9 @@ namespace osgVegetation
 			m_ImageCache[filename] = osgDB::readImageFile(filename);
 			image = m_ImageCache[filename].get();
 		}
+		if(!image)
+			throw std::exception(std::string("TerrainQuery::_loadImage - Failed to load file:" + filename).c_str());
+
 		return image;
 	}
 

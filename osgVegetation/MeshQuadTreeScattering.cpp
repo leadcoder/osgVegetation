@@ -1,5 +1,4 @@
 #include "MeshQuadTreeScattering.h"
-#include <osg/Geode>
 #include <osg/MatrixTransform>
 #include <osg/StateSet>
 #include <osg/ComputeBoundsVisitor>
@@ -72,13 +71,13 @@ namespace osgVegetation
 	std::string MeshQuadTreeScattering::_createFileName(unsigned int lv,	unsigned int x, unsigned int y )
 	{
 		std::stringstream sstream;
-		sstream << m_FilenamePrefix << lv << "_X" << x << "_Y" << y << ".ive";
+		sstream << m_FilenamePrefix << lv << "_X" << x << "_Y" << y << "." << m_SaveExt;
 		return sstream.str();
 	}
 
 	osg::Node* MeshQuadTreeScattering::_createLODRec(int ld, MeshData &data, MeshVegetationObjectVector instances, const osg::BoundingBox &bb,int x, int y)
 	{
-		if(ld < 6) //only show progress above lod 6, we don't want to spam the log
+		if(ld < 6) //only show progress above level 6, we don't want to spam the console
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Create Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
 		m_CurrentTile++;
 
@@ -96,7 +95,8 @@ namespace osgVegetation
 			int max_lod = -1;
 			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
 			{
-				if(ld >= data.Layers[i].MeshLODs[j]._StartQTLevel && data.Layers[i].MeshLODs[j]._StartQTLevel > max_lod)
+				if(ld >= data.Layers[i].MeshLODs[j]._StartQTLevel && 
+				   data.Layers[i].MeshLODs[j]._StartQTLevel > max_lod)
 				{
 					mesh_lod = j;
 					max_lod = data.Layers[i].MeshLODs[j]._StartQTLevel;
@@ -104,7 +104,7 @@ namespace osgVegetation
 
 				if(j == 0 && ld == data.Layers[i].MeshLODs[j]._StartQTLevel)
 				{
-					//remove previous data
+					//remove any previous data
 					data.Layers[i]._Instances.clear();
 					//create data
 					_populateVegetationLayer(data.Layers[i], bb);
@@ -187,7 +187,6 @@ namespace osgVegetation
 				float cutoff = radius*2;
 				//regular terrain LOD setup
 				plod->addChild(mesh_group, cutoff, FLT_MAX );
-				//plod->addChild(mesh_group, 0, FLT_MAX );
 				plod->addChild(children_group, 0.0f, cutoff );
 				return plod;
 			}
@@ -200,14 +199,20 @@ namespace osgVegetation
 	{
 		return lhs.MaxDistance > rhs.MaxDistance;
 	}
-
-	osg::Node* MeshQuadTreeScattering::generate(const osg::BoundingBox &boudning_box,MeshData &data, const std::string &page_lod_path, const std::string &filename_prefix)
+	
+	osg::Node* MeshQuadTreeScattering::generate(const osg::BoundingBox &boudning_box,MeshData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
 	{
-		m_FilenamePrefix = filename_prefix;
-		if(page_lod_path != "")
+		if(output_file != "")
 		{
-			m_UsePagedLOD = true;
-			m_SavePath = page_lod_path;
+			m_UsePagedLOD = use_paged_lod;
+			m_FilenamePrefix = filename_prefix;
+			m_SavePath = osgDB::getFilePath(output_file);
+			m_SavePath += "/";
+			m_SaveExt = osgDB::getFileExtension(output_file);
+		}
+		else if(m_UsePagedLOD)
+		{
+			throw std::exception(std::string("MeshQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
 		}
 
 		//remove  previous render tech
@@ -237,7 +242,7 @@ namespace osgVegetation
 	
 		//reset
 		m_FinalLOD =0;
-		m_NumberOfTiles = 0;
+		m_NumberOfTiles = 1;
 		m_CurrentTile = 0;
 
 		//distance sort mesh LODs
@@ -311,20 +316,12 @@ namespace osgVegetation
 				data.Layers[i]._Instances.clear();
 			}
 		}
-		
-		if(m_UsePagedLOD)
+
+		transform->addChild(outnode);
+
+		if(output_file != "")
 		{
-			transform->addChild(outnode);
-			osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.osgt");
-			//osg::ProxyNode* pn = new osg::ProxyNode();
-			//pn->setFileName(0,"master.ive");
-			//pn->setDatabasePath("C:/temp/paged");
-			//transform->addChild(pn);
-			//osgDB::writeNodeFile( *transform, m_SavePath + "/transformation.osg" );
-		}
-		else
-		{
-			transform->addChild(outnode);
+			osgDB::writeNodeFile(*transform, output_file);
 		}
 		return transform;
 	}

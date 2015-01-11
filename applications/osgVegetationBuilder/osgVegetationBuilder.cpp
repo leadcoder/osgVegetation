@@ -93,13 +93,6 @@ int main( int argc, char **argv )
 		return 0;
 	}
 
-	std::string out_path;
-	if(pagedLOD)
-	{
-		out_path = osgDB::getFilePath(out_file);
-		out_path += "/";
-	}
-
 	//Load terrain
 	osg::ref_ptr<osg::Group> group = new osg::Group;
 	osg::Node* terrain = NULL;
@@ -164,11 +157,12 @@ int main( int argc, char **argv )
 		std::cout << "Using bounding box:" << bounding_box.xMin() << " " << bounding_box.yMin() << " "<< bounding_box.xMax() << " " << bounding_box.yMax() << "\n";
 		std::cout << "Start Scattering...\n";
 
+		srand(0); //reset random numbers, TODO: support layer seed
 		for(size_t i=0; i < bb_vector.size();i++)
 		{
 			std::stringstream ss;
 			ss << "bb_" << i << "_";
-			osg::Node* bb_node = scattering.generate(bounding_box,bb_vector[i],out_path,ss.str());
+			osg::Node* bb_node = scattering.generate(bounding_box,bb_vector[i], out_file, pagedLOD, ss.str());
 			group->addChild(bb_node);
 		}
 		osgDB::writeNodeFile(*group,out_file);

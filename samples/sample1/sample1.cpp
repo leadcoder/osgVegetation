@@ -100,7 +100,7 @@ int main( int argc, char **argv )
 	//Create billboard layers
 
 	//First LOD start at 400m
-	osgVegetation::BillboardLayer  tree_l0("billboards/tree0.rgba",400);
+	osgVegetation::BillboardLayer  tree_l0("billboards/tree0.rgba", 400);
 	tree_l0.Density = 0.005;
 	tree_l0.Height.set(5,5);
 	tree_l0.Width.set(2,2);

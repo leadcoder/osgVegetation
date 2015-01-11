@@ -24,11 +24,6 @@ namespace osgVegetation
 			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: VegetationData").c_str());
 		}
 
-		TiXmlElement *mm_elem = vd_elem->FirstChildElement("MaterialMapping");
-		if(mm_elem == NULL) 
-		{
-			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: MaterialMapping").c_str());
-		}
 		std::vector<BillboardData> bb_vector;
 
 		TiXmlElement *bd_elem = vd_elem->FirstChildElement("BillboardData");
@@ -150,7 +145,7 @@ namespace osgVegetation
 		TiXmlElement *cd_elem = tq_elem->FirstChildElement("CoverageData");
 		if(cd_elem == NULL) 
 		{
-			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: MaterialMapping").c_str());
+			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: CoverageData").c_str());
 		}
 		CoverageData cd = loadCoverageData(cd_elem);
 
