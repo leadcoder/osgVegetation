@@ -19,9 +19,9 @@
 				MinWidth="2" MaxWidth="2"
 				MinHeight="5" MaxHeight="5"
 				MinColorIntensity="5.5" MaxColorIntensity="5.5"
-				MixInIntensity="false"
+				UseTerrainIntensity="false"
 				TerrainColorRatio="1.0"
-				Materials ="WOODS">
+				CoverageMaterials ="WOODS">
 			</BillboardLayer>
 			<!-- Intermediate distance-->
 			<BillboardLayer 
@@ -32,9 +32,9 @@
 				MinWidth="2" MaxWidth="2"
 				MinHeight="5" MaxHeight="5"
 				MinColorIntensity="5.5" MaxColorIntensity="5.5"
-				MixInIntensity="false"
+				UseTerrainIntensity="false"
 				TerrainColorRatio="1.0"
-				Materials ="WOODS">
+				CoverageMaterials ="WOODS">
 			</BillboardLayer>
 			<!-- Near distance-->
 			<BillboardLayer 
@@ -45,9 +45,9 @@
 				MinWidth="2" MaxWidth="2"
 				MinHeight="5" MaxHeight="5"
 				MinColorIntensity="5.5" MaxColorIntensity="5.5"
-				MixInIntensity="false"
+				UseTerrainIntensity="false"
 				TerrainColorRatio="1.0"
-				Materials ="WOODS">
+				CoverageMaterials ="WOODS">
 			</BillboardLayer>
 		</BillboardLayers>
 	</BillboardData>

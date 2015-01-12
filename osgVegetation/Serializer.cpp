@@ -76,14 +76,14 @@ namespace osgVegetation
 				bl_elem->QueryDoubleAttribute("MaxColorIntensity",&_max);
 				layer.ColorIntensity.set(_min,_max);
 				
-				bl_elem->QueryBoolAttribute("MixInIntensity",&layer.UseTerrainIntensity);
-				bl_elem->QueryDoubleAttribute("MixInColorRatio",&layer.TerrainColorRatio);
+				bl_elem->QueryBoolAttribute("UseTerrainIntensity",&layer.UseTerrainIntensity);
+				bl_elem->QueryDoubleAttribute("TerrainColorRatio",&layer.TerrainColorRatio);
 
 
-				if(!bl_elem->Attribute("Materials"))
+				if(!bl_elem->Attribute("CoverageMaterials"))
 					throw std::exception(std::string("Serializer::loadBillboardData - Failed to find material attribute").c_str());
 
-				const std::string materials = bl_elem->Attribute("Materials");
+				const std::string materials = bl_elem->Attribute("CoverageMaterials");
 				//split to vector
 				std::stringstream ss(materials);
 				std::istream_iterator<std::string> begin(ss);
