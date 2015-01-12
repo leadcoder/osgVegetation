@@ -214,7 +214,6 @@ int main( int argc, char **argv )
 
 	}
 
-
 		
 	osgViewer::Viewer viewer(arguments);
 	//osg::Group* mesh_ = 
