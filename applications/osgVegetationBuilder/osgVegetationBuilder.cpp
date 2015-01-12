@@ -33,6 +33,12 @@ int main( int argc, char **argv )
 	putenv(writable);
 	delete[] writable;
 #endif
+
+	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/tiles");
+	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/material_textures");  
+	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/color_textures");  
+
+
 	/////////////////////////////////////////////////////
 	arguments.getApplicationUsage()->addCommandLineOption("--vegetation_config <filename>","Configuration file");
 	arguments.getApplicationUsage()->addCommandLineOption("--out","out file");
@@ -41,6 +47,8 @@ int main( int argc, char **argv )
 	arguments.getApplicationUsage()->addCommandLineOption("--bounding_box <x.min x-max y-min y-max>","Optional bounding box");
 	arguments.getApplicationUsage()->addCommandLineOption("--paged_lod","Optional save paged LOD database");
 	arguments.getApplicationUsage()->addCommandLineOption("--save_terrain","Optional inject terrain in database");
+
+
 
 	unsigned int helpType = 0;
 	if ((helpType = arguments.readHelpType()))
@@ -60,7 +68,7 @@ int main( int argc, char **argv )
 	bool useBBox = false;
 
 	double xmin=0,xmax=0,ymin=0,ymax=0,zmin=-1,zmax=1;
-	
+
 	if(arguments.read("--bounding_box",xmin,ymin,xmax,ymax))
 	{
 		useBBox = true;
@@ -85,10 +93,6 @@ int main( int argc, char **argv )
 		return 0;
 	}
 
-	std::string out_path;
-	if(pagedLOD)
-		out_path = osgDB::getFilePath(out_file);
-
 	//Load terrain
 	osg::ref_ptr<osg::Group> group = new osg::Group;
 	osg::Node* terrain = NULL;
@@ -106,8 +110,11 @@ int main( int argc, char **argv )
 		const std::string terrain_path = osgDB::getFilePath(terrain_file);
 		osgDB::Registry::instance()->getDataFilePathList().push_back(terrain_path);  
 
+		if(save_terrain)
+		{
+			group->addChild(terrain);
+		}
 
-		group->addChild(terrain);
 		osg::ComputeBoundsVisitor  cbv;
 		osg::BoundingBox &bb(cbv.getBoundingBox());
 		terrain->accept(cbv);
@@ -115,7 +122,7 @@ int main( int argc, char **argv )
 		if(useBBox)
 		{
 			bounding_box._min.set(xmin,ymin,bounding_box._min.z());
-			bounding_box._min.set(xmax,ymax,bounding_box._max.z());
+			bounding_box._max.set(xmax,ymax,bounding_box._max.z());
 		}
 	}
 
@@ -126,26 +133,39 @@ int main( int argc, char **argv )
 		return 0;
 	}
 
+	std::string tq_filename;
+	if(!arguments.read("--terrain_query_config",tq_filename))
+	{
+		std::cerr << "No terrain query config provided\n";
+		return 0;
+	}
+
 	osgVegetation::Serializer serializer;
 	try
 	{
-
-		osgVegetation::BillboardData bb_data = serializer.loadBillboardData(config_file);
+		std::vector<osgVegetation::BillboardData> bb_vector = serializer.loadBillboardData(config_file);
 
 		const std::string config_path = osgDB::getFilePath(config_file);
-		osgDB::Registry::instance()->getDataFilePathList().push_back(config_path);  
+		osgDB::Registry::instance()->getDataFilePathList().push_back(config_path); 
 
-		osgVegetation::TerrainQuery tq(terrain);
-		osgVegetation::BillboardQuadTreeScattering scattering(&tq);
-		osg::Node* bb_node = scattering.generate(bounding_box,bb_data,out_path,"bb_");
-		if(save_terrain)
-		{
-			group->addChild(bb_node);
-			osgDB::writeNodeFile(*group,out_file);
-		}
-		else
-			osgDB::writeNodeFile(*bb_node,out_file);
+		osg::ref_ptr<osgVegetation::ITerrainQuery> tq = serializer.loadTerrainQuery(terrain, tq_filename);
+
+		//if(material_suffix != "")
+		//	tq->setMaterialTextureSuffix(material_suffix);
 		
+		osgVegetation::BillboardQuadTreeScattering scattering(tq);
+		std::cout << "Using bounding box:" << bounding_box.xMin() << " " << bounding_box.yMin() << " "<< bounding_box.xMax() << " " << bounding_box.yMax() << "\n";
+		std::cout << "Start Scattering...\n";
+
+		srand(0); //reset random numbers, TODO: support layer seed
+		for(size_t i=0; i < bb_vector.size();i++)
+		{
+			std::stringstream ss;
+			ss << "bb_" << i << "_";
+			osg::Node* bb_node = scattering.generate(bounding_box,bb_vector[i], out_file, pagedLOD, ss.str());
+			group->addChild(bb_node);
+		}
+		osgDB::writeNodeFile(*group,out_file);
 	}
 
 	catch(std::exception& e)

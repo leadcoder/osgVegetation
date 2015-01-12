@@ -11,6 +11,8 @@
 #include <osgUtil/LineSegmentIntersector>
 #include <vector>
 #include "ITerrainQuery.h"
+#include "CoverageColor.h"
+#include "CoverageData.h"
 
 namespace osgSim {class DatabaseCacheReadCallback;}
 
@@ -19,48 +21,49 @@ namespace osgVegetation
 	/*
 		Standard terrain query implementation.
 	*/
-	class osgvExport TerrainQuery : public osg::Referenced, public ITerrainQuery
+	class osgvExport TerrainQuery : public ITerrainQuery
 	{
 	public:
-		TerrainQuery(osg::Node* terrain);
+		TerrainQuery(osg::Node* terrain,const CoverageData &cd);
 		
 		//ITerrainQuery interface 
 		/**
 			Get terrain data for provided location
 		*/
-		bool getTerrainData(osg::Vec3& location, osg::Vec4 &color, osg::Vec4 &material_color, osg::Vec3 &inter);
+		bool getTerrainData(osg::Vec3& location, osg::Vec4 &texture_color, std::string &coverage_name, CoverageColor &coverage_color, osg::Vec3 &inter);
 	public:
 
 		/**
-			Set suffix used to generate material texture filename. 
-			The suffix is appended to extension-less terrain texture filename.
+			Set suffix used to generate coverage texture filename. 
+			The suffix is appended to extension-less terrain base texture filename.
 		*/
-		void setMaterialTextureSuffix(const std::string &value) {m_MaterialTextureSuffix=value;}
+		void setCoverageTextureSuffix(const std::string &value) {m_CoverageTextureSuffix=value;}
 		
 		/**
-			Get suffix used to generate material texture filename. 
+			Get suffix used to generate coverage texture filename. 
 		*/
-		std::string getMaterialTextureSuffix() const {return m_MaterialTextureSuffix;}
+		std::string getCoverageTextureSuffix() const {return m_CoverageTextureSuffix;}
 		
 		/**
-			Set explicit material texture filename
+			Set explicit coverage texture filename
 		*/
-		void setMaterialTexture(const std::string &value) {m_MaterialTexture=value;}
+		void setCoverageTexture(const std::string &value) {m_CoverageTexture=value;}
 		
 		/**
-			Get explicit material texture filename
+			Get explicit coverage texture filename
 		*/
-		std::string getMaterialTexture() const {return m_MaterialTexture;}
+		std::string getCoverageTexture() const {return m_CoverageTexture;}
 	private:
 		osg::Image* _loadImage(const std::string &filename);
 		osg::Texture* _getTexture(const osgUtil::LineSegmentIntersector::Intersection& intersection,osg::Vec3& tc) const;
 		
 		osg::Node* m_Terrain;
 		osgUtil::IntersectionVisitor m_IntersectionVisitor;
-		typedef std::map<std::string,osg::ref_ptr<osg::Image> > MaterialCacheMap; 
-		MaterialCacheMap m_MaterialCache;
-		osgSim::DatabaseCacheReadCallback* m_Cache;
-		std::string m_MaterialTextureSuffix;
-		std::string m_MaterialTexture;
+		typedef std::map<std::string,osg::ref_ptr<osg::Image> > ImageCacheMap; 
+		ImageCacheMap m_ImageCache;
+		osgSim::DatabaseCacheReadCallback* m_MeshCache;
+		std::string m_CoverageTextureSuffix;
+		std::string m_CoverageTexture;
+		CoverageData m_CoverageData;
 	};
 }

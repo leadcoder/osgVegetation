@@ -125,7 +125,7 @@ namespace osgVegetation
 				const std::string mesh_name = data.Layers[i].MeshLODs[j].MeshName;
 				osg::ref_ptr<osg::Node> mesh = osgDB::readNodeFile(mesh_name);
 				if(!mesh.valid())
-					throw std::exception(std::string("Failed to load mesh:" + mesh_name).c_str());
+					throw std::exception(std::string("MRTShaderInstancing::_createStateSet - Failed to load mesh:" + mesh_name).c_str());
 				m_MeshNodeMap[mesh_name] = mesh;
 			}
 		}

@@ -1,5 +1,5 @@
 #pragma once
-#include "MaterialColor.h"
+#include "CoverageColor.h"
 #include <osg/Referenced>
 #include <osg/vec4>
 #include <osg/vec3>
@@ -31,16 +31,6 @@ namespace osgVegetation
 
 		}
 
-		bool hasMaterial(const MaterialColor& mat) const
-		{
-			for(size_t i = 0 ; i < Materials.size(); i++)
-			{
-				if(Materials[i] == mat)
-					return true;
-			}
-			return false;
-		}
-		
 		/**
 			2D Texture used in this billboard layers (note that all textures for 
 			all layers should be in same resolution.
@@ -90,14 +80,28 @@ namespace osgVegetation
 		bool MixInIntensity;
 
 		/**
-			Material vector that specify where to scatter billboards
+			Coverage material vector that specify where to scatter billboards
 		*/
-		std::vector<MaterialColor> Materials;
+		std::vector<std::string> CoverageMaterials;
 	
+
 		//internal data holding texture index inside texture array
 		int _TextureIndex;
-		//internal data holding quadtree level for this layer
+		//internal data holding quad tree level for this layer
 		int _QTLevel;
+	
+		/**
+			Helper function to check is this layer hold coverage material
+		*/
+		bool hasCoverage(const std::string& name) const
+		{
+			for(size_t i = 0 ; i < CoverageMaterials.size(); i++)
+			{
+				if(CoverageMaterials[i] == name)
+					return true;
+			}
+			return false;
+		}
 	};
 	typedef std::vector<BillboardLayer> BillboardLayerVector;
 }

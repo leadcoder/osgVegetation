@@ -24,7 +24,7 @@ namespace osgVegetation
 			{
 				osg::Image* image = osgDB::readImageFile(texture_name,options);
 				if(image == NULL)
-					throw std::exception(std::string("Failed to load texture:" + texture_name).c_str());
+					throw std::exception(std::string("Utils::loadTextureArray - Failed to load texture:" + texture_name).c_str());
 				if(image && tex_width == 0) // first image decide array size
 				{
 					tex_width = image->s();

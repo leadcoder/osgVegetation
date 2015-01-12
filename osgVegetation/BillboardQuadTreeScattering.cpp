@@ -1,18 +1,13 @@
 #include "BillboardQuadTreeScattering.h"
-#include <osg/Geode>
-#include <osg/Geometry>
 #include <osg/MatrixTransform>
 #include <osg/StateSet>
 #include <osg/ComputeBoundsVisitor>
 #include <osg/PagedLOD>
 #include <osg/ProxyNode>
-
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
-//#include <osg/Texture2DArray>
-//#include <iostream>
 #include <sstream>
 #include "BRTGeometryShader.h"
 #include "BRTShaderInstancing.h"
@@ -43,20 +38,20 @@ namespace osgVegetation
 			osg::Vec3 pos(Utils::random(origin.x(),origin.x()+size.x()),Utils::random(origin.y(),origin.y()+size.y()),0);
 			osg::Vec3 inter;
 			osg::Vec4 color;
-			osg::Vec4 mat_color;
+			osg::Vec4 coverage_color;
 			float rand_int = Utils::random(layer.ColorIntensity.x(),layer.ColorIntensity.y());
 			osg::Vec3 offset_pos = pos + m_Offset;
 			if(m_InitBB.contains(pos))
 			{
-				if(m_TerrainQuery->getTerrainData(offset_pos,color,mat_color,inter))
+				std::string material_name;
+				if(m_TerrainQuery->getTerrainData(offset_pos, color, material_name, coverage_color, inter))
 				{
-					if(layer.hasMaterial(mat_color))
+					if(layer.hasCoverage(material_name))
 					{
 						BillboardObject* veg_obj = new BillboardObject;
-						//TODO add color to layer
 						float tree_scale = Utils::random(layer.Scale.x() ,layer.Scale.y());
-						veg_obj->Width = Utils::random(layer.Width.x(),layer.Width.y())*tree_scale;
-						veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
+						veg_obj->Width = Utils::random(layer.Width.x(), layer.Width.y())*tree_scale;
+						veg_obj->Height = Utils::random(layer.Height.x(), layer.Height.y())*tree_scale;
 						veg_obj->TextureIndex = layer._TextureIndex;
 						veg_obj->Position = inter - m_Offset;
 						if(layer.MixInIntensity)
@@ -77,19 +72,19 @@ namespace osgVegetation
 	std::string BillboardQuadTreeScattering::_createFileName( unsigned int lv,	unsigned int x, unsigned int y ) const
 	{
 		std::stringstream sstream;
-		sstream << m_FilenamePrefix << lv << "_X" << x << "_Y" << y << ".ive";
+		sstream << m_FilenamePrefix << lv << "_X" << x << "_Y" << y << "." << m_SaveExt;
 		return sstream.str();
 	}
 
 	osg::Node* BillboardQuadTreeScattering::_createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector instances, const osg::BoundingBox &bb,int x, int y)
 	{
 		if(ld < 6) //only show progress above lod 6, we don't want to spam the log
-			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Create Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
+			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
 		m_CurrentTile++;
 
 		osg::ref_ptr<osg::Group> children_group = new osg::Group;
 
-		//mesh_group is returned as raw pointer so we don't use smart pointer
+		//mesh_group is returned as raw pointer
 		osg::Group* mesh_group = new osg::Group;
 		double bb_size = (bb._max.x() - bb._min.x());
 	
@@ -139,8 +134,6 @@ namespace osgVegetation
 				double radius = sqrt(bb_size*bb_size);
 				plod->setRadius(radius);
 				float cutoff = radius*2;
-				//regular terrain LOD setup
-				//plod->addChild(mesh_group, cutoff, FLT_MAX );
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
@@ -163,8 +156,6 @@ namespace osgVegetation
 				plod->setRadius(radius);
 
 				float cutoff = radius*2;
-				//regular terrain LOD setup
-				//plod->addChild(mesh_group, cutoff, FLT_MAX );
 				plod->addChild(mesh_group, 0, FLT_MAX );
 				plod->addChild(children_group, 0.0f, cutoff );
 				return plod;
@@ -179,16 +170,23 @@ namespace osgVegetation
 		return lhs.ViewDistance > rhs.ViewDistance;
 	}
 
-	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBox &boudning_box,BillboardData &data, const std::string &page_lod_path, const std::string &filename_prefix)
+	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBox &boudning_box,BillboardData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
 	{
-		m_FilenamePrefix = filename_prefix;
-		if(page_lod_path != "")
+		if(output_file != "")
 		{
-			m_UsePagedLOD = true;
-			m_SavePath = page_lod_path;
+			m_UsePagedLOD = use_paged_lod;
+			m_FilenamePrefix = filename_prefix;
+			m_SavePath = osgDB::getFilePath(output_file);
+			m_SavePath += "/";
+			m_SaveExt = osgDB::getFileExtension(output_file);
 		}
+		else if(m_UsePagedLOD)
+		{
+			throw std::exception(std::string("BillboardQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
+		}
+		
 
-		//remove  previous render tech
+		//remove any previous render technique
 		delete m_BRT;
 
 		//m_BRT = new BRTShaderInstancing(data);
@@ -205,21 +203,18 @@ namespace osgVegetation
 		m_InitBB._min.set(0,0,0);
 		m_InitBB._max = boudning_box._max - boudning_box._min;
 
-		
 		//add offset matrix
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
 		
 		//reset
 		m_FinalLOD =0;
-		m_NumberOfTiles = 0;
+		m_NumberOfTiles = 1; //at least one LOD tile
 		m_CurrentTile = 0;
 
 		//distance sort mesh LODs
-		for(size_t i = 0; i < data.Layers.size(); i++)
-		{
-			std::sort(data.Layers.begin(), data.Layers.end(), BillboardSortPredicate);
-		}
+		std::sort(data.Layers.begin(), data.Layers.end(), BillboardSortPredicate);
+		
 
 		//Get max view dist
 		for(size_t i = 0; i < data.Layers.size(); i++)
@@ -262,22 +257,18 @@ namespace osgVegetation
 
 		//Add state set to top node
 		outnode->setStateSet((osg::StateSet*) m_BRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
+		transform->addChild(outnode);
 
-		if(m_UsePagedLOD)
+		if(output_file != "")
 		{
-			transform->addChild(outnode);
-			osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.ive");
+			osgDB::writeNodeFile(*transform, output_file);
+			//osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.ive");
 			//osg::ProxyNode* pn = new osg::ProxyNode();
 			//pn->setFileName(0,"master.ive");
 			//pn->setDatabasePath("C:/temp/paged");
 			//transform->addChild(pn);
 			//osgDB::writeNodeFile( *transform, m_SavePath + "/transformation.osg" );
 		}
-		else
-		{
-			transform->addChild(outnode);
-		}
-
 		return transform;
 	}
 }

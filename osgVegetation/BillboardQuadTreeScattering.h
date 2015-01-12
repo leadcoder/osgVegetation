@@ -36,20 +36,20 @@ namespace osgVegetation
 			Generate vegetation data by providing billboard data
 			@param bb Generation area
 			@param data Billboard layers and settings
-			@param paged_lod_path Optional path to save PagedLOD nodes, if provided PagedLOD are used instead of regular LOD nodes
+			@param out_put_file Filename if you want to save data base, if using paged LODs this also will decide format and path for all Paged LOD files 
+			@param use_paged_lod Use PagedLOD instead of regular LOD nodes (can only be true if out_put_file is defined, otherwise we have no path)
+			@param filename_prefix Added to all files (only relevant if out_put_file is defined)
 		*/
-		osg::Node* generate(const osg::BoundingBox &bb, BillboardData &data, const std::string &paged_lod_path = "", const std::string &filename_prefix = "");
+		osg::Node* generate(const osg::BoundingBox &bb, BillboardData &data, const std::string &output_file = "", bool use_paged_lod = false, const std::string &filename_prefix = "");
 	private:
 		int m_FinalLOD;
-		int m_StartLOD;
-
+		
 		//progress data
 		int m_CurrentTile;
 		int m_NumberOfTiles;
 		
 		//Area bounding box
 		osg::BoundingBox m_InitBB;
-		
 		
 		IBillboardRenderingTech* m_BRT;
 		
@@ -58,10 +58,12 @@ namespace osgVegetation
 		
 		ITerrainQuery* m_TerrainQuery;
 
-		//paged LOD stuff
 		bool m_UsePagedLOD;
+		
+		//Output stuff
 		std::string m_SavePath;
 		std::string m_FilenamePrefix;
+		std::string m_SaveExt;
 	
 		//Helpers
 		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y) const;

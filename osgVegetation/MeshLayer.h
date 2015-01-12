@@ -1,5 +1,5 @@
 #pragma once
-#include "MaterialColor.h"
+#include "CoverageColor.h"
 #include "MeshObject.h"
 #include <osg/Referenced>
 #include <osg/vec4>
@@ -78,15 +78,18 @@ namespace osgVegetation
 		osg::Vec2 Scale;
 	
 		/**
-			Terrains materials that control scattering for this layer 
+			Coverage materials that control scattering for this layer 
 		*/
-		std::vector<MaterialColor> Materials;
+		std::vector<std::string> CoverageMaterials;
 
-		bool hasMaterial(const MaterialColor& mat) const
+		/**
+			Helper function to check is this layer hold coverage material
+		*/
+		bool hasCoverage(const std::string& name) const
 		{
-			for(size_t i = 0 ; i < Materials.size(); i++)
+			for(size_t i = 0 ; i < CoverageMaterials.size(); i++)
 			{
-				if(Materials[i] == mat)
+				if(CoverageMaterials[i] == name)
 					return true;
 			}
 			return false;

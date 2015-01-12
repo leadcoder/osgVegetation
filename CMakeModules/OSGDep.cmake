@@ -41,6 +41,7 @@ FILE(GLOB OSG_PLUGINS "${OSG_PLUGINS_DIR}/*.dll")
 
 set(OSG_BIN_FILES_DEBUG ${OSG_BIN_DIR}/ot20-OpenThreadsd.dll
 ${OSG_BIN_DIR}/zlibd.dll
+${OSG_BIN_DIR}/libpng16d.dll
 ${OSG_BIN_DIR}/osg100-osgd.dll
 ${OSG_BIN_DIR}/osg100-osgDBd.dll
 ${OSG_BIN_DIR}/osg100-osgGAd.dll
@@ -59,6 +60,7 @@ ${OSG_BIN_DIR}/osg100-osgVolumed.dll
 
 set(OSG_BIN_FILES_RELEASE ${OSG_BIN_DIR}/ot20-OpenThreads.dll
 ${OSG_BIN_DIR}/zlib.dll
+${OSG_BIN_DIR}/libpng16.dll
 ${OSG_BIN_DIR}/osg100-osg.dll
 ${OSG_BIN_DIR}/osg100-osgDB.dll
 ${OSG_BIN_DIR}/osg100-osgGA.dll
