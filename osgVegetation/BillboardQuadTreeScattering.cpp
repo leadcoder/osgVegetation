@@ -25,7 +25,7 @@ namespace osgVegetation
 
 	}
 
-	void BillboardQuadTreeScattering::_populateVegetationLayer(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances) const
+	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances) const
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
@@ -37,14 +37,14 @@ namespace osgVegetation
 		{
 			osg::Vec3 pos(Utils::random(origin.x(),origin.x()+size.x()),Utils::random(origin.y(),origin.y()+size.y()),0);
 			osg::Vec3 inter;
-			osg::Vec4 color;
+			osg::Vec4 terrain_color;
 			osg::Vec4 coverage_color;
 			float rand_int = Utils::random(layer.ColorIntensity.x(),layer.ColorIntensity.y());
 			osg::Vec3 offset_pos = pos + m_Offset;
 			if(m_InitBB.contains(pos))
 			{
 				std::string material_name;
-				if(m_TerrainQuery->getTerrainData(offset_pos, color, material_name, coverage_color, inter))
+				if(m_TerrainQuery->getTerrainData(offset_pos, terrain_color, material_name, coverage_color, inter))
 				{
 					if(layer.hasCoverage(material_name))
 					{
@@ -54,13 +54,13 @@ namespace osgVegetation
 						veg_obj->Height = Utils::random(layer.Height.x(), layer.Height.y())*tree_scale;
 						veg_obj->TextureIndex = layer._TextureIndex;
 						veg_obj->Position = inter - m_Offset;
-						if(layer.MixInIntensity)
+						if(layer.UseTerrainIntensity)
 						{
-							float intensity = (color.r() + color.g() + color.b())/3.0;
-							color.set(intensity,intensity,intensity,color.a());
+							float terrain_intensity = (terrain_color.r() + terrain_color.g() + terrain_color.b())/3.0;
+							terrain_color.set(terrain_intensity,terrain_intensity,terrain_intensity,terrain_color.a());
 						}
-						veg_obj->Color = color*layer.MixInColorRatio;
-						veg_obj->Color += osg::Vec4(1,1,1,1)*rand_int;
+						veg_obj->Color = terrain_color*(layer.TerrainColorRatio*rand_int);
+						veg_obj->Color += osg::Vec4(1,1,1,1)*(rand_int * (1.0 - layer.TerrainColorRatio));
 						veg_obj->Color.set(veg_obj->Color.r(), veg_obj->Color.g(), veg_obj->Color.b(), 1.0);
 						instances.push_back(veg_obj);
 					}
@@ -82,25 +82,36 @@ namespace osgVegetation
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
 		m_CurrentTile++;
 
+		const double bb_size = (bb._max.x() - bb._min.x());
+		const double tile_radius = sqrt(bb_size*bb_size);
+		const double tile_cutoff = tile_radius*2.0f;
+
 		osg::ref_ptr<osg::Group> children_group = new osg::Group;
 
 		//mesh_group is returned as raw pointer
 		osg::Group* mesh_group = new osg::Group;
-		double bb_size = (bb._max.x() - bb._min.x());
+		
 	
-		BillboardVegetationObjectVector patch_instances;
+		BillboardVegetationObjectVector tile_instances;
+		double max_view_dist = 0;
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
 			if(ld == data.Layers[i]._QTLevel)
 			{
-				 _populateVegetationLayer(data.Layers[i], bb,patch_instances);
+				 _populateVegetationTile(data.Layers[i], bb, tile_instances);
+				 
+				 //save view max view distance for this tile level
+				 if(data.Layers[i].ViewDistance > max_view_dist) 
+					 max_view_dist = data.Layers[i].ViewDistance;
 			}
 		}
 
-		if(patch_instances.size() > 0)
+		if(tile_instances.size() > 0)
 		{
-			osg::Node* node = m_BRT->create(patch_instances, bb);
-			mesh_group->addChild(node);
+			//expand view distance to cutoff? 
+			max_view_dist = std::max(max_view_dist, tile_cutoff);
+			osg::Node* tile_geometry = m_BRT->create(max_view_dist,tile_instances, bb);
+			mesh_group->addChild(tile_geometry);
 		}
 
 		//split bounding box into four new children
@@ -131,9 +142,7 @@ namespace osgVegetation
 				osg::PagedLOD* plod = new osg::PagedLOD;
 				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
 				plod->setCenter(bb.center());
-				double radius = sqrt(bb_size*bb_size);
-				plod->setRadius(radius);
-				float cutoff = radius*2;
+				plod->setRadius(tile_radius);
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
@@ -142,7 +151,7 @@ namespace osgVegetation
 				}
 				const std::string filename = _createFileName(ld, x,y);
 				plod->setFileName( c_index, filename );
-				plod->setRange(c_index,0,cutoff);
+				plod->setRange(c_index,0,tile_cutoff );
 				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
 				return plod;
 			}
@@ -151,13 +160,9 @@ namespace osgVegetation
 				osg::LOD* plod = new osg::LOD;
 				plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
 				plod->setCenter( bb.center());
-
-				double radius = sqrt(bb_size*bb_size);
-				plod->setRadius(radius);
-
-				float cutoff = radius*2;
+				plod->setRadius(tile_radius);
 				plod->addChild(mesh_group, 0, FLT_MAX );
-				plod->addChild(children_group, 0.0f, cutoff );
+				plod->addChild(children_group, 0.0f, tile_cutoff );
 				return plod;
 			}
 		}
@@ -219,7 +224,7 @@ namespace osgVegetation
 		//Get max view dist
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
-			max_bb_size = std::max(max_bb_size,data.Layers[i].ViewDistance);
+			max_bb_size = std::max(max_bb_size, data.Layers[i].ViewDistance);
 		}
 
 		//set quad tree LOD level for each billboard layer

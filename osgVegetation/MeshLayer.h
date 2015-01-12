@@ -51,16 +51,16 @@ namespace osgVegetation
 		osg::Vec2 ColorIntensity;
 
 		/**
-			Percentage to of ground texture color to use for billboard coloring
+			Percentage to of ground texture color/intensity to use for model coloring
 		*/
-		double MixInColorRatio;
+		double TerrainColorRatio;
 		
 		/**
-			Only use intensity from ground texture (i.e (r+g+b)/3.0) when generating billboard color.
+			Only use intensity from ground texture (i.e (r+g+b)/3.0) when generating model color.
 			This is false by the fault which means that each color 
 			channel from the ground texture is respected.
 		*/
-		bool MixInIntensity;
+		bool UseTerrainIntensity;
 		
 		/**
 			Height interval (x=min, y=max) for all models populated in this layers

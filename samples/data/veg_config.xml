@@ -18,9 +18,9 @@
 				MinScale="0.8" MaxScale="0.9"
 				MinWidth="2" MaxWidth="2"
 				MinHeight="5" MaxHeight="5"
-				MinColorIntensity="2" MaxColorIntensity="2"
+				MinColorIntensity="5.5" MaxColorIntensity="5.5"
 				MixInIntensity="false"
-				MixInColorRatio="1.0"
+				TerrainColorRatio="1.0"
 				Materials ="WOODS">
 			</BillboardLayer>
 			<!-- Intermediate distance-->
@@ -31,9 +31,9 @@
 				MinScale="0.6" MaxScale="0.7"
 				MinWidth="2" MaxWidth="2"
 				MinHeight="5" MaxHeight="5"
-				MinColorIntensity="2" MaxColorIntensity="2"
+				MinColorIntensity="5.5" MaxColorIntensity="5.5"
 				MixInIntensity="false"
-				MixInColorRatio="1.0"
+				TerrainColorRatio="1.0"
 				Materials ="WOODS">
 			</BillboardLayer>
 			<!-- Near distance-->
@@ -44,9 +44,9 @@
 				MinScale="0.4" MaxScale="0.5"
 				MinWidth="2" MaxWidth="2"
 				MinHeight="5" MaxHeight="5"
-				MinColorIntensity="2" MaxColorIntensity="2"
+				MinColorIntensity="5.5" MaxColorIntensity="5.5"
 				MixInIntensity="false"
-				MixInColorRatio="1.0"
+				TerrainColorRatio="1.0"
 				Materials ="WOODS">
 			</BillboardLayer>
 		</BillboardLayers>

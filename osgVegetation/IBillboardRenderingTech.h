@@ -15,7 +15,7 @@ namespace osgVegetation
 	public:
 		IBillboardRenderingTech(){}
 		virtual ~IBillboardRenderingTech(){}
-		virtual osg::Node* create(const BillboardVegetationObjectVector &trees, const osg::BoundingBox &bb) = 0;
+		virtual osg::Node* create(double view_dist, const BillboardVegetationObjectVector &trees, const osg::BoundingBox &bb) = 0;
 		virtual osg::StateSet* getStateSet() const = 0;
 	protected:
 	};

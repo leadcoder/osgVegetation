@@ -76,8 +76,8 @@ namespace osgVegetation
 				bl_elem->QueryDoubleAttribute("MaxColorIntensity",&_max);
 				layer.ColorIntensity.set(_min,_max);
 				
-				bl_elem->QueryBoolAttribute("MixInIntensity",&layer.MixInIntensity);
-				bl_elem->QueryDoubleAttribute("MixInColorRatio",&layer.MixInColorRatio);
+				bl_elem->QueryBoolAttribute("MixInIntensity",&layer.UseTerrainIntensity);
+				bl_elem->QueryDoubleAttribute("MixInColorRatio",&layer.TerrainColorRatio);
 
 
 				if(!bl_elem->Attribute("Materials"))

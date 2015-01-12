@@ -497,7 +497,7 @@ namespace osgVegetation
 		return geom;
 	}
 
-	osg::Node* BRTShaderInstancing::create(const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBox &bb)
+	osg::Node* BRTShaderInstancing::create(double view_dist, const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBox &bb)
 	{
 		osg::Geode* geode = 0;
 		osg::Group* group = 0;
@@ -539,13 +539,15 @@ namespace osgVegetation
 			osg::Uniform* dataBufferSampler = new osg::Uniform("DataBufferTexture",1);
 			geometry->getOrCreateStateSet()->addUniform(dataBufferSampler);
 
+
 			osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "FadeInDist");
+
+			//use 
 			double bb_size = (bb._max.x() - bb._min.x());
 			float radius = sqrt(bb_size*bb_size);
-
 			fadeInDist->set(radius*2.0f);
-			//fadeInDist->setDataVariance(osg::Object::DYNAMIC);
 			geometry->getOrCreateStateSet()->addUniform(fadeInDist);
+
 			//geode->setStateSet((osg::StateSet*) m_StateSet->clone(osg::CopyOp::DEEP_COPY_STATESETS));
 		}
 		return geode;

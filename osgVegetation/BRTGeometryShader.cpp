@@ -38,7 +38,6 @@ namespace osgVegetation
 			"#version 120\n"
 			//"#extension GL_EXT_geometry_shader4 : enable\n"
 			"varying vec2 TexCoord;\n"
-			//"varying vec3 Normal;\n"
 			"void main(void)\n"
 			"{\n"
 			"    gl_Position = gl_Vertex;\n"
@@ -262,7 +261,7 @@ namespace osgVegetation
 		return m_StateSet;
 	}
 
-	osg::Node* BRTGeometryShader::create(const BillboardVegetationObjectVector &objects, const osg::BoundingBox &bb)
+	osg::Node* BRTGeometryShader::create(double view_dist, const BillboardVegetationObjectVector &objects, const osg::BoundingBox &bb)
 	{
 		osg::Geode* geode = new osg::Geode;
 
@@ -280,9 +279,11 @@ namespace osgVegetation
 		geometry->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLES, 0, v->size() ) );
 
 		osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "FadeInDist");
-		double bb_size = (bb._max.x() - bb._min.x());
-		float radius = sqrt(bb_size*bb_size);
-		fadeInDist->set(radius*2.0f);
+		fadeInDist->set( (float) view_dist);
+	
+		//double bb_size = (bb._max.x() - bb._min.x());
+		//float radius = sqrt(bb_size*bb_size);
+		
 		geometry->getOrCreateStateSet()->addUniform(fadeInDist);
 
 		return geode;

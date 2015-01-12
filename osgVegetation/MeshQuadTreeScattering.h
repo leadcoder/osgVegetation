@@ -18,12 +18,9 @@ namespace osgVegetation
 	class ITerrainQuery;
 
 	/**
-		Class used for vegetation generation. Vegetation is stored in quad tree 
+		Class used for mesh vegetation generation. Vegetation is stored in quad tree 
 		structure based on the osg::LOD node. The start tile is based on the terrain size and then recursivly 
-		divided until the vegetation view distance is reached. The user can also let LOD nodes above the final hold
-		vegetation data (with decreased density). This feature enable terrain far away (from camera) to hold 
-		low density vegetation saving performance. See the BillboardData structure for more information about LOD settings.
-	*/
+		divided until the vegetation view distance is reached.*/
 
 	class osgvExport MeshQuadTreeScattering : public osg::Referenced
 	{
@@ -64,7 +61,7 @@ namespace osgVegetation
 
 		//Helpers
 		std::string _createFileName(unsigned int lv, unsigned int x, unsigned int y);
-		void _populateVegetationLayer(MeshLayer& layer,const osg::BoundingBox &box);
+		void _populateVegetationTile(MeshLayer& layer,const osg::BoundingBox &box);
 		osg::Node* _createLODRec(int ld, MeshData &data, MeshVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
 	};
 }

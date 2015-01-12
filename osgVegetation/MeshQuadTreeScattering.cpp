@@ -24,7 +24,7 @@ namespace osgVegetation
 
 	}
 
-	void MeshQuadTreeScattering::_populateVegetationLayer(MeshLayer& layer,const  osg::BoundingBox& bb)
+	void MeshQuadTreeScattering::_populateVegetationTile(MeshLayer& layer,const  osg::BoundingBox& bb)
 	{
 		osg::Vec3 origin = bb._min; 
 		osg::Vec3 size = bb._max - bb._min; 
@@ -36,14 +36,14 @@ namespace osgVegetation
 		{
 			osg::Vec3 pos(Utils::random(origin.x(),origin.x()+size.x()),Utils::random(origin.y(),origin.y()+size.y()),0);
 			osg::Vec3 inter;
-			osg::Vec4 base_color;
+			osg::Vec4 terrain_color;
 			osg::Vec4 coverage_color;
 			float rand_int = Utils::random(layer.ColorIntensity.x(),layer.ColorIntensity.y());
 			osg::Vec3 offset_pos = pos + m_Offset;
 			if(m_InitBB.contains(pos))
 			{
 				std::string coverage_name;
-				if(m_TerrainQuery->getTerrainData(offset_pos,base_color,coverage_name,coverage_color,inter))
+				if(m_TerrainQuery->getTerrainData(offset_pos,terrain_color,coverage_name,coverage_color,inter))
 				{
 					if(layer.hasCoverage(coverage_name))
 					{
@@ -53,13 +53,13 @@ namespace osgVegetation
 						veg_obj->Height = Utils::random(layer.Height.x(),layer.Height.y())*tree_scale;
 						veg_obj->Position = inter - m_Offset;
 						veg_obj->Rotation.makeRotate(Utils::random(0.0, osg::PI_2),osg::Vec3(0,0,1));
-						if(layer.MixInIntensity)
+						if(layer.UseTerrainIntensity)
 						{
-							float intensity = (base_color.r() + base_color.g() + base_color.b())/3.0;
-							base_color.set(intensity,intensity,intensity,base_color.a());
+							float intensity = (terrain_color.r() + terrain_color.g() + terrain_color.b())/3.0;
+							terrain_color.set(intensity,intensity,intensity,terrain_color.a());
 						}
-						veg_obj->Color = base_color*layer.MixInColorRatio;
-						veg_obj->Color += osg::Vec4(1,1,1,1)*rand_int;
+						veg_obj->Color = terrain_color*(layer.TerrainColorRatio*rand_int);
+						veg_obj->Color += osg::Vec4(1,1,1,1)*(rand_int * (1.0 - layer.TerrainColorRatio));
 						veg_obj->Color.set(veg_obj->Color.r(), veg_obj->Color.g(), veg_obj->Color.b(), 1.0);
 						layer._Instances.push_back(veg_obj);
 					}
@@ -85,7 +85,10 @@ namespace osgVegetation
 
 		//mesh_group is returned as raw pointer so we don't use smart pointer
 		osg::Group* mesh_group = new osg::Group;
-		double bb_size = (bb._max.x() - bb._min.x());
+		
+		const double bb_size = (bb._max.x() - bb._min.x());
+		const double tile_radius = sqrt(bb_size*bb_size);
+		const double tile_cutoff = tile_radius*2.0f;
 
 		bool final_lod = (ld == m_FinalLOD);
 
@@ -107,25 +110,25 @@ namespace osgVegetation
 					//remove any previous data
 					data.Layers[i]._Instances.clear();
 					//create data
-					_populateVegetationLayer(data.Layers[i], bb);
+					_populateVegetationTile(data.Layers[i], bb);
 				}
 			}
 		
 			if(mesh_lod >= 0)
 			{
 				//filter trees inside box
-				MeshVegetationObjectVector patch_instances;
+				MeshVegetationObjectVector tile_instances;
 				for(size_t j = 0; j < data.Layers[i]._Instances.size(); j++)
 				{
 					if(bb.contains(data.Layers[i]._Instances[j]->Position))
-						patch_instances.push_back(data.Layers[i]._Instances[j]);
+						tile_instances.push_back(data.Layers[i]._Instances[j]);
 					
 					//Debug stuff
 					//osg::Vec3 p = data.Layers[i]._Instances[j]->Position;
 					//p.set(p.x(),p.y(),p.z() + 1.0);
 					//data.Layers[i]._Instances[j]->Position = p;
 				}
-				osg::Node* node = m_MRT->create(patch_instances, data.Layers[i].MeshLODs[mesh_lod].MeshName, bb);
+				osg::Node* node = m_MRT->create(tile_instances, data.Layers[i].MeshLODs[mesh_lod].MeshName, bb);
 				mesh_group->addChild(node);
 			}
 		}
@@ -157,21 +160,18 @@ namespace osgVegetation
 				osg::PagedLOD* plod = new osg::PagedLOD;
 				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
 				plod->setCenter(bb.center());
-				double radius = sqrt(bb_size*bb_size);
-				plod->setRadius(radius);
-				float cutoff = radius*2;
-				//regular terrain LOD setup
+				plod->setRadius(tile_radius);
 				
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
 					//plod->addChild(mesh_group, 0, FLT_MAX );
-					plod->addChild(mesh_group, cutoff, FLT_MAX );
+					plod->addChild(mesh_group, tile_cutoff, FLT_MAX );
 					c_index++;
 				}
 				const std::string filename = _createFileName(ld, x,y);
 				plod->setFileName( c_index, filename );
-				plod->setRange(c_index,0,cutoff);
+				plod->setRange(c_index, 0, tile_cutoff);
 				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
 				return plod;
 			}
@@ -180,14 +180,10 @@ namespace osgVegetation
 				osg::LOD* plod = new osg::LOD;
 				plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
 				plod->setCenter( bb.center());
-
-				double radius = sqrt(bb_size*bb_size);
-				plod->setRadius(radius);
-
-				float cutoff = radius*2;
+				plod->setRadius(tile_radius);
 				//regular terrain LOD setup
-				plod->addChild(mesh_group, cutoff, FLT_MAX );
-				plod->addChild(children_group, 0.0f, cutoff );
+				plod->addChild(mesh_group, tile_cutoff, FLT_MAX );
+				plod->addChild(children_group, 0.0f, tile_cutoff );
 				return plod;
 			}
 		}
@@ -234,7 +230,6 @@ namespace osgVegetation
 		m_InitBB._min.set(0,0,0);
 		m_InitBB._max = boudning_box._max - boudning_box._min;
 
-		
 		//add offset matrix
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
 		transform->setMatrix(osg::Matrix::translate(m_Offset));

@@ -7,7 +7,6 @@
 #include <osg/ref_ptr>
 #include <vector>
 #include <map>
-#include "BillboardLayer.h"
 
 
 namespace osgVegetation

@@ -26,7 +26,7 @@ namespace osgVegetation
 		bool ReceiveShadows;
 		
 		/**
-			The billboard collection
+			The mesh layer collection
 		*/
 		MeshLayerVector Layers;
 	};

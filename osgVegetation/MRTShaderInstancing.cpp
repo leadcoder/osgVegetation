@@ -1,6 +1,5 @@
 #include "MRTShaderInstancing.h"
 #include <osg/AlphaFunc>
-#include <osg/Billboard>
 #include <osg/BlendFunc>
 #include <osg/Depth>
 #include <osg/Geode>

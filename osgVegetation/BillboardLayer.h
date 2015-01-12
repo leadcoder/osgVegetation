@@ -23,8 +23,8 @@ namespace osgVegetation
 			Scale(1.0, 1.0),
 			ColorIntensity(1.0, 1.0),
 			Density(1.0),
-			MixInColorRatio(0.0),
-			MixInIntensity(false),
+			TerrainColorRatio(0.0),
+			UseTerrainIntensity(false),
 			_TextureIndex(-1),
 			_QTLevel(-1)
 		{
@@ -38,7 +38,8 @@ namespace osgVegetation
 		std::string TextureName;
 		
 		/**
-			Max view distance
+			Min view distance. This layer is always visible below this distance. 
+			The exact distance is depending on other layers view distance (and quad tree tile cutoff).
 		*/
 		double ViewDistance;
 
@@ -68,16 +69,16 @@ namespace osgVegetation
 		osg::Vec2 ColorIntensity;
 
 		/**
-			Percentage to of ground texture color to use for billboard coloring
+			Percentage to of ground texture color/intensity to use for billboard coloring
 		*/
-		double MixInColorRatio;
+		double TerrainColorRatio;
 
 		/**
 			Only use intensity from ground texture (i.e (r+g+b)/3.0) when generating billboard color.
 			This is false by the fault which means that each color 
 			channel from the ground texture is respected.
 		*/
-		bool MixInIntensity;
+		bool UseTerrainIntensity;
 
 		/**
 			Coverage material vector that specify where to scatter billboards

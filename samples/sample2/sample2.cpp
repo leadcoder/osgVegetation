@@ -57,7 +57,6 @@ int main( int argc, char **argv )
 #endif
 
 	const bool enableShadows = false;
-	const bool use_paged_LOD = false;
 
 	// use an ArgumentParser object to manage the program arguments.
 	osg::ArgumentParser arguments(&argc,argv);
@@ -106,8 +105,9 @@ int main( int argc, char **argv )
 	spruce.Height.set(0.5,0.5);
 	spruce.Width.set(0.5,0.5);
 	spruce.Scale.set(0.8,0.9);
-	spruce.ColorIntensity.set(1,1);
-	spruce.MixInColorRatio = 0.0;
+	spruce.ColorIntensity.set(3.0,3.0);
+	spruce.TerrainColorRatio = 1.0;
+	spruce.UseTerrainIntensity = false;
 	spruce.CoverageMaterials.push_back(WOODS);
 
 	//Create mesh data that hold all mesh layers
@@ -116,13 +116,6 @@ int main( int argc, char **argv )
 
 	//Add layers
 	tree_data.Layers.push_back(spruce);
-
-	std::string save_path;
-	if(use_paged_LOD)
-	{
-		save_path = "c:/temp/paged/";
-		osgDB::Registry::instance()->getDataFilePathList().push_back(save_path); 
-	}
 
 	osg::ComputeBoundsVisitor  cbv;
 	osg::BoundingBox &bb(cbv.getBoundingBox());
@@ -153,7 +146,7 @@ int main( int argc, char **argv )
 
 	try{
 		//Start generation
-		tree_node = scattering.generate(bb,tree_data,save_path);
+		tree_node = scattering.generate(bb,tree_data);
 		group->addChild(tree_node);
 	}
 	catch(std::exception& e)
