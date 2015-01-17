@@ -189,8 +189,7 @@ namespace osgVegetation
 		{
 			throw std::exception(std::string("BillboardQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
 		}
-		
-
+	
 		//remove any previous render technique
 		delete m_BRT;
 

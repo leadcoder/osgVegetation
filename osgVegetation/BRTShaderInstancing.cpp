@@ -26,7 +26,7 @@ namespace osgVegetation
 {
 	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data) : m_PPL(false)
 	{
-		m_TrueBillboards = (data.Type == BT_SCREEN_ALIGNED);
+		m_TrueBillboards = (data.Type == BT_ROTATED_QUAD);
 		if(data.CastShadows) //need to cross quads if we use shadows
 			m_TrueBillboards = false;
 		m_StateSet = _createStateSet(data);

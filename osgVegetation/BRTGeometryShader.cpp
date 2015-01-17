@@ -22,10 +22,10 @@ namespace osgVegetation
 
 	BRTGeometryShader::BRTGeometryShader(BillboardData &data) : m_PPL(false)
 	{
-		m_TrueBillboards = (data.Type == BT_SCREEN_ALIGNED);
-		
-		if(data.CastShadows) //need to cross quads if we use shadows
-			m_TrueBillboards = false;
+		m_TrueBillboards = (data.Type == BT_ROTATED_QUAD);
+
+		//if(data.CastShadows) //need to cross quads if we use shadows
+		//	m_TrueBillboards = false;
 
 		m_StateSet = _createStateSet(data);
 	}
@@ -75,88 +75,85 @@ namespace osgVegetation
 
 			"void main(void)\n"
 			"{\n"
-			"    vec4 position = gl_PositionIn[0];\n"
+			"    vec4 pos = gl_PositionIn[0];\n"
 			"    vec4 info = gl_PositionIn[1];\n"
 			"    vec4 info2 = gl_PositionIn[2];\n"
 			"    TextureIndex = info.z;\n"
 			"    Color = info2.xyz;\n"
 			"    vec2 scale = info.xy;\n"
-			"    scale.x *= 0.5;\n";
+			"    scale.x *= 0.5;\n"
+			"    vec4 camera_pos = gl_ModelViewMatrixInverse[3];\n";
+
 		if(!data.CastShadows) //shadow casting and vertex fading don't mix well
 		{
-			geomSource << 
-				"    float distance = length((gl_ModelViewMatrix * vec4(position.x, position.y, position.z, 1.0)).xyz);\n"
+			geomSource <<
+				"    float distance = length(camera_pos.xyz - pos.xyz);\n"
 				"	 scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
 		}
 		geomSource << 
-			"    vec4 e;\n";
+			"    vec4 e;\n"
+			"    e.w = pos.w;\n";
 		if(m_TrueBillboards)
 		{
 			geomSource <<
-				"  mat4 modelView = gl_ModelViewMatrix * mat4( scale.x, 0.0, 0.0, 0.0,\n"
-				"              0.0, scale.x, 0.0, 0.0,\n"
-				"              0.0, 0.0, scale.y, 0.0,\n"
-				"              position.x, position.y, position.z, 1.0);\n"
-				"  modelView[0][0] = scale.x; modelView[0][1] = 0.0;     modelView[0][2] = 0.0;\n"
-				"  modelView[1][0] = 0;       modelView[1][1] = scale.y; modelView[1][2] = 0.0;\n";
+				"    vec3 dir = camera_pos.xyz - pos.xyz;\n"
+				"	 dir.z = 0;\n //we are only instrested in xy-plane direction" 
+				"    dir = normalize(dir);\n"
+				"    vec3 up   = vec3(0.0, 0.0, 1.0*scale.y);//Up direction in OSG\n"
+				//"    vec3 left = cross(dir,up); //Generate billboard base vector\n"
+				"    vec3 left = vec3(-dir.y,dir.x, 0);\n"
+				"	 left = normalize(left);\n"
+				"	 left.xy *= scale.xx;\n";
 			if(data.TerrainNormal)
 			{
-				geomSource <<
-					"    e = vec4(-1.0,0.0,0.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,0.0); Normal = vec3(0.0,1.0,0.0); EmitVertex();\n"
-					"    e = vec4(1.0,0.0,0.0,1.0);   gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(1.0,0.0); Normal = vec3(0.0,1.0,0.0); EmitVertex();\n"
-					"    e = vec4(-1.0,0.0,1.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,1.0); Normal = vec3(0.0,1.0,0.0); EmitVertex();\n"
-					"    e = vec4(1.0,0.0,1.0,1.0);   gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(1.0,1.0); Normal = vec3(0.0,1.0,0.0); EmitVertex();\n";
+				geomSource << "vec3 n1 = vec3(0.0, 1.0, 0.0);vec3 n2=n1;vec3 n3=n1;vec3 n4=n1;\n";
 			}
 			else
 			{
-				geomSource <<
-					"	 float roundness = 1.0;\n"
-					"    e = vec4(-1.0,0.0,0.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,0.0); Normal = normalize(vec3(-roundness,0.0,1.0)); EmitVertex();\n"
-					"    e = vec4(1.0,0.0,0.0,1.0);   gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(1.0,0.0); Normal = normalize(vec3( roundness,0.0,1.0)); EmitVertex();\n"
-					"    e = vec4(-1.0,0.0,1.0,1.0);  gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(0.0,1.0); Normal = normalize(vec3(-roundness,0.0,1.0)); EmitVertex();\n"
-					"    e = vec4(1.0,0.0,1.0,1.0);   gl_Position = gl_ProjectionMatrix * (modelView * e); TexCoord = vec2(1.0,1.0); Normal = normalize(vec3( roundness,0.0,1.0)); EmitVertex();\n";
+				geomSource << "float n_offset = 1.0;\n" 
+					"vec3 n1 = vec3(-n_offset,0.0,1.0);\n"
+					"vec3 n2 = vec3( n_offset,0.0,1.0);\n"
+					"vec3 n3 = n1;\n"
+					"vec3 n4 = n2;\n";
 			}
+
 			geomSource <<
+				"    e.xyz =  pos.xyz + left;       gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(0.0,0.0); Normal = n1; EmitVertex();\n"
+				"    e.xyz =  pos.xyz - left;       gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(1.0,0.0); Normal = n2; EmitVertex();\n"
+				"    e.xyz =  pos.xyz + left + up;  gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(0.0,1.0); Normal = n3; EmitVertex();\n"
+				"    e.xyz =  pos.xyz - left + up;  gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(1.0,1.0); Normal = n4; EmitVertex();\n"
 				"    EndPrimitive();\n"
 				"}\n";
 		}
 		else
 		{
 			geomSource <<
-				"	 float rand_rad = mod(position.x, 2*3.14);\n"
+				"	 float rand_rad = mod(pos.x, 2*3.14);\n"
 				"    float sw = scale.x*sin(rand_rad);\n"
 				"    float cw = scale.x*cos(rand_rad);\n"
 				"    float h = scale.y;\n";
+
 			if(data.TerrainNormal)
 			{
-				geomSource <<
-					"    e = position + vec4(-sw,-cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-					"    e = position + vec4( sw, cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-					"    e = position + vec4(-sw,-cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-					"    e = position + vec4( sw, cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-					"    EndPrimitive();\n"
-					"    e = position + vec4(-cw, sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-					"    e = position + vec4( cw,-sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-					"    e = position + vec4(-cw, sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-					"    e = position + vec4( cw,-sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0)); EmitVertex();\n"
-					"    EndPrimitive();\n";
+				geomSource << "vec3 n = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0));\n";
 			}
 			else
 			{
-				geomSource <<
-					"	 float roundness = 0.0;\n"
-					"    e = position + vec4(-sw,-cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = vec3(0.0,0.0,1.0); EmitVertex();\n"
-					"    e = position + vec4( sw, cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = vec3(0.0,0.0,1.0); EmitVertex();\n"
-					"    e = position + vec4(-sw,-cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = vec3(0.0,0.0,1.0); EmitVertex();\n"
-					"    e = position + vec4( sw, cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = vec3(0.0,0.0,1.0); EmitVertex();\n"
-					"    EndPrimitive();\n"
-					"    e = position + vec4(-cw, sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = vec3(0.0,0.0,1.0); EmitVertex();\n"
-					"    e = position + vec4( cw,-sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = vec3(0.0,0.0,1.0); EmitVertex();\n"
-					"    e = position + vec4(-cw, sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = vec3(0.0,0.0,1.0); EmitVertex();\n"
-					"    e = position + vec4( cw,-sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = vec3(0.0,0.0,1.0); EmitVertex();\n"
-					"    EndPrimitive();\n";
+				geomSource << "vec3 n = vec3(0.0,0.0,1.0);\n";
 			}
-			geomSource << "}\n";
+
+			geomSource <<
+				"    e = pos + vec4(-sw,-cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = n; EmitVertex();\n"
+				"    e = pos + vec4( sw, cw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = n; EmitVertex();\n"
+				"    e = pos + vec4(-sw,-cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = n; EmitVertex();\n"
+				"    e = pos + vec4( sw, cw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = n; EmitVertex();\n"
+				"    EndPrimitive();\n"
+				"    e = pos + vec4(-cw, sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,0.0); Normal = n; EmitVertex();\n"
+				"    e = pos + vec4( cw,-sw,0.0,0.0);  gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,0.0); Normal = n; EmitVertex();\n"
+				"    e = pos + vec4(-cw, sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(0.0,1.0); Normal = n; EmitVertex();\n"
+				"    e = pos + vec4( cw,-sw,h,0.0);    gl_Position = gl_ModelViewProjectionMatrix * e; DynamicShadow(e); TexCoord = vec2(1.0,1.0); Normal = n; EmitVertex();\n"
+				"    EndPrimitive();\n"
+				"}\n";
 		}
 
 		std::stringstream fragSource;
@@ -280,10 +277,10 @@ namespace osgVegetation
 
 		osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "FadeInDist");
 		fadeInDist->set( (float) view_dist);
-	
+
 		//double bb_size = (bb._max.x() - bb._min.x());
 		//float radius = sqrt(bb_size*bb_size);
-		
+
 		geometry->getOrCreateStateSet()->addUniform(fadeInDist);
 
 		return geode;

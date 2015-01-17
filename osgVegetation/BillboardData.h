@@ -13,7 +13,7 @@ namespace osgVegetation
 
 	enum BillboardType
 	{
-		BT_SCREEN_ALIGNED,
+		BT_ROTATED_QUAD,
 		BT_CROSS_QUADS
 	};
 

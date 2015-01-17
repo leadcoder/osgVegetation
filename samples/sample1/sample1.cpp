@@ -133,21 +133,21 @@ int main( int argc, char **argv )
 	tree_data.CastShadows = enableShadows;
 	tree_data.UseFog = use_fog;
 	tree_data.FogMode = fog_mode;
+	tree_data.TerrainNormal = false;
 
-
-	if(enableShadows) // For correct shadow casting we need to use cross quads...no solution for this right now
-		tree_data.Type = osgVegetation::BT_CROSS_QUADS;
-	else
-		tree_data.Type = osgVegetation::BT_SCREEN_ALIGNED;
+	//if(enableShadows) // For correct shadow casting we need to use cross quads...no solution for this right now
+	//	tree_data.Type = osgVegetation::BT_CROSS_QUADS;
+	//else
+	tree_data.Type = osgVegetation::BT_CROSS_QUADS;
 
 	osg::ComputeBoundsVisitor  cbv;
 	osg::BoundingBox &bb(cbv.getBoundingBox());
 	terrain->accept(cbv);
 
 	//down size bb for faster generation...useful for testing purpose
-	/*osg::Vec3 bb_size = bb._max - bb._min;
-	bb._min = bb._min + bb_size*0.1;
-	bb._max = bb._max - bb_size*0.1;*/
+	osg::Vec3 bb_size = bb._max - bb._min;
+	bb._min = bb._min + bb_size*0.2;
+	bb._max = bb._max - bb_size*0.2;
 
 	//coverage data used by the terrain query class
 	osgVegetation::CoverageData cd;
