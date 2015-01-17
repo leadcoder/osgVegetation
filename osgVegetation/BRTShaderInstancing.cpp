@@ -27,8 +27,6 @@ namespace osgVegetation
 	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data) : m_PPL(false)
 	{
 		m_TrueBillboards = (data.Type == BT_ROTATED_QUAD);
-		if(data.CastShadows) //need to cross quads if we use shadows
-			m_TrueBillboards = false;
 		m_StateSet = _createStateSet(data);
 	}
 
@@ -111,28 +109,31 @@ namespace osgVegetation
 				"   Color         = texelFetch(DataBufferTexture, instanceAddress + 1);\n"
 				"   vec4 data     = texelFetch(DataBufferTexture, instanceAddress + 2);\n"
 				"   vec2 scale     = data.xy;\n"
-				"   VegetationType = data.z;\n";
-				if(!data.CastShadows) //shadow casting and vertex fading don't mix well
-				{
-					vertexShaderSource << 
-					"   float distance = length((gl_ModelViewMatrix * vec4(position.x, position.y, position.z, 1.0)).xyz);\n"
-					"   scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
-				}
+				"   VegetationType = data.z;\n"
+				"   vec4 camera_pos = gl_ModelViewMatrixInverse[3];\n";
+			if(!data.CastShadows) //shadow casting and vertex fading don't mix well
+			{
 				vertexShaderSource << 
-				"   mat4 modelView = gl_ModelViewMatrix * mat4( scale.x, 0.0, 0.0, 0.0,\n"
-				"              0.0, scale.x, 0.0, 0.0,\n"
-				"              0.0, 0.0, scale.y, 0.0,\n"
-				"              position.x, position.y, position.z, 1.0);\n";
+					"   float distance = length(camera_pos.xyz - position.xyz);\n"
+					"   scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
+			}
 			if(m_TrueBillboards)
 			{
 				vertexShaderSource << 
-					"   modelView[0][0] = scale.x; modelView[0][1] = 0.0;    modelView[0][2] = 0.0;\n"
-					"   modelView[1][0] = 0;       modelView[1][1] = scale.y;modelView[1][2] = 0.0;\n";
-				vertexShaderSource << "   vec4 mv_pos = modelView * gl_Vertex;\n";
+					"    vec3 dir = camera_pos.xyz - position.xyz;\n"
+					"	 dir.z = 0;\n //we are only instrested in xy-plane direction" 
+					"    dir = normalize(dir);\n"
+					"    vec3 left = vec3(-dir.y,dir.x, 0);\n"
+					"	 left = normalize(left);\n"
+					"	 left.xy *= scale.xx;\n"
+					"    vec4 m_pos = gl_Vertex;\n"
+					"    m_pos.z *= scale.y;\n"
+					"	 m_pos.xy = m_pos.x*left.xy;\n" 
+					"	 m_pos.xyz += position;\n";
 				if(data.ReceiveShadows)
-					vertexShaderSource << "   DynamicShadow(mv_pos);\n";
-				vertexShaderSource << "   gl_Position = gl_ProjectionMatrix * mv_pos ;\n";
-					"   gl_Position = gl_ProjectionMatrix * modelView * gl_Vertex ;\n";
+					vertexShaderSource << "   DynamicShadow(gl_ModelViewMatrix * m_pos);\n";
+				vertexShaderSource << "   gl_Position = gl_ModelViewProjectionMatrix * m_pos;\n";
+				//"   gl_Position = gl_ProjectionMatrix * modelView * gl_Vertex ;\n";
 				if(data.TerrainNormal)
 				{
 					vertexShaderSource << 
@@ -148,7 +149,12 @@ namespace osgVegetation
 			}
 			else
 			{
-				vertexShaderSource << "   vec4 mv_pos = modelView * gl_Vertex;\n";
+				vertexShaderSource << 
+					"   mat4 modelView = gl_ModelViewMatrix * mat4( scale.x, 0.0, 0.0, 0.0,\n"
+					"              0.0, scale.x, 0.0, 0.0,\n"
+					"              0.0, 0.0, scale.y, 0.0,\n"
+					"              position.x, position.y, position.z, 1.0);\n"
+					"   vec4 mv_pos = modelView * gl_Vertex;\n";
 				if(data.ReceiveShadows)
 					vertexShaderSource << "   DynamicShadow(mv_pos);\n";
 
@@ -157,7 +163,6 @@ namespace osgVegetation
 				{
 					vertexShaderSource << 
 						"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
-						
 				}
 				else
 				{
@@ -210,7 +215,6 @@ namespace osgVegetation
 
 			fragmentShaderSource <<
 				"varying vec4 Color;\n"
-				//"layout(location = 0, index = 0) out vec4 FragData0;\n"
 				"void main(void) \n"
 				"{\n"
 				"    vec4 outColor = texture2DArray( baseTexture, vec3(TexCoord, VegetationType)); \n";
@@ -225,8 +229,7 @@ namespace osgVegetation
 				fragmentShaderSource << 
 					"   outColor.xyz = outColor.xyz * Color.xyz;\n";
 			}
-
-
+			
 			if(data.ReceiveShadows)
 			{
 				fragmentShaderSource <<
@@ -396,7 +399,7 @@ namespace osgVegetation
 		osg::Vec3 n3(-1,0,0);
 		osg::Vec3 n4(1,0,0);
 
-		
+
 
 		/*n[0]= n1;
 		n[1]= n1;

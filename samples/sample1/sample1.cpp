@@ -45,7 +45,7 @@
 int main( int argc, char **argv )
 {
 	//Global settings
-	const bool enableShadows = false;
+	const bool enableShadows = true;
 	const bool use_fog = true;
 	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
 
@@ -129,16 +129,12 @@ int main( int argc, char **argv )
 
 	//create billboard data by supplying layers and rendering settings.
 	osgVegetation::BillboardData tree_data(layers, false,0.3,false);
-	tree_data.ReceiveShadows = enableShadows;
 	tree_data.CastShadows = enableShadows;
 	tree_data.UseFog = use_fog;
 	tree_data.FogMode = fog_mode;
 	tree_data.TerrainNormal = false;
-
-	//if(enableShadows) // For correct shadow casting we need to use cross quads...no solution for this right now
-	//	tree_data.Type = osgVegetation::BT_CROSS_QUADS;
-	//else
-	tree_data.Type = osgVegetation::BT_CROSS_QUADS;
+	tree_data.Type = osgVegetation::BT_ROTATED_QUAD;
+	tree_data.ReceiveShadows = false; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts 
 
 	osg::ComputeBoundsVisitor  cbv;
 	osg::BoundingBox &bb(cbv.getBoundingBox());

@@ -111,17 +111,17 @@ namespace osgVegetation
 			else
 			{
 				geomSource << "float n_offset = 1.0;\n" 
-					"vec3 n1 = vec3(-n_offset,0.0,1.0);\n"
-					"vec3 n2 = vec3( n_offset,0.0,1.0);\n"
+					"vec3 n1 = vec3( n_offset,0.0,1.0);\n"
+					"vec3 n2 = vec3(-n_offset,0.0,1.0);\n"
 					"vec3 n3 = n1;\n"
 					"vec3 n4 = n2;\n";
 			}
 
 			geomSource <<
-				"    e.xyz =  pos.xyz + left;       gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(0.0,0.0); Normal = n1; EmitVertex();\n"
-				"    e.xyz =  pos.xyz - left;       gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(1.0,0.0); Normal = n2; EmitVertex();\n"
-				"    e.xyz =  pos.xyz + left + up;  gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(0.0,1.0); Normal = n3; EmitVertex();\n"
-				"    e.xyz =  pos.xyz - left + up;  gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(1.0,1.0); Normal = n4; EmitVertex();\n"
+				"    e.xyz =  pos.xyz + left;       gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(0.0,0.0); DynamicShadow(e); Normal = n1; EmitVertex();\n"
+				"    e.xyz =  pos.xyz - left;       gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(1.0,0.0); DynamicShadow(e); Normal = n2; EmitVertex();\n"
+				"    e.xyz =  pos.xyz + left + up;  gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(0.0,1.0); DynamicShadow(e); Normal = n3; EmitVertex();\n"
+				"    e.xyz =  pos.xyz - left + up;  gl_Position = gl_ModelViewProjectionMatrix * e; TexCoord = vec2(1.0,1.0); DynamicShadow(e); Normal = n4; EmitVertex();\n"
 				"    EndPrimitive();\n"
 				"}\n";
 		}
