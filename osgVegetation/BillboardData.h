@@ -10,7 +10,6 @@
 
 namespace osgVegetation
 {
-
 	enum BillboardType
 	{
 		BT_ROTATED_QUAD,

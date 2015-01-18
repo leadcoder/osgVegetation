@@ -34,9 +34,9 @@ int main( int argc, char **argv )
 	delete[] writable;
 #endif
 
-	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/tiles");
-	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/material_textures");  
-	osgDB::Registry::instance()->getDataFilePathList().push_back("E:/temp/detail_mapping/Grid0/color_textures");  
+	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/tiles");
+	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/material_textures");  
+	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/color_textures");  
 
 
 	/////////////////////////////////////////////////////

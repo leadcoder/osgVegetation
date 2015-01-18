@@ -27,6 +27,10 @@ namespace osgVegetation
 	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data) : m_PPL(false)
 	{
 		m_TrueBillboards = (data.Type == BT_ROTATED_QUAD);
+
+		if(!(data.Type == BT_ROTATED_QUAD || data.Type == BT_CROSS_QUADS))
+			throw std::exception(std::string("BRTShaderInstancing::BRTShaderInstancing - Unsupported billboard type").c_str());
+
 		m_StateSet = _createStateSet(data);
 	}
 

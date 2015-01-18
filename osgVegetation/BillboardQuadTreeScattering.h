@@ -21,15 +21,17 @@ namespace osgVegetation
 
 	/**
 		Class used for billboard generation. Billboards are stored in quad tree 
-		structure based on the osg::LOD node. The start tile is based on supplied bounding box and then recursivly 
-		divided until the the shortest vegetation layer distance is reached. 
+		structure based on the osg::LOD node. The start tile use the supplied 
+		bounding box which is then recursively divided into four new tiles until 
+		the cutoff tile size is reached. The cutoff tile size i calculated based 
+		on the shortest vegetation layer distance.
 	*/
 
 	class osgvExport BillboardQuadTreeScattering : public osg::Referenced
 	{
 	public:
 		/**
-		@param tq Pointer to TerrainQuery classed used during the scattering step.
+		@param tq Pointer to TerrainQuery class, used during the scattering step.
 		*/
 		BillboardQuadTreeScattering(ITerrainQuery* tq);
 		/**
@@ -44,7 +46,7 @@ namespace osgVegetation
 	private:
 		int m_FinalLOD;
 		
-		//progress data
+		//data used for progress report
 		int m_CurrentTile;
 		int m_NumberOfTiles;
 		

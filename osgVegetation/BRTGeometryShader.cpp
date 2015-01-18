@@ -22,10 +22,8 @@ namespace osgVegetation
 
 	BRTGeometryShader::BRTGeometryShader(BillboardData &data) : m_PPL(false)
 	{
-		m_TrueBillboards = (data.Type == BT_ROTATED_QUAD);
-
-		//if(data.CastShadows) //need to cross quads if we use shadows
-		//	m_TrueBillboards = false;
+		if(!(data.Type == BT_ROTATED_QUAD || data.Type == BT_CROSS_QUADS))
+			throw std::exception(std::string("BRTGeometryShader::BRTGeometryShader - Unsupported billboard type").c_str());
 
 		m_StateSet = _createStateSet(data);
 	}
@@ -93,7 +91,7 @@ namespace osgVegetation
 		geomSource << 
 			"    vec4 e;\n"
 			"    e.w = pos.w;\n";
-		if(m_TrueBillboards)
+		if(data.Type == BT_ROTATED_QUAD)
 		{
 			geomSource <<
 				"    vec3 dir = camera_pos.xyz - pos.xyz;\n"
@@ -223,7 +221,7 @@ namespace osgVegetation
 		pgm->addShader( new osg::Shader( osg::Shader::FRAGMENT, fragSource.str() ) );
 		pgm->addShader( new osg::Shader( osg::Shader::GEOMETRY, geomSource.str() ) );
 
-		if(m_TrueBillboards)
+		if(data.Type == BT_ROTATED_QUAD)
 			pgm->setParameter( GL_GEOMETRY_VERTICES_OUT_EXT, 4 );
 		else
 			pgm->setParameter( GL_GEOMETRY_VERTICES_OUT_EXT, 8 );

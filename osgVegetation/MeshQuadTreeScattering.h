@@ -18,15 +18,17 @@ namespace osgVegetation
 	class ITerrainQuery;
 
 	/**
-		Class used for mesh vegetation generation. Vegetation is stored in quad tree 
-		structure based on the osg::LOD node. The start tile is based on the terrain size and then recursivly 
-		divided until the vegetation view distance is reached.*/
-
+		Class used for mesh vegetation generation. Vegetation are stored in quad tree 
+		structure based on the osg::LOD node. The start tile use the supplied 
+		bounding box which is then recursively divided into four new tiles until 
+		the cutoff tile size is reached. The cutoff tile size i calculated based 
+		on the shortest vegetation layer distance.
+	*/
 	class osgvExport MeshQuadTreeScattering : public osg::Referenced
 	{
 	public:
 		/**
-		@param tq Pointer to TerrainQuery classed used during the scattering step.
+		@param tq Pointer to TerrainQuery class, used during the scattering step.
 		*/
 		MeshQuadTreeScattering(ITerrainQuery* tq);
 		/**
@@ -41,7 +43,7 @@ namespace osgVegetation
 	private:
 		int m_FinalLOD;
 		
-		//progress data
+		//data used for progress report
 		int m_CurrentTile;
 		int m_NumberOfTiles;
 		

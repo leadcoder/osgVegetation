@@ -9,13 +9,19 @@
 
 namespace osgVegetation
 {
+	/**
+		IBillboardRenderingTech implementation that use a shader instancing based technique to generate vegetation billboars.
+	*/
 	class osgvExport BRTShaderInstancing :  public IBillboardRenderingTech
 	{
 	public:
 		BRTShaderInstancing(BillboardData &data);
 		virtual ~BRTShaderInstancing();
+		
+		//IBillboardRenderingTech
 		osg::Node* create(double view_dist, const BillboardVegetationObjectVector &trees, const osg::BoundingBox &bb);
 		osg::StateSet* getStateSet() const {return m_StateSet;}
+
 	protected:
 		osg::StateSet* _createStateSet(BillboardData &data);
 		osg::Geometry* _createOrthogonalQuadsWithNormals( const osg::Vec3& pos, float w, float h);
