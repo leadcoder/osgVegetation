@@ -59,6 +59,7 @@ namespace osgVegetation
 							float terrain_intensity = (terrain_color.r() + terrain_color.g() + terrain_color.b())/3.0;
 							terrain_color.set(terrain_intensity,terrain_intensity,terrain_intensity,terrain_color.a());
 						}
+						//generate static color data
 						veg_obj->Color = terrain_color*(layer.TerrainColorRatio*rand_int);
 						veg_obj->Color += osg::Vec4(1,1,1,1)*(rand_int * (1.0 - layer.TerrainColorRatio));
 						veg_obj->Color.set(veg_obj->Color.r(), veg_obj->Color.g(), veg_obj->Color.b(), 1.0);
