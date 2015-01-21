@@ -85,7 +85,7 @@ int main( int argc, char **argv )
 	//First LOD start at 400m
 	
 	osgVegetation::BillboardLayer  tree_l0("billboards/fir01_bb.dds", 400);
-	tree_l0.Density = 0.01;
+	tree_l0.Density = 0.02;
 	tree_l0.Height.set(5,5);
 	tree_l0.Width.set(2,2);
 	tree_l0.Scale.set(0.8,0.9);
@@ -93,17 +93,6 @@ int main( int argc, char **argv )
 	tree_l0.TerrainColorRatio = 0.7;
 	tree_l0.UseTerrainIntensity = false;
 	tree_l0.CoverageMaterials.push_back(WOODS);
-	
-	/*osgVegetation::BillboardLayer  tree_l0("billboards/CGTextures/tree01.png", 400);
-	tree_l0.Density = 0.01;
-	tree_l0.Height.set(5,5);
-	tree_l0.Width.set(4,4);
-	tree_l0.Scale.set(0.8,0.9);
-	tree_l0.ColorIntensity.set(1.0,1.0);
-	tree_l0.TerrainColorRatio = 0.7;
-	tree_l0.UseTerrainIntensity = true;
-	tree_l0.CoverageMaterials.push_back(WOODS);
-	*/
 
 	//second LOD start at 200m, also increase density and decrease scale
 	osgVegetation::BillboardLayer  tree_l1 = tree_l0;
@@ -133,13 +122,13 @@ int main( int argc, char **argv )
 	tree_data.ReceiveShadows = false; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts 
 
 	//grass data
-	osgVegetation::BillboardLayer  grass_l0("billboards/CGTextures/grass01.png", 40);
+	osgVegetation::BillboardLayer  grass_l0("billboards/grass0.png", 40);
 
 	grass_l0.Density = 1.6;
-	grass_l0.Height.set(0.7,0.9);
-	grass_l0.Width.set(1,1);
+	grass_l0.Height.set(0.8,0.8);
+	grass_l0.Width.set(1.0,1.0);
 	grass_l0.Scale.set(0.8,0.9);
-	grass_l0.ColorIntensity.set(2.4,2.5);
+	grass_l0.ColorIntensity.set(3.0,3.0);
 	grass_l0.TerrainColorRatio = 1.0;
 	grass_l0.UseTerrainIntensity = false;
 	grass_l0.CoverageMaterials.push_back(WOODS);
@@ -158,7 +147,7 @@ int main( int argc, char **argv )
 	grass_layers.push_back(grass_l0);
 	grass_layers.push_back(grass_l1);
 
-	osgVegetation::BillboardData grass_data(grass_layers, true,0.3,true);
+	osgVegetation::BillboardData grass_data(grass_layers, true,0.2,true);
 	grass_data.CastShadows = false;
 	grass_data.UseFog = use_fog;
 	grass_data.FogMode = fog_mode;
@@ -171,19 +160,21 @@ int main( int argc, char **argv )
 	terrain->accept(cbv);
 
 	//down size bb for faster generation...useful for testing purpose
+	const float tree_bb_scale = 0.4;
 	osg::BoundingBox tree_bb = bb;
 	osg::Vec3 bb_size = tree_bb._max - tree_bb._min;
 	osg::Vec3 bb_center = (tree_bb._max + tree_bb._min)*0.5;
-	tree_bb._min = bb_center - bb_size*0.2;
-	tree_bb._max = bb_center + bb_size*0.2;
+	tree_bb._min = bb_center - bb_size*0.5*tree_bb_scale;
+	tree_bb._max = bb_center + bb_size*0.5*tree_bb_scale;
 	tree_bb._min.set(tree_bb._min.x(),tree_bb._min.y(),bb._min.z());
 	tree_bb._max.set(tree_bb._max.x(),tree_bb._max.y(),bb._max.z());
 
+	const float grass_bb_scale = 0.3;
 	osg::BoundingBox grass_bb = bb; 
 	bb_size = grass_bb._max - grass_bb._min;
 	bb_center = (grass_bb._max + grass_bb._min)*0.5;
-	grass_bb._min = bb_center - bb_size*0.1;
-	grass_bb._max = bb_center + bb_size*0.1;
+	grass_bb._min = bb_center - bb_size*0.5*grass_bb_scale;
+	grass_bb._max = bb_center + bb_size*0.5*grass_bb_scale;
 	grass_bb._min.set(grass_bb._min.x(),grass_bb._min.y(),bb._min.z());
 	grass_bb._max.set(grass_bb._max.x(),grass_bb._max.y(),bb._max.z());
 
