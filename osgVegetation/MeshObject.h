@@ -1,8 +1,9 @@
 #pragma once
+#include "Common.h"
 #include <osg/BoundingBox>
 #include <osg/Referenced>
-#include <osg/vec4>
-#include <osg/vec3>
+#include <osg/Vec4>
+#include <osg/Vec3>
 #include <osg/Vec4ub>
 #include <osg/ref_ptr>
 #include <vector>

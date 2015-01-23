@@ -16,12 +16,12 @@ namespace osgVegetation
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())
 		{
-			throw std::exception(std::string("Serializer::loadBillboardData - Failed to load file:" + filename).c_str());
+			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to load file:" + filename).c_str());
 		}
 		TiXmlElement *vd_elem = xmlDoc->FirstChildElement("VegetationData");
-		if(vd_elem == NULL) 
+		if(vd_elem == NULL)
 		{
-			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: VegetationData").c_str());
+			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to find tag: VegetationData").c_str());
 		}
 
 		std::vector<BillboardData> bb_vector;
@@ -33,7 +33,7 @@ namespace osgVegetation
 			bb_vector.push_back(bb_data);
 			bd_elem  = bd_elem->NextSiblingElement("BillboardData");
 		}
-		
+
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
 		delete xmlDoc;
@@ -51,15 +51,15 @@ namespace osgVegetation
 			{
 				BillboardLayer layer("",0);
 				if(!bl_elem->Attribute("TextureName"))
-					throw std::exception(std::string("Serializer::loadBillboardData - Failed to find attribute: TextureName").c_str());
+					OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to find attribute: TextureName").c_str());
 
 				layer.TextureName = bl_elem->Attribute("TextureName");
 
 				bl_elem->QueryDoubleAttribute("ViewDistance",&layer.ViewDistance);
 				bl_elem->QueryDoubleAttribute("Density",&layer.Density);
-				double _min = 1.0; 
+				double _min = 1.0;
 				double _max = 1.0;
-				
+
 				bl_elem->QueryDoubleAttribute("MinScale",&_min);
 				bl_elem->QueryDoubleAttribute("MaxScale",&_max);
 				layer.Scale.set(_min,_max);
@@ -67,21 +67,21 @@ namespace osgVegetation
 				bl_elem->QueryDoubleAttribute("MinWidth",&_min);
 				bl_elem->QueryDoubleAttribute("MaxWidth",&_max);
 				layer.Width.set(_min,_max);
-				
+
 				bl_elem->QueryDoubleAttribute("MinHeight",&_min);
 				bl_elem->QueryDoubleAttribute("MaxHeight",&_max);
 				layer.Height.set(_min,_max);
-				
+
 				bl_elem->QueryDoubleAttribute("MinColorIntensity",&_min);
 				bl_elem->QueryDoubleAttribute("MaxColorIntensity",&_max);
 				layer.ColorIntensity.set(_min,_max);
-				
+
 				bl_elem->QueryBoolAttribute("UseTerrainIntensity",&layer.UseTerrainIntensity);
 				bl_elem->QueryDoubleAttribute("TerrainColorRatio",&layer.TerrainColorRatio);
 
 
 				if(!bl_elem->Attribute("CoverageMaterials"))
-					throw std::exception(std::string("Serializer::loadBillboardData - Failed to find material attribute").c_str());
+					OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to find material attribute").c_str());
 
 				const std::string materials = bl_elem->Attribute("CoverageMaterials");
 				//split to vector
@@ -94,16 +94,16 @@ namespace osgVegetation
 			}
 		}
 		BillboardData bb_data(layers,false,0,false);
-		
+
 		bd_elem->QueryBoolAttribute("UseAlphaBlend",&bb_data.UseAlphaBlend);
 		bd_elem->QueryFloatAttribute("AlphaRefValue",&bb_data.AlphaRefValue);
 		bd_elem->QueryBoolAttribute("ReceiveShadows",&bb_data.ReceiveShadows);
 		bd_elem->QueryBoolAttribute("CastShadows",&bb_data.CastShadows);
 		bd_elem->QueryBoolAttribute("TerrainNormal",&bb_data.TerrainNormal);
 		bd_elem->QueryBoolAttribute("UseFog",&bb_data.UseFog);
-		
+
 		if(!bd_elem->Attribute("FogMode"))
-			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find attribute: FogMode").c_str());
+			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to find attribute: FogMode").c_str());
 
 		const std::string fog_mode = bd_elem->Attribute("FogMode");
 
@@ -114,17 +114,17 @@ namespace osgVegetation
 		else if(fog_mode == "EXP2")
 			bb_data.FogMode = osg::Fog::EXP2;
 		else
-			throw std::exception(std::string("Serializer::loadBillboardData - Unknown FogMode:" + fog_mode).c_str());
+			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown FogMode:" + fog_mode).c_str());
 
 		bd_elem->QueryBoolAttribute("UseFog",&bb_data.UseFog);
 		const std::string bb_type = bd_elem->Attribute("Type");
-		
+
 		if(bb_type == "BT_CROSS_QUADS")
 			bb_data.Type = BT_CROSS_QUADS;
 		else if(bb_type == "BT_ROTATED_QUAD")
 			bb_data.Type = BT_ROTATED_QUAD;
 		else
-			throw std::exception(std::string("Serializer::loadBillboardData - Unknown billboard type:" + bb_type).c_str());
+			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown billboard type:" + bb_type).c_str());
 
 		return bb_data;
 	}
@@ -134,30 +134,30 @@ namespace osgVegetation
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())
 		{
-			throw std::exception(std::string("Serializer::loadTerrainQuery - Failed to load file:" + filename).c_str());
+			OSGV_EXCEPT(std::string("Serializer::loadTerrainQuery - Failed to load file:" + filename).c_str());
 		}
 		TiXmlElement *tq_elem = xmlDoc->FirstChildElement("TerrainQuery");
-		if(tq_elem == NULL) 
+		if(tq_elem == NULL)
 		{
-			throw std::exception(std::string("Serializer::loadTerrainQuery - Failed to find tag: TerrainQuery").c_str());
+			OSGV_EXCEPT(std::string("Serializer::loadTerrainQuery - Failed to find tag: TerrainQuery").c_str());
 		}
 
 		TiXmlElement *cd_elem = tq_elem->FirstChildElement("CoverageData");
-		if(cd_elem == NULL) 
+		if(cd_elem == NULL)
 		{
-			throw std::exception(std::string("Serializer::loadBillboardData - Failed to find tag: CoverageData").c_str());
+			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to find tag: CoverageData").c_str());
 		}
 		CoverageData cd = loadCoverageData(cd_elem);
 
 		//Here we can add option to load other terrain query implementations
 		TerrainQuery* tq = new TerrainQuery(terrain,cd);
-		
+
 		if(tq_elem->Attribute("CoverageTextureSuffix"))
 		{
 			const std::string suffix = tq_elem->Attribute("CoverageTextureSuffix");
 			tq->setCoverageTextureSuffix(suffix);
 		}
-	
+
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
 		delete xmlDoc;
@@ -172,7 +172,7 @@ namespace osgVegetation
 		while(mat_elem)
 		{
 			if(!mat_elem->Attribute("MatName"))
-				throw std::exception(std::string("Serializer::loadMaterialMapping - Failed to find attribute: MatName").c_str());
+				OSGV_EXCEPT(std::string("Serializer::loadMaterialMapping - Failed to find attribute: MatName").c_str());
 			const std::string name = mat_elem->Attribute("MatName");
 			int r,g,b,a;
 			mat_elem->QueryIntAttribute("r",&r);
@@ -186,6 +186,6 @@ namespace osgVegetation
 		return data;
 	}
 
-	
-	
+
+
 }

@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #if defined ( WIN32 )
 #   	if defined( OSG_VEGETATION_EXPORTS )
 #       	define osgvExport __declspec( dllexport )
@@ -8,4 +8,7 @@
 #else
 #   define osgvExport
 #endif
+
+#include <stdexcept>
+#define OSGV_EXCEPT(a) throw std::runtime_error(a)
 

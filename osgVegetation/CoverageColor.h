@@ -1,6 +1,7 @@
 #pragma once
+#include "Common.h"
 #include <osg/Referenced>
-#include <osg/vec4>
+#include <osg/Vec4>
 
 namespace osgVegetation
 {
