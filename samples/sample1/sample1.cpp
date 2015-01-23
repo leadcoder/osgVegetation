@@ -71,11 +71,20 @@ int main( int argc, char **argv )
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
 
 	//Add sample data path
-	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");  
+#ifdef WIN32
+	osgDB::Registry::instance()->getDataFilePathList().push_back("../data"); //GCC
+#else
+	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //MSVC
+#endif
 
 	//load terrain
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
 
+    if(!terrain)
+	{
+		std::cerr  << "Terrain mesh not found\n";
+		return 0;
+	}
 	//Create root node
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
@@ -83,7 +92,7 @@ int main( int argc, char **argv )
 	//Create billboard layers
 
 	//First LOD start at 400m
-	
+
 	osgVegetation::BillboardLayer  tree_l0("billboards/fir01_bb.dds", 400);
 	tree_l0.Density = 0.02;
 	tree_l0.Height.set(5,5);
@@ -106,7 +115,7 @@ int main( int argc, char **argv )
 	tree_l2.Scale *= 0.8;
 	tree_l2.ViewDistance *= 0.5;
 
-	//add all layers, the order is not important, 
+	//add all layers, the order is not important,
 	//the layers will be sorted by distance before generation
 	osgVegetation::BillboardLayerVector tree_layers;
 	tree_layers.push_back(tree_l2);
@@ -119,7 +128,7 @@ int main( int argc, char **argv )
 	tree_data.UseFog = use_fog;
 	tree_data.TerrainNormal = false;
 	tree_data.Type = osgVegetation::BT_ROTATED_QUAD;
-	tree_data.ReceiveShadows = false; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts 
+	tree_data.ReceiveShadows = false; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts
 
 	//grass data
 	osgVegetation::BillboardLayer  grass_l0("billboards/grass0.png", 40);
@@ -141,7 +150,7 @@ int main( int argc, char **argv )
 	grass_l1.Scale *= 0.8;
 	grass_l1.ViewDistance *= 0.5;
 
-	
+
 	osgVegetation::BillboardLayerVector grass_layers;
 
 	grass_layers.push_back(grass_l0);
@@ -152,9 +161,9 @@ int main( int argc, char **argv )
 	grass_data.UseFog = use_fog;
 	grass_data.FogMode = fog_mode;
 	grass_data.Type = osgVegetation::BT_ROTATED_QUAD;
-	grass_data.ReceiveShadows = enableShadows; 
+	grass_data.ReceiveShadows = enableShadows;
 
-	 
+
 	osg::ComputeBoundsVisitor  cbv;
 	osg::BoundingBox &bb(cbv.getBoundingBox());
 	terrain->accept(cbv);
@@ -170,7 +179,7 @@ int main( int argc, char **argv )
 	tree_bb._max.set(tree_bb._max.x(),tree_bb._max.y(),bb._max.z());
 
 	const float grass_bb_scale = 0.3;
-	osg::BoundingBox grass_bb = bb; 
+	osg::BoundingBox grass_bb = bb;
 	bb_size = grass_bb._max - grass_bb._min;
 	bb_center = (grass_bb._max + grass_bb._min)*0.5;
 	grass_bb._min = bb_center - bb_size*0.5*grass_bb_scale;
@@ -230,7 +239,7 @@ int main( int argc, char **argv )
 	//Add light and shadows
 	osg::Light* pLight = new osg::Light;
 	pLight->setDiffuse( osg::Vec4(0.6f, 0.6f, 0.6f, 0.6f) );
-	osg::Vec4 lightPos(1,1.0,1,0); 
+	osg::Vec4 lightPos(1,1.0,1,0);
 	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
 	osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
 	lightDir.normalize();
@@ -238,7 +247,7 @@ int main( int argc, char **argv )
 	pLight->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f) );
 	//pLight->setAmbient(osg::Vec4(0.0f, 0.0f, 0.0f, 1.0f) );
 
-	osg::LightSource* pLightSource = new osg::LightSource;    
+	osg::LightSource* pLightSource = new osg::LightSource;
 	pLightSource->setLight( pLight );
 	group->addChild( pLightSource );
 
@@ -295,7 +304,7 @@ int main( int argc, char **argv )
 			osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
 			lightDir.normalize();
 			pLight->setDirection(lightDir);
-		}	
+		}
 		viewer.frame();
 	}
 	return 1;
