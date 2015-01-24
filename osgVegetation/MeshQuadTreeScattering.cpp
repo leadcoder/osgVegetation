@@ -214,7 +214,6 @@ namespace osgVegetation
 		//remove  previous render tech
 		delete m_MRT;
 
-		//m_VRT = new BRTShaderInstancing(data);
 		m_MRT = new MRTShaderInstancing(data);
 
 

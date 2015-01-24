@@ -293,7 +293,7 @@ namespace osgVegetation
 			{
 				vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
 				//Save shader
-				osgDB::writeShaderFile(*vertex_shader,btr_vertex_file);
+				//osgDB::writeShaderFile(*vertex_shader,btr_vertex_file);
 			}
 			program->addShader(vertex_shader);
 
@@ -309,7 +309,7 @@ namespace osgVegetation
 			{
 				fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
 				//Save shader
-				osgDB::writeShaderFile(*fragment_shader,btr_fragment_file);
+				//osgDB::writeShaderFile(*fragment_shader,btr_fragment_file);
 			}
 			program->addShader(fragment_shader);
 		}

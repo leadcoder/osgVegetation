@@ -195,8 +195,8 @@ namespace osgVegetation
 		//remove any previous render technique
 		delete m_BRT;
 
-		m_BRT = new BRTShaderInstancing(data);
-		//m_BRT = new BRTGeometryShader(data);
+		//m_BRT = new BRTShaderInstancing(data);
+		m_BRT = new BRTGeometryShader(data);
 
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(),
