@@ -80,11 +80,9 @@ int main( int argc, char **argv )
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
 
 	//Add sample data path
-#ifdef WIN32
+
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
-#else
-	osgDB::Registry::instance()->getDataFilePathList().push_back("./data");
-#endif
+	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //hack to be able to runt from GCC out dir
 
 
 	//Load terrain
