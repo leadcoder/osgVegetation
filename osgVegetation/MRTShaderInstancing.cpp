@@ -28,10 +28,6 @@ namespace osgVegetation
 	class ConvertToDrawInstanced : public osg::NodeVisitor
 	{
 	public:
-		/**
-		* Create the visitor that will convert primitive sets to draw
-		* <num> instances.
-		*/
 		ConvertToDrawInstanced(unsigned numInstances, const osg::BoundingBox& bbox, bool optimize) :
 			_numInstances(numInstances),
 			_optimize(optimize)
