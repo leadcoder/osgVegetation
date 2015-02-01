@@ -1,8 +1,9 @@
 #pragma once
+#include "Common.h"
 #include "BillboardLayer.h"
 #include <osg/Referenced>
-#include <osg/vec4>
-#include <osg/vec3>
+#include <osg/Vec4>
+#include <osg/Vec3>
 #include <osg/ref_ptr>
 #include <vector>
 #include <map>

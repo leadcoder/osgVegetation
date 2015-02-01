@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include <osg/Vec4>
 #include <string>
 #include <map>
@@ -41,7 +42,7 @@ namespace osgVegetation
 					return CoverageMaterials[i];
 				}
 			}
-			throw std::exception(std::string("CoverageMaterial::getCoverageMaterial - Failed to find material:" + name).c_str());
+			OSGV_EXCEPT(std::string("CoverageMaterial::getCoverageMaterial - Failed to find material:" + name).c_str());
 		}
 
 		std::string getCoverageMaterialName(const CoverageColor& color)

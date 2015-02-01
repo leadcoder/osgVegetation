@@ -52,8 +52,8 @@ namespace osgVegetation
 						geom->setUseDisplayList( false );
 						geom->setUseVertexBufferObjects( true );
 					}
-					 
-					//geom->setComputeBoundingBoxCallback(  new StaticBoundingBox(_bb)); 
+
+					//geom->setComputeBoundingBoxCallback(  new StaticBoundingBox(_bb));
 					//geom->setComputeBoundingBoxCallback(NULL);
 					geom->setInitialBound(_bb);
 					//geom->dirtyBound();
@@ -105,13 +105,13 @@ namespace osgVegetation
 
 	MRTShaderInstancing::MRTShaderInstancing(MeshData &data)
 	{
-		m_StateSet = _createStateSet(data); 
+		m_StateSet = _createStateSet(data);
 	}
 
-	osg::StateSet* MRTShaderInstancing::_createStateSet(MeshData &data) 
+	osg::StateSet* MRTShaderInstancing::_createStateSet(MeshData &data)
 	{
 		//Load mesh data
-		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
+		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options();
 		options->setOptionString("dds_flip");
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
@@ -120,7 +120,7 @@ namespace osgVegetation
 				const std::string mesh_name = data.Layers[i].MeshLODs[j].MeshName;
 				osg::ref_ptr<osg::Node> mesh = osgDB::readNodeFile(mesh_name);
 				if(!mesh.valid())
-					throw std::exception(std::string("MRTShaderInstancing::_createStateSet - Failed to load mesh:" + mesh_name).c_str());
+					OSGV_EXCEPT(std::string("MRTShaderInstancing::_createStateSet - Failed to load mesh:" + mesh_name).c_str());
 				m_MeshNodeMap[mesh_name] = mesh;
 			}
 		}
@@ -178,8 +178,8 @@ namespace osgVegetation
 
 			osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture",0);
 			dstate->addUniform(baseTextureSampler);
-		
-		
+
+
 			return dstate;
 		}
 		return NULL;
@@ -195,7 +195,7 @@ namespace osgVegetation
 			geode = (osg::Node*) m_MeshNodeMap[mesh_name]->clone( osg::CopyOp::DEEP_COPY_NODES | osg::CopyOp::DEEP_COPY_DRAWABLES | osg::CopyOp::DEEP_COPY_PRIMITIVES);
 			ConvertToDrawInstanced cdi(trees.size(), bb, true);
 			geode->accept( cdi );
-			
+
 			osg::ref_ptr<osg::Image> treeParamsImage = new osg::Image;
 			treeParamsImage->allocateImage( 4*trees.size(), 1, 1, GL_RGBA, GL_FLOAT );
 			unsigned int i=0;
@@ -204,7 +204,7 @@ namespace osgVegetation
 				++itr,++i)
 			{
 				//generate matrix
-			
+
 				osg::Vec4f* ptr = (osg::Vec4f*)treeParamsImage->data(4*i);
 				MeshObject& tree = **itr;
 
@@ -213,7 +213,7 @@ namespace osgVegetation
 				trans_mat.makeTranslate(tree.Position);
 				trans_mat =  osg::Matrixd::rotate(tree.Rotation) * osg::Matrixd::scale(tree.Width, tree.Width, tree.Height)* trans_mat;
 				double* m = trans_mat.ptr();
-				
+
 				ptr[0] = osg::Vec4f(m[0],m[1],m[2],tree.Color.r());
 				ptr[1] = osg::Vec4f(m[4],m[5],m[6],tree.Color.g());
 				ptr[2] = osg::Vec4f(m[8],m[9],m[10],tree.Color.b());

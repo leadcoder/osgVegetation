@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include "BillboardLayer.h"
 #include "BillboardObject.h"
 

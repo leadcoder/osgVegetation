@@ -9,6 +9,7 @@
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
 #include <sstream>
+#include <stdexcept>
 #include "BRTGeometryShader.h"
 #include "BRTShaderInstancing.h"
 #include "VegetationUtils.h"
@@ -16,7 +17,7 @@
 
 namespace osgVegetation
 {
-	BillboardQuadTreeScattering::BillboardQuadTreeScattering(ITerrainQuery* tq) : 
+	BillboardQuadTreeScattering::BillboardQuadTreeScattering(ITerrainQuery* tq) :
 			m_BRT(NULL),
 			m_TerrainQuery(tq),
 			m_UsePagedLOD(false),
@@ -27,8 +28,8 @@ namespace osgVegetation
 
 	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances) const
 	{
-		osg::Vec3 origin = bb._min; 
-		osg::Vec3 size = bb._max - bb._min; 
+		osg::Vec3 origin = bb._min;
+		osg::Vec3 size = bb._max - bb._min;
 
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
 		instances.reserve(instances.size()+num_objects_to_create);
@@ -69,7 +70,7 @@ namespace osgVegetation
 			}
 		}
 	}
-	
+
 	std::string BillboardQuadTreeScattering::_createFileName( unsigned int lv,	unsigned int x, unsigned int y ) const
 	{
 		std::stringstream sstream;
@@ -91,8 +92,8 @@ namespace osgVegetation
 
 		//mesh_group is returned as raw pointer
 		osg::Group* mesh_group = new osg::Group;
-		
-	
+
+
 		BillboardVegetationObjectVector tile_instances;
 		double max_view_dist = 0;
 		for(size_t i = 0; i < data.Layers.size(); i++)
@@ -100,16 +101,16 @@ namespace osgVegetation
 			if(ld == data.Layers[i]._QTLevel)
 			{
 				 _populateVegetationTile(data.Layers[i], bb, tile_instances);
-				 
+
 				 //save view max view distance for this tile level
-				 if(data.Layers[i].ViewDistance > max_view_dist) 
+				 if(data.Layers[i].ViewDistance > max_view_dist)
 					 max_view_dist = data.Layers[i].ViewDistance;
 			}
 		}
 
 		if(tile_instances.size() > 0)
 		{
-			//expand view distance to cutoff? 
+			//expand view distance to cutoff?
 			max_view_dist = std::max(max_view_dist, tile_cutoff);
 			osg::Node* tile_geometry = m_BRT->create(max_view_dist,tile_instances, bb);
 			mesh_group->addChild(tile_geometry);
@@ -121,7 +122,7 @@ namespace osgVegetation
 		{
 			double sx = (bb._max.x() - bb._min.x())*0.5;
 			double sy = (bb._max.x() - bb._min.x())*0.5;
-			osg::BoundingBox b1(bb._min, 
+			osg::BoundingBox b1(bb._min,
 				osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,bb._max.z()));
 			osg::BoundingBox b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       ,bb._min.z()),
 				osg::Vec3(bb._max.x(),       bb._min.y() + sy  ,bb._max.z()));
@@ -136,7 +137,7 @@ namespace osgVegetation
 			if(b1.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,data,instances,b1, x*2,   y*2));
 			if(b2.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,data,instances,b2, x*2,   y*2+1));
 			if(b3.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,data,instances,b3, x*2+1, y*2+1));
-			if(b4.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,data,instances,b4, x*2+1, y*2)); 
+			if(b4.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,data,instances,b4, x*2+1, y*2));
 
 			if(m_UsePagedLOD)
 			{
@@ -147,7 +148,7 @@ namespace osgVegetation
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
-					plod->addChild(mesh_group, 0, FLT_MAX );	
+					plod->addChild(mesh_group, 0, FLT_MAX );
 					c_index++;
 				}
 				const std::string filename = _createFileName(ld, x,y);
@@ -188,17 +189,17 @@ namespace osgVegetation
 		}
 		else if(m_UsePagedLOD)
 		{
-			throw std::exception(std::string("BillboardQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
+			OSGV_EXCEPT(std::string("BillboardQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
 		}
-	
+
 		//remove any previous render technique
 		delete m_BRT;
 
-		m_BRT = new BRTShaderInstancing(data);
-		//m_BRT = new BRTGeometryShader(data);
-	
+		//m_BRT = new BRTShaderInstancing(data);
+		m_BRT = new BRTGeometryShader(data);
+
 		//get max bb side, we want square area for to begin quad tree splitting
-		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
+		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(),
 			boudning_box._max.y() - boudning_box._min.y());
 
 		//Offset vegetation by using new origin at boudning_box._min
@@ -211,7 +212,7 @@ namespace osgVegetation
 		//add offset matrix
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
-		
+
 		//reset
 		m_FinalLOD =0;
 		m_NumberOfTiles = 1; //at least one LOD tile
@@ -219,7 +220,7 @@ namespace osgVegetation
 
 		//distance sort mesh LODs
 		std::sort(data.Layers.begin(), data.Layers.end(), BillboardSortPredicate);
-		
+
 		//Get max view dist
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{

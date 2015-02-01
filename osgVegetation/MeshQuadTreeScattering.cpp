@@ -26,8 +26,8 @@ namespace osgVegetation
 
 	void MeshQuadTreeScattering::_populateVegetationTile(MeshLayer& layer,const  osg::BoundingBox& bb)
 	{
-		osg::Vec3 origin = bb._min; 
-		osg::Vec3 size = bb._max - bb._min; 
+		osg::Vec3 origin = bb._min;
+		osg::Vec3 size = bb._max - bb._min;
 
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
 		layer._Instances.reserve(layer._Instances.size()+num_objects_to_create);
@@ -85,7 +85,7 @@ namespace osgVegetation
 
 		//mesh_group is returned as raw pointer so we don't use smart pointer
 		osg::Group* mesh_group = new osg::Group;
-		
+
 		const double bb_size = (bb._max.x() - bb._min.x());
 		const double tile_radius = sqrt(bb_size*bb_size);
 		const double tile_cutoff = tile_radius*2.0f;
@@ -98,7 +98,7 @@ namespace osgVegetation
 			int max_lod = -1;
 			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
 			{
-				if(ld >= data.Layers[i].MeshLODs[j]._StartQTLevel && 
+				if(ld >= data.Layers[i].MeshLODs[j]._StartQTLevel &&
 				   data.Layers[i].MeshLODs[j]._StartQTLevel > max_lod)
 				{
 					mesh_lod = j;
@@ -113,7 +113,7 @@ namespace osgVegetation
 					_populateVegetationTile(data.Layers[i], bb);
 				}
 			}
-		
+
 			if(mesh_lod >= 0)
 			{
 				//filter trees inside box
@@ -122,7 +122,7 @@ namespace osgVegetation
 				{
 					if(bb.contains(data.Layers[i]._Instances[j]->Position))
 						tile_instances.push_back(data.Layers[i]._Instances[j]);
-					
+
 					//Debug stuff
 					//osg::Vec3 p = data.Layers[i]._Instances[j]->Position;
 					//p.set(p.x(),p.y(),p.z() + 1.0);
@@ -138,7 +138,7 @@ namespace osgVegetation
 		{
 			double sx = (bb._max.x() - bb._min.x())*0.5;
 			double sy = (bb._max.x() - bb._min.x())*0.5;
-			osg::BoundingBox b1(bb._min, 
+			osg::BoundingBox b1(bb._min,
 				osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,bb._max.z()));
 			osg::BoundingBox b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       ,bb._min.z()),
 				osg::Vec3(bb._max.x(),       bb._min.y() + sy  ,bb._max.z()));
@@ -153,7 +153,7 @@ namespace osgVegetation
 			if(b1.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,data,instances,b1, x*2,   y*2));
 			if(b2.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,data,instances,b2, x*2,   y*2+1));
 			if(b3.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,data,instances,b3, x*2+1, y*2+1));
-			if(b4.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,data,instances,b4, x*2+1, y*2)); 
+			if(b4.intersects(m_InitBB)) children_group->addChild( _createLODRec(ld+1,data,instances,b4, x*2+1, y*2));
 
 			if(m_UsePagedLOD)
 			{
@@ -161,7 +161,7 @@ namespace osgVegetation
 				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
 				plod->setCenter(bb.center());
 				plod->setRadius(tile_radius);
-				
+
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
@@ -195,7 +195,7 @@ namespace osgVegetation
 	{
 		return lhs.MaxDistance > rhs.MaxDistance;
 	}
-	
+
 	osg::Node* MeshQuadTreeScattering::generate(const osg::BoundingBox &boudning_box,MeshData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
 	{
 		if(output_file != "")
@@ -208,21 +208,20 @@ namespace osgVegetation
 		}
 		else if(m_UsePagedLOD)
 		{
-			throw std::exception(std::string("MeshQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
+			OSGV_EXCEPT(std::string("MeshQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
 		}
 
 		//remove  previous render tech
 		delete m_MRT;
 
-		//m_VRT = new BRTShaderInstancing(data);
 		m_MRT = new MRTShaderInstancing(data);
-		
+
 
 		//get max bb side, we want square area for to begin quad tree splitting
-		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(), 
+		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(),
 			boudning_box._max.y() - boudning_box._min.y());
 
-		
+
 		//Offset vegetation by using new origin at boudning_box._min
 		m_Offset = boudning_box._min;
 
@@ -234,7 +233,7 @@ namespace osgVegetation
 		osg::MatrixTransform* transform = new osg::MatrixTransform;
 		transform->setMatrix(osg::Matrix::translate(m_Offset));
 
-	
+
 		//reset
 		m_FinalLOD =0;
 		m_NumberOfTiles = 1;
@@ -255,7 +254,7 @@ namespace osgVegetation
 			}
 		}
 
-		//set start quad tree level for each mesh LOD, i.e. the LOD level to start mesh injection 
+		//set start quad tree level for each mesh LOD, i.e. the LOD level to start mesh injection
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
 			for(size_t j = 0; j < data.Layers[i].MeshLODs.size(); j++)
@@ -276,12 +275,12 @@ namespace osgVegetation
 				}
 
 				data.Layers[i].MeshLODs[j]._StartQTLevel = ld;
-				
+
 				if(m_FinalLOD < ld)
 					m_FinalLOD = ld;
 			}
 		}
-		
+
 		//get total number of tiles to process, used for progress report
 		int ld = 0;
 		while(ld < m_FinalLOD)

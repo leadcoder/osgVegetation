@@ -1,10 +1,11 @@
 #pragma once
+#include "Common.h"
 #include "CoverageColor.h"
 #include "MeshObject.h"
 #include <osg/Referenced>
-#include <osg/vec4>
-#include <osg/vec3>
-#include <osg/vec2>
+#include <osg/Vec4>
+#include <osg/Vec3>
+#include <osg/Vec2>
 #include <osg/Vec4ub>
 #include <osg/ref_ptr>
 
@@ -28,23 +29,23 @@ namespace osgVegetation
 			Internal data holding the quad tree level where this mesh should be injected
 		*/
 		int _StartQTLevel;
-		
+
 	};
 	typedef std::vector<MeshLOD> MeshLODVector;
-	
+
 	/*
-		Mesh layer holding Mesh LOD vector and 
+		Mesh layer holding Mesh LOD vector and
 	*/
 	struct MeshLayer
 	{
 		MeshLayer(const MeshLODVector &mesh_lods) : MeshLODs(mesh_lods)
 		{
-			
+
 		}
 		double Density;
-		
+
 		MeshLODVector MeshLODs;
-		
+
 		/**
 			Color intensity interval
 		*/
@@ -54,14 +55,14 @@ namespace osgVegetation
 			Percentage to of ground texture color/intensity to use for model coloring
 		*/
 		double TerrainColorRatio;
-		
+
 		/**
 			Only use intensity from ground texture (i.e (r+g+b)/3.0) when generating model color.
-			This is false by the fault which means that each color 
+			This is false by the fault which means that each color
 			channel from the ground texture is respected.
 		*/
 		bool UseTerrainIntensity;
-		
+
 		/**
 			Height interval (x=min, y=max) for all models populated in this layers
 		*/
@@ -76,9 +77,9 @@ namespace osgVegetation
 			Overall scale interval (x=min, y=max) for all models populated in this layers (will effect both height and width)
 		*/
 		osg::Vec2 Scale;
-	
+
 		/**
-			Coverage materials that control scattering for this layer 
+			Coverage materials that control scattering for this layer
 		*/
 		std::vector<std::string> CoverageMaterials;
 

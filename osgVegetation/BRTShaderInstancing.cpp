@@ -29,7 +29,7 @@ namespace osgVegetation
 		m_TrueBillboards = (data.Type == BT_ROTATED_QUAD);
 
 		if(!(data.Type == BT_ROTATED_QUAD || data.Type == BT_CROSS_QUADS))
-			throw std::exception(std::string("BRTShaderInstancing::BRTShaderInstancing - Unsupported billboard type").c_str());
+			OSGV_EXCEPT(std::string("BRTShaderInstancing::BRTShaderInstancing - Unsupported billboard type").c_str());
 
 		m_StateSet = _createStateSet(data);
 	}
@@ -39,7 +39,7 @@ namespace osgVegetation
 
 	}
 
-	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardData &data) 
+	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardData &data)
 	{
 		osg::ref_ptr<osg::Texture2DArray> tex = Utils::loadTextureArray(data);
 
@@ -75,7 +75,7 @@ namespace osgVegetation
 
 
 			std::stringstream vertexShaderSource;
-			vertexShaderSource << 
+			vertexShaderSource <<
 				//"#version 430 compatibility\n"
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
 
@@ -90,21 +90,21 @@ namespace osgVegetation
 				"    gl_TexCoord[3].t = dot( ecPosition, gl_EyePlaneT[3] );             \n"
 				"    gl_TexCoord[3].p = dot( ecPosition, gl_EyePlaneR[3] );             \n"
 				"    gl_TexCoord[3].q = dot( ecPosition, gl_EyePlaneQ[3] );             \n"
-				"} \n" 
+				"} \n"
 				"uniform samplerBuffer DataBufferTexture;\n"
 				"uniform float FadeInDist;\n"
 				"varying vec2 TexCoord;\n";
 			if(m_PPL)
 			{
-				vertexShaderSource << 
+				vertexShaderSource <<
 					"varying vec3 Normal;\n"
 					"varying vec3 LightDir;\n";
 			}
-			vertexShaderSource << 
+			vertexShaderSource <<
 				"varying vec4 Color;\n"
 				"varying vec3 Ambient;\n"
 				"varying float VegetationType; \n"
-				"const vec3 LightPosition = vec3(0.0, 0.0, 4.0);\n" 
+				"const vec3 LightPosition = vec3(0.0, 0.0, 4.0);\n"
 				"void main()\n"
 				"{\n"
 				"   vec3 normal;\n"
@@ -117,22 +117,22 @@ namespace osgVegetation
 				"   vec4 camera_pos = gl_ModelViewMatrixInverse[3];\n";
 			if(!data.CastShadows) //shadow casting and vertex fading don't mix well
 			{
-				vertexShaderSource << 
+				vertexShaderSource <<
 					"   float distance = length(camera_pos.xyz - position.xyz);\n"
 					"   scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
 			}
 			if(m_TrueBillboards)
 			{
-				vertexShaderSource << 
+				vertexShaderSource <<
 					"    vec3 dir = camera_pos.xyz - position.xyz;\n"
-					"	 dir.z = 0;\n //we are only instrested in xy-plane direction" 
+					"	 dir.z = 0;\n //we are only instrested in xy-plane direction"
 					"    dir = normalize(dir);\n"
 					"    vec3 left = vec3(-dir.y,dir.x, 0);\n"
 					"	 left = normalize(left);\n"
 					"	 left.xy *= scale.xx;\n"
 					"    vec4 m_pos = gl_Vertex;\n"
 					"    m_pos.z *= scale.y;\n"
-					"	 m_pos.xy = m_pos.x*left.xy;\n" 
+					"	 m_pos.xy = m_pos.x*left.xy;\n"
 					"	 m_pos.xyz += position;\n";
 				if(data.ReceiveShadows)
 					vertexShaderSource << "   DynamicShadow(gl_ModelViewMatrix * m_pos);\n";
@@ -140,20 +140,20 @@ namespace osgVegetation
 				//"   gl_Position = gl_ProjectionMatrix * modelView * gl_Vertex ;\n";
 				if(data.TerrainNormal)
 				{
-					vertexShaderSource << 
+					vertexShaderSource <<
 						"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
 				}
 				else
 				{
-					//skip standard normal transformation for billboards, 
+					//skip standard normal transformation for billboards,
 					//we want normal in eye-space and we know how to handle this transformation by hand
-					vertexShaderSource << 
+					vertexShaderSource <<
 						"   normal = normalize(vec3(gl_Normal.x,0,-gl_Normal.y));\n";
 				}
 			}
 			else
 			{
-				vertexShaderSource << 
+				vertexShaderSource <<
 					"   mat4 modelView = gl_ModelViewMatrix * mat4( scale.x, 0.0, 0.0, 0.0,\n"
 					"              0.0, scale.x, 0.0, 0.0,\n"
 					"              0.0, 0.0, scale.y, 0.0,\n"
@@ -165,12 +165,12 @@ namespace osgVegetation
 				vertexShaderSource << "   gl_Position = gl_ProjectionMatrix * mv_pos ;\n";
 				if(data.TerrainNormal)
 				{
-					vertexShaderSource << 
+					vertexShaderSource <<
 						"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
 				}
 				else
 				{
-					vertexShaderSource << 
+					vertexShaderSource <<
 						//"   normal = normalize(gl_NormalMatrix * gl_Normal);\n";
 						"   normal = normalize(vec3(gl_Normal.x,0,-gl_Normal.y));\n";
 				}
@@ -178,7 +178,7 @@ namespace osgVegetation
 
 			if(m_PPL)
 			{
-				vertexShaderSource << 
+				vertexShaderSource <<
 					"   Normal = normal;\n"
 					"   LightDir = normalize(gl_LightSource[0].position.xyz);\n"
 					"   Ambient  = gl_LightSource[0].ambient.xyz;\n";
@@ -190,7 +190,7 @@ namespace osgVegetation
 					"   float NdotL = max(dot(normal, lightDir), 0.0);\n"
 					"   Color.xyz = NdotL*Color.xyz*gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz*Color.xyz;\n";
 			}
-			vertexShaderSource << 
+			vertexShaderSource <<
 				"   TexCoord = gl_MultiTexCoord0.st;\n"
 				"}\n";
 
@@ -212,10 +212,10 @@ namespace osgVegetation
 				"varying vec2 TexCoord;\n";
 			if(m_PPL)
 			{
-				fragmentShaderSource << 
+				fragmentShaderSource <<
 					"varying vec3 Normal;\n"
 					"varying vec3 LightDir;\n";
-			}	
+			}
 
 			fragmentShaderSource <<
 				"varying vec4 Color;\n"
@@ -224,16 +224,16 @@ namespace osgVegetation
 				"    vec4 outColor = texture2DArray( baseTexture, vec3(TexCoord, VegetationType)); \n";
 			if(m_PPL)
 			{
-				fragmentShaderSource << 
+				fragmentShaderSource <<
 					"   float NdotL = max(dot(normalize(Normal), LightDir), 0.0);\n"
 					"   outColor.xyz = NdotL*outColor.xyz*Color.xyz + Ambient.xyz*outColor.xyz*Color.xyz;\n";
 			}
 			else
 			{
-				fragmentShaderSource << 
+				fragmentShaderSource <<
 					"   outColor.xyz = outColor.xyz * Color.xyz;\n";
 			}
-			
+
 			if(data.ReceiveShadows)
 			{
 				fragmentShaderSource <<
@@ -293,7 +293,7 @@ namespace osgVegetation
 			{
 				vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
 				//Save shader
-				osgDB::writeShaderFile(*vertex_shader,btr_vertex_file);
+				//osgDB::writeShaderFile(*vertex_shader,btr_vertex_file);
 			}
 			program->addShader(vertex_shader);
 
@@ -309,7 +309,7 @@ namespace osgVegetation
 			{
 				fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
 				//Save shader
-				osgDB::writeShaderFile(*fragment_shader,btr_fragment_file);
+				//osgDB::writeShaderFile(*fragment_shader,btr_fragment_file);
 			}
 			program->addShader(fragment_shader);
 		}
@@ -510,7 +510,7 @@ namespace osgVegetation
 		osg::Group* group = 0;
 		if(veg_objects.size() > 0)
 		{
-			osg::ref_ptr<osg::Geometry> templateGeometry; 
+			osg::ref_ptr<osg::Geometry> templateGeometry;
 			if(m_TrueBillboards)
 				templateGeometry = _createSingleQuadsWithNormals(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
 			else
@@ -549,7 +549,7 @@ namespace osgVegetation
 
 			osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "FadeInDist");
 
-			//use 
+			//use
 			double bb_size = (bb._max.x() - bb._min.x());
 			float radius = sqrt(bb_size*bb_size);
 			fadeInDist->set(radius*2.0f);

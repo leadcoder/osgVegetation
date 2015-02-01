@@ -12,7 +12,7 @@ namespace osgVegetation
 		int tex_width = 0;
 		int tex_height = 0;
 		//Load textures
-		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options(); 
+		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options();
 		options->setOptionString("dds_flip");
 		std::map<std::string, osg::Image*> image_map;
 		std::map<std::string, int> index_map;
@@ -24,7 +24,7 @@ namespace osgVegetation
 			{
 				osg::Image* image = osgDB::readImageFile(texture_name,options);
 				if(image == NULL)
-					throw std::exception(std::string("Utils::loadTextureArray - Failed to load texture:" + texture_name).c_str());
+					OSGV_EXCEPT(std::string("Utils::loadTextureArray - Failed to load texture:" + texture_name).c_str());
 				if(image && tex_width == 0) // first image decide array size
 				{
 					tex_width = image->s();
@@ -41,7 +41,7 @@ namespace osgVegetation
 
 		osg::ref_ptr<osg::Texture2DArray> tex = new osg::Texture2DArray;
 		tex->setTextureSize(tex_width, tex_height, num_textures);
-		tex->setUseHardwareMipMapGeneration(true);   
+		tex->setUseHardwareMipMapGeneration(true);
 
 		for(size_t i = 0; i < data.Layers.size();i++)
 		{
