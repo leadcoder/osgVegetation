@@ -125,7 +125,7 @@ namespace osgVegetation
 			{
 				vertexShaderSource << 
 					"    vec3 dir = camera_pos.xyz - position.xyz;\n"
-					"	 dir.z = 0;\n //we are only instrested in xy-plane direction" 
+					"	 dir.z = 0; //we are only intrested in xy-plane direction \n" 
 					"    dir = normalize(dir);\n"
 					"    vec3 left = vec3(-dir.y,dir.x, 0);\n"
 					"	 left = normalize(left);\n"
@@ -504,7 +504,7 @@ namespace osgVegetation
 		return geom;
 	}
 
-	osg::Node* BRTShaderInstancing::create(double view_dist, const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBox &bb)
+	osg::Node* BRTShaderInstancing::create(double view_dist, const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBoxd &bb)
 	{
 		osg::Geode* geode = 0;
 		osg::Group* group = 0;

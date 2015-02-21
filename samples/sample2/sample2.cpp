@@ -118,10 +118,11 @@ int main( int argc, char **argv )
 	tree_data.Layers.push_back(spruce);
 
 	osg::ComputeBoundsVisitor  cbv;
-	osg::BoundingBox &bb(cbv.getBoundingBox());
+	
 	terrain->accept(cbv);
+	osg::BoundingBoxd bb(cbv.getBoundingBox());
 
-	osg::Vec3 bb_size = bb._max - bb._min;
+	osg::Vec3d bb_size = bb._max - bb._min;
 
 	//Down size bb for faster generation...useful for testing purpose
 	//bb._min = bb._min + bb_size*0.3;

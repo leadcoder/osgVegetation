@@ -25,22 +25,26 @@ namespace osgVegetation
 
 	}
 
-	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBox& bb,BillboardVegetationObjectVector& instances) const
+	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBoxd& bb,BillboardVegetationObjectVector& instances) const
 	{
-		osg::Vec3 origin = bb._min; 
-		osg::Vec3 size = bb._max - bb._min; 
+		osg::Vec3d origin = bb._min; 
+		osg::Vec3d size = bb._max - bb._min; 
 
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
 		instances.reserve(instances.size()+num_objects_to_create);
 
+		//std::cout << "pos:" << origin.x() << "size: " << size.x();
 		for(unsigned int i=0;i<num_objects_to_create;++i)
 		{
-			osg::Vec3 pos(Utils::random(origin.x(),origin.x()+size.x()),Utils::random(origin.y(),origin.y()+size.y()),0);
-			osg::Vec3 inter;
+
+			double rand_x = Utils::random(origin.x(), origin.x() + size.x());
+			double rand_y = Utils::random(origin.y(), origin.y() + size.y());
+			osg::Vec3d pos(rand_x, rand_y,0);
+			osg::Vec3d inter;
 			osg::Vec4 terrain_color;
 			osg::Vec4 coverage_color;
 			float rand_int = Utils::random(layer.ColorIntensity.x(),layer.ColorIntensity.y());
-			osg::Vec3 offset_pos = pos + m_Offset;
+			osg::Vec3d offset_pos = pos + m_Offset;
 			if(m_InitBB.contains(pos))
 			{
 				std::string material_name;
@@ -77,7 +81,7 @@ namespace osgVegetation
 		return sstream.str();
 	}
 
-	osg::Node* BillboardQuadTreeScattering::_createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector instances, const osg::BoundingBox &bb,int x, int y)
+	osg::Node* BillboardQuadTreeScattering::_createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector instances, const osg::BoundingBoxd &bb,int x, int y)
 	{
 		if(ld < 6) //only show progress above lod 6, we don't want to spam the log
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
@@ -121,15 +125,15 @@ namespace osgVegetation
 		{
 			double sx = (bb._max.x() - bb._min.x())*0.5;
 			double sy = (bb._max.x() - bb._min.x())*0.5;
-			osg::BoundingBox b1(bb._min, 
+			osg::BoundingBoxd b1(bb._min, 
 				osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,bb._max.z()));
-			osg::BoundingBox b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       ,bb._min.z()),
+			osg::BoundingBoxd b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       ,bb._min.z()),
 				osg::Vec3(bb._max.x(),       bb._min.y() + sy  ,bb._max.z()));
 
-			osg::BoundingBox b3(osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy   ,bb._min.z()),
+			osg::BoundingBoxd b3(osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy   ,bb._min.z()),
 				osg::Vec3(bb._max.x(),       bb._max.y()		,bb._max.z()));
 
-			osg::BoundingBox b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  ,bb._min.z()),
+			osg::BoundingBoxd b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  ,bb._min.z()),
 				osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
 
 			//first check that we are inside initial bounding box
@@ -176,7 +180,7 @@ namespace osgVegetation
 		return lhs.ViewDistance > rhs.ViewDistance;
 	}
 
-	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBox &boudning_box,BillboardData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
+	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBoxd &boudning_box,BillboardData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
 	{
 		if(output_file != "")
 		{
@@ -242,7 +246,7 @@ namespace osgVegetation
 		}
 
 		//Create squared bounding box for top level quad tree tile
-		osg::BoundingBox qt_bb;
+		osg::BoundingBoxd qt_bb;
 		qt_bb._max.set(max_bb_size, max_bb_size, boudning_box._max.z() - boudning_box._min.z());
 		qt_bb._min.set(0,0,0);
 
@@ -266,6 +270,10 @@ namespace osgVegetation
 		if(output_file != "")
 		{
 			osgDB::writeNodeFile(*transform, output_file);
+
+			//debug purpose
+			osgDB::writeNodeFile(*transform, output_file + ".osgt");
+
 			//osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.ive");
 			//osg::ProxyNode* pn = new osg::ProxyNode();
 			//pn->setFileName(0,"master.ive");

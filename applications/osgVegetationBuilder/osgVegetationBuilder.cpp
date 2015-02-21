@@ -64,7 +64,7 @@ int main( int argc, char **argv )
 		return 1;
 	}
 
-	osg::BoundingBox bounding_box;
+	osg::BoundingBoxd bounding_box;
 	bool useBBox = false;
 
 	double xmin=0,xmax=0,ymin=0,ymax=0,zmin=-1,zmax=1;
@@ -116,9 +116,10 @@ int main( int argc, char **argv )
 		}
 
 		osg::ComputeBoundsVisitor  cbv;
-		osg::BoundingBox &bb(cbv.getBoundingBox());
+		
 		terrain->accept(cbv);
-		bounding_box = bb;
+		//osg::BoundingBox bb(cbv.getBoundingBox());
+		bounding_box = osg::BoundingBoxd(cbv.getBoundingBox());
 		if(useBBox)
 		{
 			bounding_box._min.set(xmin,ymin,bounding_box._min.z());

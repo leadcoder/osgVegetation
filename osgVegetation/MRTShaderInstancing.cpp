@@ -21,7 +21,7 @@ namespace osgVegetation
 	struct StaticBoundingBox : public osg::Drawable::ComputeBoundingBoxCallback
 	{
 		osg::BoundingBox _bbox;
-		StaticBoundingBox( const osg::BoundingBox& bbox ) : _bbox(bbox) { }
+		StaticBoundingBox( const osg::BoundingBoxd& bbox ) : _bbox(bbox) { }
 		osg::BoundingBox computeBound(const osg::Drawable&) const { return _bbox; }
 	};
 
@@ -32,7 +32,7 @@ namespace osgVegetation
 		* Create the visitor that will convert primitive sets to draw
 		* <num> instances.
 		*/
-		ConvertToDrawInstanced(unsigned numInstances, const osg::BoundingBox& bbox, bool optimize) :
+		ConvertToDrawInstanced(unsigned numInstances, const osg::BoundingBoxd& bbox, bool optimize) :
 			_numInstances(numInstances),
 			_optimize(optimize)
 		{
@@ -103,7 +103,7 @@ namespace osgVegetation
 		unsigned _numInstances;
 		bool     _optimize;
 		osg::ref_ptr<osg::Drawable::ComputeBoundingBoxCallback> _staticBBoxCallback;
-		osg::BoundingBox _bb;
+		osg::BoundingBoxd _bb;
 		std::list<osg::PrimitiveSet*> _primitiveSets;
 	};
 
@@ -189,7 +189,7 @@ namespace osgVegetation
 		return NULL;
 	}
 
-	osg::Node* MRTShaderInstancing::create(const MeshVegetationObjectVector &trees, const std::string &mesh_name, const osg::BoundingBox &bb)
+	osg::Node* MRTShaderInstancing::create(const MeshVegetationObjectVector &trees, const std::string &mesh_name, const osg::BoundingBoxd &bb)
 	{
 		osg::Node* geode = 0;
 		osg::Group* group = 0;
@@ -227,7 +227,10 @@ namespace osgVegetation
 			tbo->setImage( treeParamsImage.get() );
 			tbo->setInternalFormat(GL_RGBA32F_ARB);
 			geode->getOrCreateStateSet()->setTextureAttribute(1, tbo.get(),osg::StateAttribute::ON);
-			geode->setInitialBound( bb );
+
+			osg::BoundingBox bb_f(bb);
+			
+			geode->setInitialBound( bb_f);
 			osg::Uniform* dataBufferSampler = new osg::Uniform("dataBuffer",1);
 			geode->getOrCreateStateSet()->addUniform(dataBufferSampler);
 		}

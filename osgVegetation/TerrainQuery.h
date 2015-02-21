@@ -30,7 +30,7 @@ namespace osgVegetation
 		/**
 			Get terrain data for provided location
 		*/
-		bool getTerrainData(osg::Vec3& location, osg::Vec4 &texture_color, std::string &coverage_name, CoverageColor &coverage_color, osg::Vec3 &inter);
+		bool getTerrainData(osg::Vec3d& location, osg::Vec4 &texture_color, std::string &coverage_name, CoverageColor &coverage_color, osg::Vec3d &inter);
 	public:
 
 		/**
@@ -53,6 +53,16 @@ namespace osgVegetation
 			Get explicit coverage texture filename
 		*/
 		std::string getCoverageTexture() const {return m_CoverageTexture;}
+
+		/**
+			Flip coverage texture coordinates
+		*/
+		void setFlipCoverageCoordinates(bool value) {m_FlipCoverageCoordinates=value;}
+		
+		/**
+			Flip coverage texture coordinates
+		*/
+		bool getFlipCoverageCoordinates() const {return m_FlipCoverageCoordinates;}
 	private:
 		osg::Image* _loadImage(const std::string &filename);
 		osg::Texture* _getTexture(const osgUtil::LineSegmentIntersector::Intersection& intersection,osg::Vec3& tc) const;
@@ -65,5 +75,6 @@ namespace osgVegetation
 		std::string m_CoverageTextureSuffix;
 		std::string m_CoverageTexture;
 		CoverageData m_CoverageData;
+		bool m_FlipCoverageCoordinates;
 	};
 }

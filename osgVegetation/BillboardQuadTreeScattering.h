@@ -42,7 +42,7 @@ namespace osgVegetation
 			@param use_paged_lod Use PagedLOD instead of regular LOD nodes (can only be true if out_put_file is defined, otherwise we have no path)
 			@param filename_prefix Added to all files (only relevant if out_put_file is defined)
 		*/
-		osg::Node* generate(const osg::BoundingBox &bb, BillboardData &data, const std::string &output_file = "", bool use_paged_lod = false, const std::string &filename_prefix = "");
+		osg::Node* generate(const osg::BoundingBoxd &bb, BillboardData &data, const std::string &output_file = "", bool use_paged_lod = false, const std::string &filename_prefix = "");
 	private:
 		int m_FinalLOD;
 		
@@ -51,12 +51,12 @@ namespace osgVegetation
 		int m_NumberOfTiles;
 		
 		//Area bounding box
-		osg::BoundingBox m_InitBB;
+		osg::BoundingBoxd m_InitBB;
 		
 		IBillboardRenderingTech* m_BRT;
 		
 		//Offset based on initial bounding box, used to avoid floating point precision problem 
-		osg::Vec3 m_Offset; 
+		osg::Vec3d m_Offset; 
 		
 		ITerrainQuery* m_TerrainQuery;
 
@@ -69,7 +69,7 @@ namespace osgVegetation
 	
 		//Helpers
 		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y) const;
-		void _populateVegetationTile(const BillboardLayer& layer,const osg::BoundingBox &box, BillboardVegetationObjectVector& instances) const;
-		osg::Node* _createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
+		void _populateVegetationTile(const BillboardLayer& layer,const osg::BoundingBoxd &box, BillboardVegetationObjectVector& instances) const;
+		osg::Node* _createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector trees, const osg::BoundingBoxd &box ,int x, int y);
 	};
 }

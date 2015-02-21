@@ -12,7 +12,7 @@ namespace osgVegetation
 	{
 	public:
 		virtual ~IMeshRenderingTech(){}
-		virtual osg::Node* create(const MeshVegetationObjectVector &trees, const std::string &mesh_name, const osg::BoundingBox &bb) = 0;
+		virtual osg::Node* create(const MeshVegetationObjectVector &trees, const std::string &mesh_name, const osg::BoundingBoxd &bb) = 0;
 		virtual osg::StateSet* getStateSet() const = 0;
 	protected:
 	};

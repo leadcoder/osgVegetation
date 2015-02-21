@@ -12,7 +12,7 @@ namespace osgVegetation
 	{
 	public:
 		MRTShaderInstancing(MeshData &data);
-		osg::Node* create(const MeshVegetationObjectVector &trees, const std::string &mesh_name, const osg::BoundingBox &bb);
+		osg::Node* create(const MeshVegetationObjectVector &trees, const std::string &mesh_name, const osg::BoundingBoxd &bb);
 		osg::StateSet* getStateSet() const {return m_StateSet;}
 	protected:
 		osg::StateSet* _createStateSet(MeshData &data);
