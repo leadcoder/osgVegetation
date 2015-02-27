@@ -8,9 +8,6 @@
 
 namespace osgVegetation
 {
-
-
-
 	std::vector<BillboardData> Serializer::loadBillboardData(const std::string &filename) const
 	{
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
@@ -185,7 +182,4 @@ namespace osgVegetation
 		}
 		return data;
 	}
-
-
-
 }
