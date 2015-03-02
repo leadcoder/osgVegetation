@@ -24,8 +24,8 @@ namespace osgVegetation
 		std::vector<osg::ref_ptr<osg::Node>  > pagedLODVec;
 
 		virtual osg::Node* readNodeFile( const std::string& filename )
-		{ 
-			osg::ref_ptr<osg::Node> node = osgDB::readNodeFile(filename); 
+		{
+			osg::ref_ptr<osg::Node> node = osgDB::readNodeFile(filename);
 			pagedLODVec.push_back(node);
 			if(pagedLODVec.size() > 50) //flush cache?
 			{
@@ -36,7 +36,7 @@ namespace osgVegetation
 		}
 	};
 
-	TerrainQuery::TerrainQuery(osg::Node* terrain, const CoverageData &cd) : m_Terrain(terrain), 
+	TerrainQuery::TerrainQuery(osg::Node* terrain, const CoverageData &cd) : m_Terrain(terrain),
 		m_CoverageData(cd),
 		m_CoverageTextureSuffix("_coverage.png"),
 		m_FlipCoverageCoordinates(false)
@@ -126,7 +126,7 @@ namespace osgVegetation
 			image = m_ImageCache[filename].get();
 		}
 		if(!image)
-			throw std::exception(std::string("TerrainQuery::_loadImage - Failed to load file:" + filename).c_str());
+			OSGV_EXCEPT(std::string("TerrainQuery::_loadImage - Failed to load file:" + filename).c_str());
 
 		return image;
 	}

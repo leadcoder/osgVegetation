@@ -23,7 +23,7 @@ namespace osgVegetation
 	BRTGeometryShader::BRTGeometryShader(BillboardData &data) : m_PPL(false)
 	{
 		if(!(data.Type == BT_ROTATED_QUAD || data.Type == BT_CROSS_QUADS))
-			throw std::exception(std::string("BRTGeometryShader::BRTGeometryShader - Unsupported billboard type").c_str());
+			OSGV_EXCEPT(std::string("BRTGeometryShader::BRTGeometryShader - Unsupported billboard type").c_str());
 
 		m_StateSet = _createStateSet(data);
 	}
@@ -69,7 +69,7 @@ namespace osgVegetation
 				"    gl_TexCoord[3].q = dot( ecPosition, gl_EyePlaneQ[3] );             \n";
 		}
 		geomSource <<
-			"} \n" 
+			"} \n"
 
 			"void main(void)\n"
 			"{\n"
@@ -88,14 +88,14 @@ namespace osgVegetation
 				"    float distance = length(camera_pos.xyz - pos.xyz);\n"
 				"	 scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
 		}
-		geomSource << 
+		geomSource <<
 			"    vec4 e;\n"
 			"    e.w = pos.w;\n";
 		if(data.Type == BT_ROTATED_QUAD)
 		{
 			geomSource <<
 				"    vec3 dir = camera_pos.xyz - pos.xyz;\n"
-				"	 dir.z = 0; //we are only interested in xy-plane direction\n" 
+				"	 dir.z = 0;\n //we are only instrested in xy-plane direction"
 				"    dir = normalize(dir);\n"
 				"    vec3 up   = vec3(0.0, 0.0, 1.0*scale.y);//Up direction in OSG\n"
 				//"    vec3 left = cross(dir,up); //Generate billboard base vector\n"
@@ -108,7 +108,7 @@ namespace osgVegetation
 			}
 			else
 			{
-				geomSource << "float n_offset = 1.0;\n" 
+				geomSource << "float n_offset = 1.0;\n"
 					"vec3 n1 = vec3( n_offset,0.0,1.0);\n"
 					"vec3 n2 = vec3(-n_offset,0.0,1.0);\n"
 					"vec3 n3 = n1;\n"

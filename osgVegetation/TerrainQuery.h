@@ -2,9 +2,9 @@
 #include "Common.h"
 #include <osg/BoundingBox>
 #include <osg/Referenced>
-#include <osg/vec4>
-#include <osg/vec3>
-#include <osg/vec2>
+#include <osg/Vec4>
+#include <osg/Vec3>
+#include <osg/Vec2>
 #include <osg/Node>
 #include <osg/Texture>
 #include <osg/ref_ptr>
@@ -25,8 +25,8 @@ namespace osgVegetation
 	{
 	public:
 		TerrainQuery(osg::Node* terrain,const CoverageData &cd);
-		
-		//ITerrainQuery interface 
+
+		//ITerrainQuery interface
 		/**
 			Get terrain data for provided location
 		*/
@@ -34,21 +34,21 @@ namespace osgVegetation
 	public:
 
 		/**
-			Set suffix used to generate coverage texture filename. 
+			Set suffix used to generate coverage texture filename.
 			The suffix is appended to extension-less terrain base texture filename.
 		*/
 		void setCoverageTextureSuffix(const std::string &value) {m_CoverageTextureSuffix=value;}
-		
+
 		/**
-			Get suffix used to generate coverage texture filename. 
+			Get suffix used to generate coverage texture filename.
 		*/
 		std::string getCoverageTextureSuffix() const {return m_CoverageTextureSuffix;}
-		
+
 		/**
 			Set explicit coverage texture filename
 		*/
 		void setCoverageTexture(const std::string &value) {m_CoverageTexture=value;}
-		
+
 		/**
 			Get explicit coverage texture filename
 		*/
@@ -66,10 +66,10 @@ namespace osgVegetation
 	private:
 		osg::Image* _loadImage(const std::string &filename);
 		osg::Texture* _getTexture(const osgUtil::LineSegmentIntersector::Intersection& intersection,osg::Vec3& tc) const;
-		
+
 		osg::Node* m_Terrain;
 		osgUtil::IntersectionVisitor m_IntersectionVisitor;
-		typedef std::map<std::string,osg::ref_ptr<osg::Image> > ImageCacheMap; 
+		typedef std::map<std::string,osg::ref_ptr<osg::Image> > ImageCacheMap;
 		ImageCacheMap m_ImageCache;
 		osgSim::DatabaseCacheReadCallback* m_MeshCache;
 		std::string m_CoverageTextureSuffix;

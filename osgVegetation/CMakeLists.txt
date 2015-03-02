@@ -40,15 +40,13 @@ SET(H_FILES
 	VegetationUtils.h
 )
 
-include_directories(${OSG_INC_DIR})
+include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})
 
 #Enable class export 
 add_definitions( -DOSG_VEGETATION_EXPORTS)
 
-#Add some folders where to search for dependency libraries
-link_directories(${OSG_LIB_DIR})
 add_library (${LIB_NAME} SHARED  ${CPP_FILES} ${H_FILES})
-target_link_libraries(${LIB_NAME} ${OSG_LINK_LIBRARIES})
+target_link_libraries(${LIB_NAME} ${OPENSCENEGRAPH_LIBRARIES})
 
 INSTALL(TARGETS ${LIB_NAME}
   RUNTIME DESTINATION bin

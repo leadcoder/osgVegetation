@@ -1,9 +1,10 @@
 #pragma once
+#include "Common.h"
 #include "CoverageColor.h"
 #include <osg/Referenced>
-#include <osg/vec4>
-#include <osg/vec3>
-#include <osg/vec2>
+#include <osg/Vec4>
+#include <osg/Vec3>
+#include <osg/Vec2>
 #include <osg/ref_ptr>
 #include <string>
 #include <vector>
@@ -32,13 +33,13 @@ namespace osgVegetation
 		}
 
 		/**
-			2D Texture used in this billboard layers (note that all textures for 
+			2D Texture used in this billboard layers (note that all textures for
 			all layers should be in same resolution.
 		*/
 		std::string TextureName;
-		
+
 		/**
-			Min view distance. This layer is always visible below this distance. 
+			Min view distance. This layer is always visible below this distance.
 			The exact distance is depending on other layers view distance (and quad tree tile cutoff).
 		*/
 		double ViewDistance;
@@ -57,7 +58,7 @@ namespace osgVegetation
 			Overall scale interval (x=min, y=max) for all billboards populated in this layers (will effect both height and width)
 		*/
 		osg::Vec2 Scale;
-		
+
 		/**
 			Density for this layer (billboards/m2)
 		*/
@@ -75,7 +76,7 @@ namespace osgVegetation
 
 		/**
 			Only use intensity from ground texture (i.e (r+g+b)/3.0) when generating billboard color.
-			This is false by the fault which means that each color 
+			This is false by the fault which means that each color
 			channel from the ground texture is respected.
 		*/
 		bool UseTerrainIntensity;
@@ -84,13 +85,13 @@ namespace osgVegetation
 			Coverage material vector that specify where to scatter billboards
 		*/
 		std::vector<std::string> CoverageMaterials;
-	
+
 
 		//internal data holding texture index inside texture array
 		int _TextureIndex;
 		//internal data holding quad tree level for this layer
 		int _QTLevel;
-	
+
 		/**
 			Helper function to check is this layer hold coverage material
 		*/

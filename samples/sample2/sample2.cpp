@@ -80,7 +80,10 @@ int main( int argc, char **argv )
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
 
 	//Add sample data path
-	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");  
+
+	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
+	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //hack to be able to runt from GCC out dir
+
 
 	//Load terrain
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
@@ -112,7 +115,7 @@ int main( int argc, char **argv )
 
 	//Create mesh data that hold all mesh layers
 	osgVegetation::MeshData tree_data;
-	tree_data.ReceiveShadows = enableShadows; 
+	tree_data.ReceiveShadows = enableShadows;
 
 	//Add layers
 	tree_data.Layers.push_back(spruce);
@@ -159,7 +162,7 @@ int main( int argc, char **argv )
 	//Add light and shadows
 	osg::Light* pLight = new osg::Light;
 	pLight->setDiffuse( osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f) );
-	osg::Vec4 lightPos(1,0.5,1,0); 
+	osg::Vec4 lightPos(1,0.5,1,0);
 	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
 	osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
 	lightDir.normalize();
@@ -167,7 +170,7 @@ int main( int argc, char **argv )
 	pLight->setAmbient(osg::Vec4(0.7f, 0.7f, 0.7f, 1.0f) );
 	//pLight->setDiffuse(osg::Vec4(0.0f, 0.0f, 0.0f, 1.0f) );
 
-	osg::LightSource* pLightSource = new osg::LightSource;    
+	osg::LightSource* pLightSource = new osg::LightSource;
 	pLightSource->setLight( pLight );
 	group->addChild( pLightSource );
 

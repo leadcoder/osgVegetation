@@ -4,9 +4,9 @@
 #include "CoverageData.h"
 #include <osg/BoundingBox>
 #include <osg/Referenced>
-#include <osg/vec4>
-#include <osg/vec3>
-#include <osg/vec2>
+#include <osg/Vec4>
+#include <osg/Vec3>
+#include <osg/Vec2>
 #include <osg/Node>
 #include <vector>
 class TiXmlElement;

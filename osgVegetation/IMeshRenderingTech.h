@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.h"
 #include <osg/StateSet>
 #include <osg/Geometry>
 #include <osg/Node>
