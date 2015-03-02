@@ -256,7 +256,7 @@ namespace osgVegetation
 		return m_StateSet;
 	}
 
-	osg::Node* BRTGeometryShader::create(double view_dist, const BillboardVegetationObjectVector &objects, const osg::BoundingBox &bb)
+	osg::Node* BRTGeometryShader::create(double view_dist, const BillboardVegetationObjectVector &objects, const osg::BoundingBoxd &bb)
 	{
 		osg::Geode* geode = new osg::Geode;
 

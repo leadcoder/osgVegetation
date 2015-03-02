@@ -27,25 +27,29 @@ namespace osgVegetation
 		{
 			osg::ref_ptr<osg::Node> node = osgDB::readNodeFile(filename);
 			pagedLODVec.push_back(node);
-			//Hack: flush cache after 100 nodes, use ring buffer instead
-			if(pagedLODVec.size() > 100) 
+			if(pagedLODVec.size() > 50) //flush cache?
+			{
+				std::cout << "PagedLOD cache cleared\n";
 				pagedLODVec.clear();
+			}
 			return node.get();
 		}
 	};
 
 	TerrainQuery::TerrainQuery(osg::Node* terrain, const CoverageData &cd) : m_Terrain(terrain),
 		m_CoverageData(cd),
-		m_CoverageTextureSuffix("_coverage.png")
+		m_CoverageTextureSuffix("_coverage.png"),
+		m_FlipCoverageCoordinates(false)
 	{
 		m_MeshCache = new osgSim::DatabaseCacheReadCallback;
+		//m_MeshCache->setMaximumNumOfFilesToCache(50);
 		m_IntersectionVisitor.setReadCallback(m_MeshCache);
 		m_IntersectionVisitor.setLODSelectionMode(osgUtil::IntersectionVisitor::USE_HIGHEST_LEVEL_OF_DETAIL);
 	}
 
-	bool TerrainQuery::getTerrainData(osg::Vec3& location, osg::Vec4 &texture_color, std::string &coverage_name, CoverageColor &coverage_color, osg::Vec3 &inter)
+	bool TerrainQuery::getTerrainData(osg::Vec3d& location, osg::Vec4 &texture_color, std::string &coverage_name, CoverageColor &coverage_color, osg::Vec3d &inter)
 	{
-		osg::Vec3 start_location(location.x(),location.y(), -100);
+		osg::Vec3d start_location(location.x(),location.y(), -100);
 		osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =	new osgUtil::LineSegmentIntersector(start_location,start_location + osg::Vec3(0.0f,0.0f,300));
 		m_IntersectionVisitor.setIntersector(intersector.get());
 		m_Terrain->accept(m_IntersectionVisitor);
@@ -75,6 +79,7 @@ namespace osgVegetation
 						texture_color = texture->getImage(0)->getColor(tc);
 
 					//get material texture
+					//const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + "_material.png";
 					std::string mat_image_filename;
 					if(m_CoverageTexture != "")
 						mat_image_filename = m_CoverageTexture;
@@ -83,13 +88,13 @@ namespace osgVegetation
 
 					osg::Image* image = _loadImage(mat_image_filename);
 
-					//flip tex coords for dds
-					osg::Vec3 tc_flipped(tc.x(),1.0 - tc.y(),tc.z());
-					//osg::Vec3 tc2 = tc;
+					if(m_FlipCoverageCoordinates)
+						tc.set(tc.x(),1.0 - tc.y(),tc.z());
+					
 					//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
-					tc_flipped.set(osg::clampTo((double) tc_flipped.x(), (double) 0.0, (double) 1.0),
-							osg::clampTo((double) tc_flipped.y(), (double) 0.0, (double)1.0),(double)tc_flipped.z());
-					coverage_color = image->getColor(tc_flipped);
+					tc.set(osg::clampTo((double) tc.x(), (double) 0.0, (double) 1.0),
+							osg::clampTo((double) tc.y(), (double) 0.0, (double)1.0),(double)tc.z());
+					coverage_color = image->getColor(tc);
 					coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
 				}
 				inter = intersection.getWorldIntersectPoint();
@@ -109,8 +114,13 @@ namespace osgVegetation
 		}
 		else
 		{
-			//if(m_MaterialCache.size() > 100)
-			//	m_MaterialCache.clear();
+			if(m_ImageCache.size() > 100) //Hack to release some memory
+			{
+				std::cout << "Image cache cleared\n";
+				m_ImageCache.clear();
+				std::cout << "Clear DB cache\n";
+				m_MeshCache->clearDatabaseCache();
+			}
 
 			m_ImageCache[filename] = osgDB::readImageFile(filename);
 			image = m_ImageCache[filename].get();

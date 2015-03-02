@@ -168,16 +168,18 @@ int main( int argc, char **argv )
 
 	//down size bb for faster generation...useful for testing purpose
 	const float tree_bb_scale = 0.4;
-	osg::BoundingBox tree_bb = bb;
-	osg::Vec3 bb_size = tree_bb._max - tree_bb._min;
-	osg::Vec3 bb_center = (tree_bb._max + tree_bb._min)*0.5;
+	osg::BoundingBoxd tree_bb = bb;
+	osg::Vec3d bb_size = tree_bb._max - tree_bb._min;
+	osg::Vec3d bb_center = (tree_bb._max + tree_bb._min)*0.5;
 	tree_bb._min = bb_center - bb_size*0.5*tree_bb_scale;
 	tree_bb._max = bb_center + bb_size*0.5*tree_bb_scale;
 	tree_bb._min.set(tree_bb._min.x(),tree_bb._min.y(),bb._min.z());
 	tree_bb._max.set(tree_bb._max.x(),tree_bb._max.y(),bb._max.z());
 
 	const float grass_bb_scale = 0.3;
-	osg::BoundingBox grass_bb = bb;
+
+	osg::BoundingBoxd grass_bb = bb; 
+
 	bb_size = grass_bb._max - grass_bb._min;
 	bb_center = (grass_bb._max + grass_bb._min)*0.5;
 	grass_bb._min = bb_center - bb_size*0.5*grass_bb_scale;

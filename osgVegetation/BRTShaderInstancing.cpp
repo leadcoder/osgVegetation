@@ -504,7 +504,7 @@ namespace osgVegetation
 		return geom;
 	}
 
-	osg::Node* BRTShaderInstancing::create(double view_dist, const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBox &bb)
+	osg::Node* BRTShaderInstancing::create(double view_dist, const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBoxd &bb)
 	{
 		osg::Geode* geode = 0;
 		osg::Group* group = 0;

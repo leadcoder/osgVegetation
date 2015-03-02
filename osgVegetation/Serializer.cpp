@@ -155,6 +155,13 @@ namespace osgVegetation
 			tq->setCoverageTextureSuffix(suffix);
 		}
 
+		if(tq_elem->Attribute("FlipCoverageCoordinates"))
+		{
+			bool flip = false;
+			tq_elem->QueryBoolAttribute("FlipCoverageCoordinates",&flip);
+			tq->setFlipCoverageCoordinates(flip);
+		}
+	
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
 		delete xmlDoc;

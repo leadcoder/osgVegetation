@@ -17,6 +17,6 @@ namespace osgVegetation
 		/**
 			Get terrain data for provided location
 		*/
-		virtual bool getTerrainData(osg::Vec3& location, osg::Vec4 &color, std::string &coverage_name , CoverageColor &coverage_color, osg::Vec3 &inter) = 0;
+		virtual bool getTerrainData(osg::Vec3d& location, osg::Vec4 &color, std::string &coverage_name , CoverageColor &coverage_color, osg::Vec3d &inter) = 0;
 	};
 }

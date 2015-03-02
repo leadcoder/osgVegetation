@@ -39,7 +39,7 @@ namespace osgVegetation
 			@param use_paged_lod Use PagedLOD instead of regular LOD nodes (can only be true if out_put_file is defined, otherwise we have no path)
 			@param filename_prefix Added to all files (only relevant if out_put_file is defined)
 			*/
-		osg::Node* generate(const osg::BoundingBox &bb, MeshData &data, const std::string &output_file = "", bool use_paged_lod = false, const std::string &filename_prefix = "");
+		osg::Node* generate(const osg::BoundingBoxd &bb, MeshData &data, const std::string &output_file = "", bool use_paged_lod = false, const std::string &filename_prefix = "");
 	private:
 		int m_FinalLOD;
 
@@ -48,10 +48,10 @@ namespace osgVegetation
 		int m_NumberOfTiles;
 
 		//Area bounding box
-		osg::BoundingBox m_InitBB;
+		osg::BoundingBoxd m_InitBB;
 
 		IMeshRenderingTech* m_MRT;
-		osg::Vec3 m_Offset;
+		osg::Vec3d m_Offset;
 		ITerrainQuery* m_TerrainQuery;
 
 		bool m_UsePagedLOD;
@@ -63,7 +63,7 @@ namespace osgVegetation
 
 		//Helpers
 		std::string _createFileName(unsigned int lv, unsigned int x, unsigned int y);
-		void _populateVegetationTile(MeshLayer& layer,const osg::BoundingBox &box);
-		osg::Node* _createLODRec(int ld, MeshData &data, MeshVegetationObjectVector trees, const osg::BoundingBox &box ,int x, int y);
+		void _populateVegetationTile(MeshLayer& layer,const osg::BoundingBoxd &box);
+		osg::Node* _createLODRec(int ld, MeshData &data, MeshVegetationObjectVector trees, const osg::BoundingBoxd &box ,int x, int y);
 	};
 }
