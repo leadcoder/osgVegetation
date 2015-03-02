@@ -75,7 +75,6 @@ namespace osgVegetation
 						texture_color = texture->getImage(0)->getColor(tc);
 
 					//get material texture
-					//const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + "_material.png";
 					std::string mat_image_filename;
 					if(m_CoverageTexture != "")
 						mat_image_filename = m_CoverageTexture;
@@ -83,12 +82,14 @@ namespace osgVegetation
 						mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + m_CoverageTextureSuffix;
 
 					osg::Image* image = _loadImage(mat_image_filename);
-					osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
+
+					//flip tex coords for dds
+					osg::Vec3 tc_flipped(tc.x(),1.0 - tc.y(),tc.z());
 					//osg::Vec3 tc2 = tc;
 					//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
-					tc2.set(osg::clampTo((double) tc2.x(), (double) 0.0, (double) 1.0),
-							osg::clampTo((double) tc2.y(), (double) 0.0, (double)1.0),(double)tc2.z());
-					coverage_color = image->getColor(tc2);
+					tc_flipped.set(osg::clampTo((double) tc_flipped.x(), (double) 0.0, (double) 1.0),
+							osg::clampTo((double) tc_flipped.y(), (double) 0.0, (double)1.0),(double)tc_flipped.z());
+					coverage_color = image->getColor(tc_flipped);
 					coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
 				}
 				inter = intersection.getWorldIntersectPoint();
