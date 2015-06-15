@@ -39,7 +39,9 @@ namespace osgVegetation
 	TerrainQuery::TerrainQuery(osg::Node* terrain, const CoverageData &cd) : m_Terrain(terrain),
 		m_CoverageData(cd),
 		m_CoverageTextureSuffix("_coverage.png"),
-		m_FlipCoverageCoordinates(false)
+		m_FlipCoverageCoordinates(false),
+		m_FlipColorCoordinates(false),
+		m_ColorTextureSuffix(".rgb")
 	{
 		m_MeshCache = new osgSim::DatabaseCacheReadCallback;
 		//m_MeshCache->setMaximumNumOfFilesToCache(50);
@@ -70,10 +72,13 @@ namespace osgVegetation
 				    //check if dds, if so we will try to load alternative image file because we have no utils to decompress dds
 					if(osgDB::getFileExtension(tex_filename) == "dds")
 					{
-						tex_filename = osgDB::getNameLessExtension(tex_filename) + ".tga";
+						tex_filename = osgDB::getNameLessExtension(tex_filename) + m_ColorTextureSuffix;
+
+						//std::cout << tex_filename <<"\n";
 						osg::Image* image = _loadImage(tex_filename);
-						osg::Vec3 tc2(tc.x(),1.0 - tc.y(),tc.z());
-						texture_color = image->getColor(tc2);
+						if(m_FlipColorCoordinates)
+							tc.set(tc.x(),1.0 - tc.y(),tc.z());
+						texture_color = image->getColor(tc);
 					}
 					else
 						texture_color = texture->getImage(0)->getColor(tc);
