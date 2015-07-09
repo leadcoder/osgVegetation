@@ -3,7 +3,8 @@ PROJECT(osgVegetation)
 SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
 SET(CMAKE_MODULE_PATH "${osgVegetation_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
 
-FIND_PACKAGE(OpenSceneGraph 3.2.1 REQUIRED osgUtil osgDB osgGA osgText osgShadow osgViewer osgSim osgTerrain)
+#FIND_PACKAGE(OpenSceneGraph 3.3.3 REQUIRED osgUtil osgDB osgGA osgText osgShadow osgViewer osgSim osgTerrain)
+FIND_PACKAGE(OpenSceneGraph 3.3.8 REQUIRED osgUtil osgDB osgGA osgText osgShadow osgViewer osgSim osgTerrain)
 
 OPTION(OSGV_BUILD_SAMPLES "Build sample" ON)
 OPTION(OSGV_BUILD_APPLICATIONS "Build applications" ON)
