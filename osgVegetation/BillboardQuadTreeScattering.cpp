@@ -6,6 +6,7 @@
 #include <osg/ProxyNode>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
+#include <osgDB/Output>
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
 #include <sstream>
@@ -272,10 +273,20 @@ namespace osgVegetation
 
 		if(output_file != "")
 		{
-			osgDB::writeNodeFile(*transform, output_file);
+//			osgDB::Output fout(output_file.c_str());
+//			fout.setOutputShaderFiles(true);
+//			fout.setOutputTextureFiles(true);
+//			fout.writeObject(*transform);
+		
+			osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+			options->setOptionString(std::string("OutputShaderFiles"));
+			osgDB::writeNodeFile(*transform, output_file,options);
 
+			//osgDB::Output fout2(std::string( output_file + ".osgt").c_str());
+			//fout2.setOutputShaderFiles(true);
+			//fout2.writeObject(*transform);
 			//debug purpose
-			osgDB::writeNodeFile(*transform, output_file + ".osgt");
+			//osgDB::writeNodeFile(*transform, output_file + ".osgt");
 
 			//osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.ive");
 			//osg::ProxyNode* pn = new osg::ProxyNode();
