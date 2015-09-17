@@ -16,6 +16,8 @@
 #include <osg/Image>
 #include <osg/Texture2DArray>
 #include <osgDB/ReadFile>
+#include <osgDB/WriteFile>
+#include <osgDB/FileUtils>
 
 namespace osgVegetation
 {
@@ -217,7 +219,12 @@ namespace osgVegetation
 		osg::Program* pgm = new osg::Program;
 		pgm->setName( "GeometryShaderBillboards" );
 
-		pgm->addShader( new osg::Shader( osg::Shader::VERTEX,   vertexSource.str() ) );
+
+		const std::string btr_vertex_file("vegetation.glsl");
+		
+		osg::Shader* vertex_shader =  new osg::Shader( osg::Shader::VERTEX,   vertexSource.str() ); 
+		//osgDB::writeShaderFile(*vertex_shader,btr_vertex_file);
+		pgm->addShader( vertex_shader);
 		pgm->addShader( new osg::Shader( osg::Shader::FRAGMENT, fragSource.str() ) );
 		pgm->addShader( new osg::Shader( osg::Shader::GEOMETRY, geomSource.str() ) );
 
