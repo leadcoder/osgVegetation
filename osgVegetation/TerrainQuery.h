@@ -31,7 +31,19 @@ namespace osgVegetation
 			Get terrain data for provided location
 		*/
 		bool getTerrainData(osg::Vec3d& location, osg::Vec4 &texture_color, std::string &coverage_name, CoverageColor &coverage_color, osg::Vec3d &inter);
+	
 	public:
+		/**
+			Set suffix used to generate alternative color texture filename when terrain texture is stored as dds.
+			The suffix is appended to extension-less terrain base texture filename.
+		*/
+		void setColorTextureSuffix(const std::string &value) {m_ColorTextureSuffix=value;}
+
+		/**
+			Get suffix used to generate alternative color texture filename.
+		*/
+		std::string getColorTextureSuffix() const {return m_ColorTextureSuffix;}
+
 
 		/**
 			Set suffix used to generate coverage texture filename.
@@ -63,6 +75,16 @@ namespace osgVegetation
 			Flip coverage texture coordinates
 		*/
 		bool getFlipCoverageCoordinates() const {return m_FlipCoverageCoordinates;}
+
+		/**
+			Flip color texture coordinates
+		*/
+		void setFlipColorCoordinates(bool value) {m_FlipColorCoordinates=value;}
+		
+		/**
+			Flip color texture coordinates
+		*/
+		bool getFlipColorCoordinates() const {return m_FlipColorCoordinates;}
 	private:
 		osg::Image* _loadImage(const std::string &filename);
 		osg::Texture* _getTexture(const osgUtil::LineSegmentIntersector::Intersection& intersection,osg::Vec3& tc) const;
@@ -74,7 +96,10 @@ namespace osgVegetation
 		osgSim::DatabaseCacheReadCallback* m_MeshCache;
 		std::string m_CoverageTextureSuffix;
 		std::string m_CoverageTexture;
+		std::string m_ColorTextureSuffix;
+
 		CoverageData m_CoverageData;
 		bool m_FlipCoverageCoordinates;
+		bool m_FlipColorCoordinates;
 	};
 }

@@ -161,6 +161,20 @@ namespace osgVegetation
 			tq_elem->QueryBoolAttribute("FlipCoverageCoordinates",&flip);
 			tq->setFlipCoverageCoordinates(flip);
 		}
+
+
+		if(tq_elem->Attribute("ColorTextureSuffix"))
+		{
+			const std::string suffix = tq_elem->Attribute("ColorTextureSuffix");
+			tq->setColorTextureSuffix(suffix);
+		}
+
+		if(tq_elem->Attribute("FlipColorCoordinates"))
+		{
+			bool flip = false;
+			tq_elem->QueryBoolAttribute("FlipColorCoordinates",&flip);
+			tq->setFlipColorCoordinates(flip);
+		}
 	
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
