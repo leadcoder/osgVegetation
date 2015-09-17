@@ -273,27 +273,12 @@ namespace osgVegetation
 
 		if(output_file != "")
 		{
-//			osgDB::Output fout(output_file.c_str());
-//			fout.setOutputShaderFiles(true);
-//			fout.setOutputTextureFiles(true);
-//			fout.writeObject(*transform);
-		
 			osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
-			options->setOptionString(std::string("OutputShaderFiles"));
-			osgDB::writeNodeFile(*transform, output_file,options);
-
-			//osgDB::Output fout2(std::string( output_file + ".osgt").c_str());
-			//fout2.setOutputShaderFiles(true);
-			//fout2.writeObject(*transform);
-			//debug purpose
-			//osgDB::writeNodeFile(*transform, output_file + ".osgt");
-
-			//osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.ive");
-			//osg::ProxyNode* pn = new osg::ProxyNode();
-			//pn->setFileName(0,"master.ive");
-			//pn->setDatabasePath("C:/temp/paged");
-			//transform->addChild(pn);
-			//osgDB::writeNodeFile( *transform, m_SavePath + "/transformation.osg" );
+			options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
+			osgDB::writeNodeFile(*transform, output_file, options);
+			//out put osgt and osg files that can be used for editing
+			osgDB::writeNodeFile(*transform, output_file + "_debug.osgt",options);
+			osgDB::writeNodeFile(*transform, output_file + "_debug.osg",options);
 		}
 		return transform;
 	}

@@ -316,10 +316,12 @@ namespace osgVegetation
 
 		if(output_file != "")
 		{
-			osgDB::writeNodeFile(*transform, output_file);
-
-			//debug purpose
-			osgDB::writeNodeFile(*transform, output_file + ".osgt");
+			osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+			options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
+			osgDB::writeNodeFile(*transform, output_file, options);
+			//out put osgt and osg files that can be used for editing
+			osgDB::writeNodeFile(*transform, output_file + "_debug.osgt",options);
+			osgDB::writeNodeFile(*transform, output_file + "_debug.osg",options);
 		}
 		return transform;
 	}

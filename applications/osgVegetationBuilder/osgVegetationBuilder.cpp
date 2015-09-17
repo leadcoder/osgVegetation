@@ -165,8 +165,12 @@ int main( int argc, char **argv )
 			ss << "bb_" << i << "_";
 			osg::Node* bb_node = scattering.generate(bounding_box,bb_vector[i], out_file, pagedLOD, ss.str());
 			group->addChild(bb_node);
+
+		
 		}
-		osgDB::writeNodeFile(*group,out_file);
+		osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+		options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
+		osgDB::writeNodeFile(*group, out_file,options);
 	}
 
 	catch(std::exception& e)
