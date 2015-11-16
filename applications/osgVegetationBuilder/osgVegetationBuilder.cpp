@@ -151,9 +151,6 @@ int main( int argc, char **argv )
 
 		osg::ref_ptr<osgVegetation::ITerrainQuery> tq = serializer.loadTerrainQuery(terrain, tq_filename);
 
-		//if(material_suffix != "")
-		//	tq->setMaterialTextureSuffix(material_suffix);
-		
 		osgVegetation::BillboardQuadTreeScattering scattering(tq);
 		std::cout << "Using bounding box:" << bounding_box.xMin() << " " << bounding_box.yMin() << " "<< bounding_box.xMax() << " " << bounding_box.yMax() << "\n";
 		std::cout << "Start Scattering...\n";
