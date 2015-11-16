@@ -35,7 +35,8 @@ namespace osgVegetation
 			CastShadows(false),
 			UseFog(false),
 			FogMode(osg::Fog::LINEAR),
-			Type(BT_CROSS_QUADS)
+			Type(BT_CROSS_QUADS),
+			TilePixelSize(0)
 		{
 
 		}
@@ -87,5 +88,12 @@ namespace osgVegetation
 			Type of billboard
 		*/
 		BillboardType Type;
+
+		/**
+			Set this value if you want to override default distance based range mode
+			If this value is 0 (default) osg::LOD::DISTANCE_FROM_EYE_POINT range mode 
+			is used otherwise osg::LOD::PIXEL_SIZE_ON_SCREEN is used.
+		*/
+		int TilePixelSize;
 	};
 }

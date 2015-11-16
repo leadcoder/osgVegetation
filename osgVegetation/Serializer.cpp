@@ -98,6 +98,7 @@ namespace osgVegetation
 		bd_elem->QueryBoolAttribute("CastShadows",&bb_data.CastShadows);
 		bd_elem->QueryBoolAttribute("TerrainNormal",&bb_data.TerrainNormal);
 		bd_elem->QueryBoolAttribute("UseFog",&bb_data.UseFog);
+		bd_elem->QueryIntAttribute("TilePixelSize",&bb_data.TilePixelSize);
 
 		if(!bd_elem->Attribute("FogMode"))
 			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to find attribute: FogMode").c_str());

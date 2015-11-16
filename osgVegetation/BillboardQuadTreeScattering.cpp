@@ -151,6 +151,7 @@ namespace osgVegetation
 				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
 				plod->setCenter(bb.center());
 				plod->setRadius(tile_radius);
+				
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
@@ -160,7 +161,18 @@ namespace osgVegetation
 				const std::string filename = _createFileName(ld, x,y);
 				plod->setFileName( c_index, filename );
 				plod->setRange(c_index,0,tile_cutoff );
+
+				if(data.TilePixelSize > 0) //override
+				{
+					plod->setRangeMode(osg::LOD::PIXEL_SIZE_ON_SCREEN);
+					//float tile_pix_size = 2000;
+					plod->setRange( 0, data.TilePixelSize, FLT_MAX);
+					plod->setRange( 1, data.TilePixelSize, FLT_MAX );
+				}
+				
 				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
+
+				
 				return plod;
 			}
 			else
