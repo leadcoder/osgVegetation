@@ -95,7 +95,7 @@ namespace osgVegetation
 		{
 			geomSource <<
 				"    vec3 dir = camera_pos.xyz - pos.xyz;\n"
-				"	 dir.z = 0;\n //we are only instrested in xy-plane direction"
+				"	 dir.z = 0;\n //we are only interested in xy-plane direction"
 				"    dir = normalize(dir);\n"
 				"    vec3 up   = vec3(0.0, 0.0, 1.0*scale.y);//Up direction in OSG\n"
 				//"    vec3 left = cross(dir,up); //Generate billboard base vector\n"

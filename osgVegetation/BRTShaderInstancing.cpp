@@ -125,7 +125,7 @@ namespace osgVegetation
 			{
 				vertexShaderSource <<
 					"    vec3 dir = camera_pos.xyz - position.xyz;\n"
-					"	 dir.z = 0;\n //we are only instrested in xy-plane direction"
+					"	 dir.z = 0;\n //we are only interested in xy-plane direction"
 					"    dir = normalize(dir);\n"
 					"    vec3 left = vec3(-dir.y,dir.x, 0);\n"
 					"	 left = normalize(left);\n"
