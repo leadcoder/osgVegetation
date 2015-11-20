@@ -38,7 +38,6 @@ namespace osgVegetation
 		//std::cout << "pos:" << origin.x() << "size: " << size.x();
 		for(unsigned int i=0;i<num_objects_to_create;++i)
 		{
-
 			double rand_x = Utils::random(origin.x(), origin.x() + size.x());
 			double rand_y = Utils::random(origin.y(), origin.y() + size.y());
 			osg::Vec3d pos(rand_x, rand_y,0);
@@ -195,12 +194,11 @@ namespace osgVegetation
 		return lhs.ViewDistance > rhs.ViewDistance;
 	}
 
-	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBoxd &boudning_box,BillboardData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
+	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBoxd &bounding_box,std::vector<osgVegetation::BillboardData> &data, const std::string &output_file, bool use_paged_lod)
 	{
 		if(output_file != "")
 		{
 			m_UsePagedLOD = use_paged_lod;
-			m_FilenamePrefix = filename_prefix;
 			m_SavePath = osgDB::getFilePath(output_file);
 			m_SavePath += "/";
 			m_SaveExt = osgDB::getFileExtension(output_file);
@@ -210,6 +208,56 @@ namespace osgVegetation
 			OSGV_EXCEPT(std::string("BillboardQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
 		}
 
+		osg::Node *node = NULL;
+
+		//use proxy file for top node
+		if(m_UsePagedLOD)
+		{
+			osg::ProxyNode* pn = new osg::ProxyNode();
+			node  = pn;
+			for(size_t i=0; i < data.size();i++)
+			{
+				std::stringstream ss;
+				ss << "billboard_layer_" << i;
+				osg::Node* bb_node = generate(bounding_box, data[i], output_file, use_paged_lod, ss.str());
+				if(bb_node)
+				{
+					//save osg files that can be used for editing
+					const std::string file_name = ss.str() + ".osg";
+					osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+					options->setOptionString(std::string("OutputShaderFiles"));
+					osgDB::writeNodeFile(*bb_node, m_SavePath + file_name,options);
+					pn->setFileName(i, file_name);
+				}
+			}
+
+			if(output_file != "") //save proxy node
+			{
+				osgDB::writeNodeFile(*pn, output_file + ".osg");
+			}
+		}
+		else
+		{
+			osg::Group* group = new osg::Group();
+			node = group;
+			for(size_t i=0; i < data.size();i++)
+			{
+				std::stringstream ss;
+				ss << "billboard_layer_" << i;
+				osg::Node* bb_node = generate(bounding_box, data[i], output_file, use_paged_lod, ss.str());
+				if(bb_node)
+				{
+					group->addChild(bb_node);
+				}
+			}
+		}
+	
+		return node;
+	}
+
+	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBoxd &boudning_box,BillboardData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
+	{
+		m_FilenamePrefix = filename_prefix;
 		//remove any previous render technique
 		delete m_BRT;
 
@@ -281,21 +329,6 @@ namespace osgVegetation
 		//Add state set to top node
 		outnode->setStateSet((osg::StateSet*) m_BRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
 		transform->addChild(outnode);
-
-		if(output_file != "")
-		{
-			osgDB::writeNodeFile(*transform, output_file);
-
-			//debug purpose
-			osgDB::writeNodeFile(*transform, output_file + ".osgt");
-
-			//osgDB::writeNodeFile(*transform, m_SavePath + m_FilenamePrefix + "master.ive");
-			//osg::ProxyNode* pn = new osg::ProxyNode();
-			//pn->setFileName(0,"master.ive");
-			//pn->setDatabasePath("C:/temp/paged");
-			//transform->addChild(pn);
-			//osgDB::writeNodeFile( *transform, m_SavePath + "/transformation.osg" );
-		}
 		return transform;
 	}
 }

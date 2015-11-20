@@ -43,6 +43,8 @@ namespace osgVegetation
 			@param filename_prefix Added to all files (only relevant if out_put_file is defined)
 		*/
 		osg::Node* generate(const osg::BoundingBoxd &bb, BillboardData &data, const std::string &output_file = "", bool use_paged_lod = false, const std::string &filename_prefix = "");
+
+		osg::Node* generate(const osg::BoundingBoxd &bb,std::vector<osgVegetation::BillboardData> &data, const std::string &output_file, bool use_paged_lod);
 	private:
 		int m_FinalLOD;
 

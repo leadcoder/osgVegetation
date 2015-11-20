@@ -156,14 +156,21 @@ int main( int argc, char **argv )
 		std::cout << "Start Scattering...\n";
 
 		srand(0); //reset random numbers, TODO: support layer seed
-		for(size_t i=0; i < bb_vector.size();i++)
+
+		osg::Node* bb_node = scattering.generate(bounding_box, bb_vector, out_file, pagedLOD);
+		group->addChild(bb_node);
+		/*for(size_t i=0; i < bb_vector.size();i++)
 		{
 			std::stringstream ss;
 			ss << "bb_" << i << "_";
 			osg::Node* bb_node = scattering.generate(bounding_box,bb_vector[i], out_file, pagedLOD, ss.str());
 			group->addChild(bb_node);
-		}
-		osgDB::writeNodeFile(*group,out_file);
+		}*/
+		//osgDB::writeNodeFile(*group,out_file);
+		//osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+		//options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
+		//osgDB::writeNodeFile(*group, out_file,options);
+		//osgDB::writeNodeFile(*group, out_file + ".osg",options);
 	}
 
 	catch(std::exception& e)
