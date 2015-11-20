@@ -13,7 +13,7 @@ namespace osgVegetation
 		int tex_height = 0;
 		//Load textures
 		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options();
-		options->setOptionString("dds_flip");
+		//options->setOptionString("dds_flip");
 		std::map<std::string, osg::Image*> image_map;
 		std::map<std::string, int> index_map;
 		int num_textures = 0;
