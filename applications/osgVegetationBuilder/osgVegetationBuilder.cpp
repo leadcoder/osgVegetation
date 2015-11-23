@@ -1,6 +1,7 @@
 #include <osg/Geode>
 #include <osg/Geometry>
 #include <osg/MatrixTransform>
+#include <osg/ProxyNode>
 #include <osg/StateSet>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
@@ -110,10 +111,10 @@ int main( int argc, char **argv )
 		const std::string terrain_path = osgDB::getFilePath(terrain_file);
 		osgDB::Registry::instance()->getDataFilePathList().push_back(terrain_path);  
 
-		if(save_terrain)
+		/*if(save_terrain)
 		{
 			group->addChild(terrain);
-		}
+		}*/
 
 		osg::ComputeBoundsVisitor  cbv;
 		
@@ -159,7 +160,24 @@ int main( int argc, char **argv )
 
 		osg::Node* bb_node = scattering.generate(bounding_box, bb_vector, out_file, pagedLOD);
 		group->addChild(bb_node);
-		osgDB::writeNodeFile(*group, out_file);
+		
+		if(save_terrain)
+		{
+			osg::ProxyNode* pn = dynamic_cast<osg::ProxyNode*>(bb_node);
+			if(pn)
+			{
+				pn->setFileName(pn->getNumFileNames(),terrain_file );
+			}
+			else
+			{
+				osg::Group* veg_group = dynamic_cast<osg::Group*>(bb_node);
+				if(veg_group)
+					veg_group->addChild(terrain);
+			}
+		}
+		osgDB::writeNodeFile(*bb_node, out_file);
+		osgDB::writeNodeFile(*bb_node, out_file + ".osg");
+		
 		//osgDB::writeNodeFile(*group, out_file + ".osg");
 		//osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
 		//options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
