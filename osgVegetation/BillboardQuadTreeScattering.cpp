@@ -164,7 +164,6 @@ namespace osgVegetation
 				if(data.TilePixelSize > 0) //override
 				{
 					plod->setRangeMode(osg::LOD::PIXEL_SIZE_ON_SCREEN);
-					//float tile_pix_size = 2000;
 					plod->setRange( 0, data.TilePixelSize, FLT_MAX);
 					plod->setRange( 1, data.TilePixelSize, FLT_MAX );
 				}
@@ -182,6 +181,14 @@ namespace osgVegetation
 				plod->setRadius(tile_radius);
 				plod->addChild(mesh_group, 0, FLT_MAX );
 				plod->addChild(children_group, 0.0f, tile_cutoff );
+
+				if(data.TilePixelSize > 0) //override
+				{
+					plod->setRangeMode(osg::LOD::PIXEL_SIZE_ON_SCREEN);
+					plod->setRange( 0, data.TilePixelSize, FLT_MAX);
+					plod->setRange( 1, data.TilePixelSize, FLT_MAX );
+				}
+
 				return plod;
 			}
 		}
