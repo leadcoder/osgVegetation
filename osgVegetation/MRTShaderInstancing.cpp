@@ -14,6 +14,7 @@
 #include <osg/TextureBuffer>
 #include <osg/Image>
 #include <osg/Texture2DArray>
+#include <osg/Multisample>
 #include <osgDB/ReadFile>
 
 namespace osgVegetation
@@ -143,6 +144,21 @@ namespace osgVegetation
 				"uniform samplerBuffer dataBuffer;\n"
 				"varying vec2 TexCoord;\n"
 				"varying vec4 Color;\n"
+				"varying vec3 Normal;\n"
+				"void DynamicShadow( in vec4 ecPosition )                               \n"
+				"{                                                                      \n"
+				"    // generate coords for shadow mapping                              \n"
+				"    gl_TexCoord[2].s = dot( ecPosition, gl_EyePlaneS[2] );             \n"
+				"    gl_TexCoord[2].t = dot( ecPosition, gl_EyePlaneT[2] );             \n"
+				"    gl_TexCoord[2].p = dot( ecPosition, gl_EyePlaneR[2] );             \n"
+				"    gl_TexCoord[2].q = dot( ecPosition, gl_EyePlaneQ[2] );             \n"
+				"    gl_TexCoord[3].s = dot( ecPosition, gl_EyePlaneS[3] );             \n"
+				"    gl_TexCoord[3].t = dot( ecPosition, gl_EyePlaneT[3] );             \n"
+				"    gl_TexCoord[3].p = dot( ecPosition, gl_EyePlaneR[3] );             \n"
+				"    gl_TexCoord[3].q = dot( ecPosition, gl_EyePlaneQ[3] );             \n"
+				"} \n"
+
+
 				"void main()\n"
 				"{\n"
 				"   int instanceAddress = gl_InstanceID * 4;\n"
@@ -150,30 +166,47 @@ namespace osgVegetation
 				"   vec4 v2 = texelFetch(dataBuffer, instanceAddress + 1);\n"
 				"   vec4 v3 = texelFetch(dataBuffer, instanceAddress + 2);\n"
 				"   vec4 v4 = texelFetch(dataBuffer, instanceAddress + 3);\n"
-				"   mat4 mvpMatrix = gl_ModelViewProjectionMatrix* \n"
+				"   mat4 modelView =  gl_ModelViewMatrix*\n"
 				"        mat4( v1.x, v1.y, v1.z, 0.0,\n"
 				"              v2.x, v2.y, v2.z, 0.0,\n"
 				"              v3.x, v3.y, v3.z, 0.0,\n"
 				"              v4.x, v4.y, v4.z, 1.0);\n"
+				"   vec4 mv_pos = modelView * gl_Vertex;\n"
+				"   mat4 mvpMatrix =  gl_ProjectionMatrix * modelView;\n"
+				"   DynamicShadow(mv_pos);\n"
 				"   Color = vec4(v1.w, v2.w, v3.w, v4.w);\n"
 				"   gl_Position = mvpMatrix * vec4(gl_Vertex.xyz,1.0) ;\n"
-				"   vec3 normal = normalize(gl_NormalMatrix * gl_Normal);\n"
-				"   vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
-				"   float NdotL = max(dot(normal, lightDir), 0.0);\n"
-				"   Color.xyz = NdotL*Color.xyz*gl_LightSource[0].diffuse.xyz*gl_FrontMaterial.diffuse.xyz + gl_LightSource[0].ambient.xyz*Color.xyz*gl_FrontMaterial.ambient.xyz;\n"
+				"   Normal = normalize(gl_NormalMatrix * gl_Normal);\n"
+				//"   vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
+				//"   float NdotL = max(dot(normal, lightDir), 0.0);\n"
+				//"   Color.xyz = NdotL*Color.xyz*gl_LightSource[0].diffuse.xyz*gl_FrontMaterial.diffuse.xyz + gl_LightSource[0].ambient.xyz*Color.xyz*gl_FrontMaterial.ambient.xyz;\n"
 				"   TexCoord = gl_MultiTexCoord0.st;\n"
 				"}\n";
 
 			char fragmentShaderSource[] =
 				"uniform sampler2D baseTexture; \n"
+				"uniform sampler2DShadow shadowTexture0;                                 \n"
+				"uniform int shadowTextureUnit0;                                         \n"
+				"uniform sampler2DShadow shadowTexture1;                                 \n"
+				"uniform int shadowTextureUnit1;                                         \n"
 				"varying  vec2 TexCoord;\n"
 				"varying  vec4 Color;\n"
+				"varying  vec3 Normal; \n"
 				"void main(void) \n"
 				"{\n"
 				"    vec4 finalColor = texture2D( baseTexture, TexCoord); \n"
-				"    gl_FragColor = Color*finalColor;\n"
+				"    finalColor.xyz *= Color.xyz; \n"
+				"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
+				"    vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
+				"    vec3 normal = normalize(Normal);\n"
+				"    float NdotL = max(dot(normal, lightDir), 0);\n"
+				"    float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n"
+				"    float shadow1 = shadow2DProj( shadowTexture1, gl_TexCoord[shadowTextureUnit1] ).r;   \n"
+				"    NdotL *= shadow0*shadow1; \n"
+				"    finalColor.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz);\n"
+				"    gl_FragColor = finalColor;\n"
 				"}\n";
-
+			
 			osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource);
 			program->addShader(vertex_shader);
 
@@ -183,6 +216,14 @@ namespace osgVegetation
 			osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture",0);
 			dstate->addUniform(baseTextureSampler);
 
+
+			if (osg::DisplaySettings::instance()->getMultiSamples())
+			{
+				dstate->setAttributeAndModes(new osg::Multisample, osg::StateAttribute::ON);
+				dstate->setMode(GL_MULTISAMPLE_ARB, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+				dstate->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+				dstate->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO),	osg::StateAttribute::OVERRIDE);
+			}
 
 			return dstate;
 		}

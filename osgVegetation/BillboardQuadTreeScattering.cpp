@@ -26,15 +26,16 @@ namespace osgVegetation
 
 	}
 
-	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBoxd& bb,BillboardVegetationObjectVector& instances) const
+	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBoxd& bb,BillboardVegetationObjectVector& instances, osg::BoundingBoxd& out_bb) const
 	{
 
 		osg::Vec3d origin = bb._min; 
 		osg::Vec3d size = bb._max - bb._min; 
-
+		double min_z = FLT_MAX;
+		double max_z = -FLT_MAX;
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
 		instances.reserve(instances.size()+num_objects_to_create);
-
+		out_bb = bb;
 		//std::cout << "pos:" << origin.x() << "size: " << size.x();
 		for(unsigned int i=0;i<num_objects_to_create;++i)
 		{
@@ -69,9 +70,22 @@ namespace osgVegetation
 						veg_obj->Color += osg::Vec4(1,1,1,1)*(rand_int * (1.0 - layer.TerrainColorRatio));
 						veg_obj->Color.set(veg_obj->Color.r(), veg_obj->Color.g(), veg_obj->Color.b(), 1.0);
 						instances.push_back(veg_obj);
+
+						if (veg_obj->Position.z() > max_z)
+							max_z = veg_obj->Position.z();
+						if (veg_obj->Position.z() < min_z)
+							min_z = veg_obj->Position.z();
 					}
 				}
 			}
+		}
+		
+		if (instances.size() > 0)
+		{
+			if(max_z > out_bb._max.z())
+				out_bb._max.z() = max_z;
+			if (min_z > out_bb._min.z())
+				out_bb._min.z() = min_z;
 		}
 	}
 
@@ -88,10 +102,7 @@ namespace osgVegetation
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
 		m_CurrentTile++;
 
-		const double bb_size = (bb._max.x() - bb._min.x());
-		const double tile_radius = sqrt(bb_size*bb_size);
-		const double tile_cutoff = tile_radius*2.0f;
-
+		
 		osg::ref_ptr<osg::Group> children_group = new osg::Group;
 
 		//mesh_group is returned as raw pointer
@@ -100,23 +111,37 @@ namespace osgVegetation
 
 		BillboardVegetationObjectVector tile_instances;
 		double max_view_dist = 0;
+		osg::BoundingBoxd tile_bb = bb;
+		tile_bb._min.z() = FLT_MAX;
+		tile_bb._max.z() = -FLT_MAX;
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
 			if(ld == data.Layers[i]._QTLevel)
 			{
-				 _populateVegetationTile(data.Layers[i], bb, tile_instances);
-
+				 _populateVegetationTile(data.Layers[i], bb, tile_instances, tile_bb);
 				 //save view max view distance for this tile level
 				 if(data.Layers[i].ViewDistance > max_view_dist)
 					 max_view_dist = data.Layers[i].ViewDistance;
 			}
 		}
-
+	
+		const double bb_size = (bb._max.x() - bb._min.x());
+		double tile_radius = bb.radius();
+		double tile_cutoff = tile_radius*2.0f;
+		osg::Vec3d tile_center = bb.center();
+		double tile_min_z = bb._min.z();
+		double tile_max_z = bb._max.z();
 		if(tile_instances.size() > 0)
 		{
+			//ww have geometry in this tile, update radius etc.
+			tile_radius = tile_bb.radius();
+			tile_cutoff = tile_radius*2.0f;
+			tile_center = tile_bb.center();
+			tile_min_z = tile_bb._min.z();
+			tile_max_z = tile_bb._max.z();
 			//expand view distance to cutoff?
 			max_view_dist = std::max(max_view_dist, tile_cutoff);
-			osg::Node* tile_geometry = m_BRT->create(max_view_dist,tile_instances, bb);
+			osg::Node* tile_geometry = m_BRT->create(max_view_dist,tile_instances, tile_bb);
 			mesh_group->addChild(tile_geometry);
 		}
 
@@ -127,16 +152,15 @@ namespace osgVegetation
 			double sx = (bb._max.x() - bb._min.x())*0.5;
 			double sy = (bb._max.x() - bb._min.x())*0.5;
 
-			osg::BoundingBoxd b1(bb._min, 
-				osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,bb._max.z()));
-			osg::BoundingBoxd b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       ,bb._min.z()),
-				osg::Vec3(bb._max.x(),       bb._min.y() + sy  ,bb._max.z()));
+			osg::BoundingBoxd b1(bb._min, osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,tile_max_z));
+			osg::BoundingBoxd b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       , tile_min_z),
+								 osg::Vec3(bb._max.x(),       bb._min.y() + sy  , tile_max_z));
 
-			osg::BoundingBoxd b3(osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy   ,bb._min.z()),
-				osg::Vec3(bb._max.x(),       bb._max.y()		,bb._max.z()));
+			osg::BoundingBoxd b3(osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy   , tile_min_z),
+				osg::Vec3(bb._max.x(),       bb._max.y()		, tile_max_z));
 
-			osg::BoundingBoxd b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  ,bb._min.z()),
-				osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
+			osg::BoundingBoxd b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  , tile_min_z),
+				osg::Vec3(bb._min.x() + sx,  bb._max.y()		, tile_max_z));
 
 			//first check that we are inside initial bounding box
 			if(b1.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,data,instances,b1, x*2,   y*2));
@@ -148,7 +172,8 @@ namespace osgVegetation
 			{
 				osg::PagedLOD* plod = new osg::PagedLOD;
 				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-				plod->setCenter(bb.center());
+				
+				plod->setCenter(tile_center);
 				plod->setRadius(tile_radius);
 				
 				int c_index = 0;
@@ -177,7 +202,7 @@ namespace osgVegetation
 			{
 				osg::LOD* plod = new osg::LOD;
 				plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
-				plod->setCenter( bb.center());
+				plod->setCenter( tile_center);
 				plod->setRadius(tile_radius);
 				plod->addChild(mesh_group, 0, FLT_MAX );
 				plod->addChild(children_group, 0.0f, tile_cutoff );
