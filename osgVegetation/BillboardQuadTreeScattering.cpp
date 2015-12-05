@@ -225,7 +225,7 @@ namespace osgVegetation
 			for(size_t i=0; i < data.size();i++)
 			{
 				std::stringstream ss;
-				ss << "billboard_layer_" << i;
+				ss << "billboard_layer" << i;
 				osg::Node* bb_node = generate(bounding_box, data[i], output_file, use_paged_lod, ss.str());
 				if(bb_node)
 				{
@@ -250,7 +250,7 @@ namespace osgVegetation
 			for(size_t i=0; i < data.size();i++)
 			{
 				std::stringstream ss;
-				ss << "billboard_layer_" << i;
+				ss << "billboard_layer" << i;
 				osg::Node* bb_node = generate(bounding_box, data[i], output_file, use_paged_lod, ss.str());
 				if(bb_node)
 				{

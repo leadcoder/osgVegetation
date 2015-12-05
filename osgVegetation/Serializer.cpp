@@ -124,6 +124,16 @@ namespace osgVegetation
 		else
 			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown billboard type:" + bb_type).c_str());
 
+		const std::string shadow_mode = bd_elem->Attribute("ShadowMode");
+
+		if(shadow_mode == "LISPSM")
+			bb_data.ShadowMode = SM_LISPSM;
+		else if(shadow_mode == "VDSM1")
+			bb_data.ShadowMode = SM_VDSM1;
+		else if(fog_mode == "VDSM2")
+			bb_data.ShadowMode = SM_VDSM1;
+		else
+			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown Shadow mode:" + shadow_mode).c_str());
 		return bb_data;
 	}
 

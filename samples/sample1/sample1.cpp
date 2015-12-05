@@ -45,7 +45,9 @@
 int main( int argc, char **argv )
 {
 	//Global settings
-	const bool enableShadows = false;
+	//std::string shadow_type = "LISPSM";
+	osgVegetation::OSGShadowMode shadow_type = osgVegetation::SM_LISPSM;
+	const bool enableShadows = true;
 	const bool use_fog = true;
 	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
 
@@ -123,10 +125,11 @@ int main( int argc, char **argv )
 	//create billboard data by supplying layers and rendering settings.
 	osgVegetation::BillboardData tree_data(tree_layers, false,0.5,false);
 	tree_data.CastShadows = enableShadows;
+	tree_data.ShadowMode = shadow_type;
 	tree_data.UseFog = use_fog;
 	tree_data.TerrainNormal = false;
 	tree_data.Type = osgVegetation::BT_ROTATED_QUAD;
-	tree_data.ReceiveShadows = false; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts
+	tree_data.ReceiveShadows = true; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts
 
 	//grass data
 	osgVegetation::BillboardLayer  grass_l0("billboards/grass0.png", 40);
@@ -148,7 +151,6 @@ int main( int argc, char **argv )
 	grass_l1.Scale *= 0.8;
 	grass_l1.ViewDistance *= 0.5;
 
-
 	osgVegetation::BillboardLayerVector grass_layers;
 
 	grass_layers.push_back(grass_l0);
@@ -156,18 +158,18 @@ int main( int argc, char **argv )
 
 	osgVegetation::BillboardData grass_data(grass_layers, true,0.2,true);
 	grass_data.CastShadows = false;
+	grass_data.ShadowMode = shadow_type;
 	grass_data.UseFog = use_fog;
 	grass_data.FogMode = fog_mode;
 	grass_data.Type = osgVegetation::BT_ROTATED_QUAD;
 	grass_data.ReceiveShadows = enableShadows;
-
 
 	osg::ComputeBoundsVisitor  cbv;
 	osg::BoundingBox &bb(cbv.getBoundingBox());
 	terrain->accept(cbv);
 
 	//down size bb for faster generation...useful for testing purpose
-	const float tree_bb_scale = 0.4;
+	const float tree_bb_scale = 0.15;
 	osg::BoundingBoxd tree_bb = bb;
 	osg::Vec3d bb_size = tree_bb._max - tree_bb._min;
 	osg::Vec3d bb_center = (tree_bb._max + tree_bb._min)*0.5;
@@ -176,7 +178,7 @@ int main( int argc, char **argv )
 	tree_bb._min.set(tree_bb._min.x(),tree_bb._min.y(),bb._min.z());
 	tree_bb._max.set(tree_bb._max.x(),tree_bb._max.y(),bb._max.z());
 
-	const float grass_bb_scale = 0.3;
+	const float grass_bb_scale = 0.15;
 
 	osg::BoundingBoxd grass_bb = bb; 
 
@@ -255,29 +257,77 @@ int main( int argc, char **argv )
 	static int CastsShadowTraversalMask = 0x2;
 
 	osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
-	osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
-	settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
-	settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
-	//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
-
-	unsigned int unit=2;
-	settings->setBaseShadowTextureUnit(unit);
-
-	double n=0.8;
-	settings->setMinimumShadowMapNearFarRatio(n);
-
-	unsigned int numShadowMaps = 2;
-	settings->setNumShadowMapsPerLight(numShadowMaps);
-
-	//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
-	settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
-
 	int mapres = 2048;
-	settings->setTextureSize(osg::Vec2s(mapres,mapres));
-	//settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
+	if(shadow_type == osgVegetation::SM_LISPSM)
+	{
+		osg::ref_ptr<osgShadow::MinimalShadowMap> sm = new osgShadow::LightSpacePerspectiveShadowMapDB;
+		float minLightMargin = 20.f;
+		float maxFarPlane = 500;
+		int baseTexUnit = 0;
+		int shadowTexUnit = 1;
+		sm->setMinLightMargin( minLightMargin );
+		sm->setMaxFarPlane( maxFarPlane );
+		sm->setTextureSize( osg::Vec2s( mapres, mapres ) );
+		sm->setShadowTextureCoordIndex( shadowTexUnit );
+		sm->setShadowTextureUnit( shadowTexUnit );
+		sm->setBaseTextureCoordIndex( baseTexUnit );
+		sm->setBaseTextureUnit( baseTexUnit );
 
-	osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
-	shadowedScene->setShadowTechnique(vdsm.get());
+		sm->setMainVertexShader( NULL );
+		sm->setShadowVertexShader(NULL);
+
+
+		osg::Shader* mainFragmentShader = new osg::Shader( osg::Shader::FRAGMENT,
+			" // following expressions are auto modified - do not change them:       \n"
+			" // gl_TexCoord[0]  0 - can be subsituted with other index              \n"
+			"                                                                        \n"
+			"float DynamicShadow( );                                                 \n"
+			"                                                                        \n"
+			"uniform sampler2D baseTexture;                                          \n"
+			"                                                                        \n"
+			"void main(void)                                                         \n"
+			"{                                                                       \n"
+			"  vec4 colorAmbientEmissive = gl_FrontLightModelProduct.sceneColor;     \n"
+			"  // Add ambient from Light of index = 0                                \n"
+			"  colorAmbientEmissive += gl_FrontLightProduct[0].ambient;              \n"
+			"  vec4 color = texture2D( baseTexture, gl_TexCoord[0].xy );             \n"
+			"  color *= mix( colorAmbientEmissive, gl_Color, DynamicShadow() );      \n"
+			"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
+			"    float fogFactor = exp(-pow((gl_Fog.density * depth), 2.0));\n"
+			"    fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
+			"    color.rgb = mix( gl_Fog.color.rgb, color.rgb, fogFactor );            \n"
+			"    gl_FragColor = color;                                                 \n"
+			"} \n" );
+
+		sm->setMainFragmentShader(mainFragmentShader);
+		shadowedScene->setShadowTechnique(sm);
+	}
+	else if(shadow_type == osgVegetation::SM_VDSM2)
+	{
+		
+		osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
+		settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
+		settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
+		//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
+		unsigned int unit=2;
+		settings->setBaseShadowTextureUnit(unit);
+
+		double n=0.8;
+		settings->setMinimumShadowMapNearFarRatio(n);
+
+		unsigned int numShadowMaps = 2;
+		settings->setNumShadowMapsPerLight(numShadowMaps);
+
+		//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
+		settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
+
+		
+		settings->setTextureSize(osg::Vec2s(mapres,mapres));
+		//settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
+		osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
+		shadowedScene->setShadowTechnique(vdsm.get());
+	}
+
 	terrain->setNodeMask(ReceivesShadowTraversalMask);
 	tree_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
 	grass_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);

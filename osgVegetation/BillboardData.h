@@ -17,6 +17,13 @@ namespace osgVegetation
 		BT_CROSS_QUADS
 	};
 
+	enum OSGShadowMode
+	{
+		SM_LISPSM,
+		SM_VDSM1, //one texture
+		SM_VDSM2, //two textures
+	};
+
 	/**
 		Struct holding billboard collection and settings common
 		for all billboard layers used by the scattering stage
@@ -36,7 +43,8 @@ namespace osgVegetation
 			UseFog(false),
 			FogMode(osg::Fog::LINEAR),
 			Type(BT_CROSS_QUADS),
-			TilePixelSize(0)
+			TilePixelSize(0),
+			ShadowMode(SM_VDSM2)
 		{
 
 		}
@@ -63,6 +71,11 @@ namespace osgVegetation
 			Should geometry receive shadows or not.
 		*/
 		bool ReceiveShadows;
+
+		/*
+			This will be used when generating shadow map look up in the shader generator
+		*/
+		OSGShadowMode ShadowMode;
 
 		/**
 			Should geometry cast shadows or not.
@@ -95,5 +108,7 @@ namespace osgVegetation
 			is used otherwise osg::LOD::PIXEL_SIZE_ON_SCREEN is used.
 		*/
 		int TilePixelSize;
+
+		
 	};
 }
