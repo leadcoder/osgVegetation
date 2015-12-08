@@ -24,7 +24,7 @@ int main( int argc, char **argv )
 	// use an ArgumentParser object to manage the program arguments.
 	osg::ArgumentParser arguments(&argc,argv);
 	//setup optimization variables
-	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
+/*	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
 #ifdef WIN32
 	_putenv(opt_env.c_str());
 #else
@@ -34,13 +34,7 @@ int main( int argc, char **argv )
 	putenv(writable);
 	delete[] writable;
 #endif
-
-	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/tiles");
-	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/material_textures");  
-	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/color_textures");  
-
-
-	/////////////////////////////////////////////////////
+*/
 	arguments.getApplicationUsage()->addCommandLineOption("--vegetation_config <filename>","Configuration file");
 	arguments.getApplicationUsage()->addCommandLineOption("--out","out file");
 	arguments.getApplicationUsage()->addCommandLineOption("--terrain","Terrain file");
@@ -177,12 +171,6 @@ int main( int argc, char **argv )
 		}
 		osgDB::writeNodeFile(*bb_node, out_file);
 		osgDB::writeNodeFile(*bb_node, out_file + ".osg");
-		
-		//osgDB::writeNodeFile(*group, out_file + ".osg");
-		//osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
-		//options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
-		//osgDB::writeNodeFile(*group, out_file,options);
-		//osgDB::writeNodeFile(*group, out_file + ".osg",options);
 	}
 
 	catch(std::exception& e)
