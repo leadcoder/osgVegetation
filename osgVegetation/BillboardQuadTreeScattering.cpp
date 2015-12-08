@@ -192,7 +192,6 @@ namespace osgVegetation
 					plod->setRange( 0, data.TilePixelSize, FLT_MAX);
 					plod->setRange( 1, data.TilePixelSize, FLT_MAX );
 				}
-				
 				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
 
 				
@@ -213,7 +212,6 @@ namespace osgVegetation
 					plod->setRange( 0, data.TilePixelSize, FLT_MAX);
 					plod->setRange( 1, data.TilePixelSize, FLT_MAX );
 				}
-
 				return plod;
 			}
 		}
@@ -260,6 +258,12 @@ namespace osgVegetation
 					options->setOptionString(std::string("OutputShaderFiles"));
 					osgDB::writeNodeFile(*bb_node, m_SavePath + file_name,options);
 					pn->setFileName(i, file_name);
+					
+					/*const std::string file_name = ss.str() + ".ive";
+					osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+					options->setOptionString(std::string("OutputShaderFiles"));
+					osgDB::writeNodeFile(*bb_node, m_SavePath + file_name, options);
+					pn->setFileName(i, file_name);*/
 				}
 			}
 
@@ -283,7 +287,6 @@ namespace osgVegetation
 				}
 			}
 		}
-	
 		return node;
 	}
 
@@ -293,8 +296,8 @@ namespace osgVegetation
 		//remove any previous render technique
 		delete m_BRT;
 
-		//m_BRT = new BRTShaderInstancing(data);
-		m_BRT = new BRTGeometryShader(data);
+		m_BRT = new BRTShaderInstancing(data);
+		//m_BRT = new BRTGeometryShader(data);
 
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(),

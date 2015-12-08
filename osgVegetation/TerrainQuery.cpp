@@ -23,7 +23,8 @@ namespace osgVegetation
 	{
 		std::vector<osg::ref_ptr<osg::Node>  > pagedLODVec;
 
-		virtual osg::Node* readNodeFile( const std::string& filename )
+		virtual osg::ref_ptr<osg::Node> readNodeFile(const std::string& filename)
+		//virtual osg::Node* readNodeFile( const std::string& filename )
 		{
 			osg::ref_ptr<osg::Node> node = osgDB::readNodeFile(filename);
 			pagedLODVec.push_back(node);
@@ -32,7 +33,7 @@ namespace osgVegetation
 				std::cout << "PagedLOD cache cleared\n";
 				pagedLODVec.clear();
 			}
-			return node.get();
+			return node;
 		}
 	};
 
@@ -51,8 +52,8 @@ namespace osgVegetation
 
 	bool TerrainQuery::getTerrainData(osg::Vec3d& location, osg::Vec4 &texture_color, std::string &coverage_name, CoverageColor &coverage_color, osg::Vec3d &inter)
 	{
-		osg::Vec3d start_location(location.x(),location.y(), -100);
-		osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =	new osgUtil::LineSegmentIntersector(start_location,start_location + osg::Vec3(0.0f,0.0f,300));
+		osg::Vec3d start_location(location.x(),location.y(), -10000);
+		osg::ref_ptr<osgUtil::LineSegmentIntersector> intersector =	new osgUtil::LineSegmentIntersector(start_location,start_location + osg::Vec3(0.0f,0.0f,20000));
 		m_IntersectionVisitor.setIntersector(intersector.get());
 		m_Terrain->accept(m_IntersectionVisitor);
 		if (intersector->containsIntersections())
@@ -83,24 +84,30 @@ namespace osgVegetation
 					else
 						texture_color = texture->getImage(0)->getColor(tc);
 
-					//get material texture
-					//const std::string mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + "_material.png";
-					std::string mat_image_filename;
-					if(m_CoverageTexture != "")
-						mat_image_filename = m_CoverageTexture;
+					if (m_CoverageTexture != "" || m_CoverageTextureSuffix != "")
+					{
+						//get material texture
+						std::string mat_image_filename;
+						if (m_CoverageTexture != "")
+							mat_image_filename = m_CoverageTexture;
+						else
+							mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + m_CoverageTextureSuffix;
+
+						osg::Image* image = _loadImage(mat_image_filename);
+
+						if (m_FlipCoverageCoordinates)
+							tc.set(tc.x(), 1.0 - tc.y(), tc.z());
+
+						//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
+						tc.set(osg::clampTo((double)tc.x(), (double) 0.0, (double) 1.0),
+							osg::clampTo((double)tc.y(), (double) 0.0, (double)1.0), (double)tc.z());
+						coverage_color = image->getColor(tc);
+						coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
+					}
 					else
-						mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + m_CoverageTextureSuffix;
-
-					osg::Image* image = _loadImage(mat_image_filename);
-
-					if(m_FlipCoverageCoordinates)
-						tc.set(tc.x(),1.0 - tc.y(),tc.z());
-					
-					//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
-					tc.set(osg::clampTo((double) tc.x(), (double) 0.0, (double) 1.0),
-							osg::clampTo((double) tc.y(), (double) 0.0, (double)1.0),(double)tc.z());
-					coverage_color = image->getColor(tc);
-					coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
+					{
+						coverage_name = "WOODS";
+					}
 				}
 				inter = intersection.getWorldIntersectPoint();
 				return true;

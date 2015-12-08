@@ -180,18 +180,18 @@ namespace osgVegetation
 		else
 		{
 			geomSource <<
-				"	 float rand_rad = mod(pos.x, 2*3.14);\n"
+				"    float rand_rad = mod(pos.x, 2*3.14);\n"
 				"    float sw = scale.x*sin(rand_rad);\n"
 				"    float cw = scale.x*cos(rand_rad);\n"
 				"    float h = scale.y;\n";
 
 			if(data.TerrainNormal)
 			{
-				geomSource << "vec3 n = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0));\n";
+				geomSource << "   vec3 n = normalize(gl_NormalMatrix * vec3(0.0,0.0,1.0));\n";
 			}
 			else
 			{
-				geomSource << "vec3 n = vec3(0.0,0.0,1.0);\n";
+				geomSource << "   vec3 n = vec3(0.0,0.0,1.0);\n";
 			}
 
 			if(data.ReceiveShadows)
@@ -361,11 +361,16 @@ namespace osgVegetation
 
 		
 		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
-		shadowTextureUnit->set(6);
+		shadowTextureUnit->set(1);
 		m_StateSet->addUniform(shadowTextureUnit);
 	
 		m_StateSet->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
-		m_StateSet->setAttribute( _createShaders(data) );
+		osg::Program *program = _createShaders(data);
+		m_StateSet->setAttribute(program);
+		
+		//Protect to avoid problems with LIPSSM shadows
+		m_StateSet->setAttribute(program, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
+		m_StateSet->setDataVariance(osg::Object::DYNAMIC);
 		return m_StateSet;
 	}
 
