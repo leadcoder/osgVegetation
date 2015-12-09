@@ -23,8 +23,11 @@ namespace osgVegetation
 	{
 		std::vector<osg::ref_ptr<osg::Node>  > pagedLODVec;
 
+#if OSG_VERSION_GREATER_OR_EQUAL(3,5,1)
 		virtual osg::ref_ptr<osg::Node> readNodeFile(const std::string& filename)
-		//virtual osg::Node* readNodeFile( const std::string& filename )
+#else
+		virtual osg::Node* readNodeFile( const std::string& filename )
+#endif
 		{
 			osg::ref_ptr<osg::Node> node = osgDB::readNodeFile(filename);
 			pagedLODVec.push_back(node);

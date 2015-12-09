@@ -3,9 +3,10 @@
 #include <osg/CoordinateSystemNode>
 #include <osg/Fog>
 #include <osg/Switch>
-#include <osg/Types>
-#include <osgText/Text>
 
+
+
+#include <osgText/Text>
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
 
@@ -29,6 +30,11 @@
 #include <osgShadow/LightSpacePerspectiveShadowMap>
 #include <osgShadow/StandardShadowMap>
 #include <osgShadow/ViewDependentShadowMap>
+#include <osg/Version>
+
+#if OSG_VERSION_GREATER_OR_EQUAL( 3, 5, 1 )
+	#include <osg/Types>
+#endif
 
 int main(int argc, char **argv)
 {
@@ -92,7 +98,11 @@ int main(int argc, char **argv)
 	std::string device;
 	while (arguments.read("--device", device))
 	{
+#if OSG_VERSION_GREATER_OR_EQUAL(3,5,1)
 		osg::ref_ptr<osgGA::Device> dev = osgDB::readRefFile<osgGA::Device>(device);
+#else
+		osg::ref_ptr<osgGA::Device> dev = osgDB::readFile<osgGA::Device>(device);
+#endif
 		if (dev.valid())
 		{
 			viewer.addDevice(dev);
@@ -157,7 +167,11 @@ int main(int argc, char **argv)
 	viewer.addEventHandler(new osgViewer::ScreenCaptureHandler);
 
 	// load the data
+#if OSG_VERSION_GREATER_OR_EQUAL(3,5,1)
 	osg::ref_ptr<osg::Node> loadedModel = osgDB::readRefNodeFiles(arguments);
+#else
+	osg::ref_ptr<osg::Node> loadedModel = osgDB::readNodeFiles(arguments);
+#endif
 	if (!loadedModel)
 	{
 		std::cout << arguments.getApplicationName() << ": No data loaded" << std::endl;
