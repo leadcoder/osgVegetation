@@ -24,14 +24,14 @@
 
 namespace osgVegetation
 {
-	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data) : m_PPL(true)
+	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data, const EnvironmentSettings &env_settings) : m_PPL(true)
 	{
 		m_TrueBillboards = (data.Type == BT_ROTATED_QUAD);
 
 		if (!(data.Type == BT_ROTATED_QUAD || data.Type == BT_CROSS_QUADS))
 			OSGV_EXCEPT(std::string("BRTShaderInstancing::BRTShaderInstancing - Unsupported billboard type").c_str());
 
-		m_StateSet = _createStateSet(data);
+		m_StateSet = _createStateSet(data, env_settings);
 	}
 
 	BRTShaderInstancing::~BRTShaderInstancing()
@@ -39,7 +39,7 @@ namespace osgVegetation
 
 	}
 
-	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardData &data)
+	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardData &data, const EnvironmentSettings &env_settings)
 	{
 		osg::ref_ptr<osg::Texture2DArray> tex = Utils::loadTextureArray(data);
 
@@ -69,18 +69,14 @@ namespace osgVegetation
 		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
 		shadowTextureUnit->set(6);
 		dstate->addUniform(shadowTextureUnit);
-
 		dstate->setMode(GL_LIGHTING, osg::StateAttribute::ON);
-
 		{
 			osg::Program* program = new osg::Program;
 			//dstate->setAttribute(program);
 			//Protect to avoid problems with LIPSSM shadows
 			dstate->setAttributeAndModes(program, osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
 			dstate->setDataVariance(osg::Object::DYNAMIC);
-			
-
-
+		
 			std::stringstream vertexShaderSource;
 			vertexShaderSource <<
 				//"#version 430 compatibility\n"
@@ -98,63 +94,28 @@ namespace osgVegetation
 					"varying vec3 LightDir;\n";
 			}
 
-			if (data.ReceiveShadows)
+			if (env_settings.ShadowMode != SM_DISABLED &&  data.ReceiveShadows)
 			{
-				if (data.ShadowMode == SM_LISPSM)
+				if (env_settings.ShadowMode == SM_LISPSM)
 				{
 					vertexShaderSource << "uniform int shadowTextureUnit; \n";
 				}
-				else if (data.ShadowMode == SM_VDSM1)
+				else if (env_settings.ShadowMode == SM_VDSM1)
 				{
 					vertexShaderSource << "uniform int shadowTextureUnit0; \n";
 				}
-				else if (data.ShadowMode == SM_VDSM2)
+				else if (env_settings.ShadowMode == SM_VDSM2)
 				{
 					vertexShaderSource <<
 						"uniform int shadowTextureUnit0; \n"
 						"uniform int shadowTextureUnit1; \n";
 				}
-				/*vertexShaderSource <<
-				"void DynamicShadow( in vec4 ecPosition )                               \n"
-				"{                                                                      \n"
-				"    // generate coords for shadow mapping                              \n"
-				"    gl_TexCoord[2].s = dot( ecPosition, gl_EyePlaneS[2] );             \n"
-				"    gl_TexCoord[2].t = dot( ecPosition, gl_EyePlaneT[2] );             \n"
-				"    gl_TexCoord[2].p = dot( ecPosition, gl_EyePlaneR[2] );             \n"
-				"    gl_TexCoord[2].q = dot( ecPosition, gl_EyePlaneQ[2] );             \n"
-				"    gl_TexCoord[3].s = dot( ecPosition, gl_EyePlaneS[3] );             \n"
-				"    gl_TexCoord[3].t = dot( ecPosition, gl_EyePlaneT[3] );             \n"
-				"    gl_TexCoord[3].p = dot( ecPosition, gl_EyePlaneR[3] );             \n"
-				"    gl_TexCoord[3].q = dot( ecPosition, gl_EyePlaneQ[3] );             \n"
-				"} \n";*/
-
-				/*vertexShaderSource <<
-					"void DynamicShadow( in vec4 ecPosition )                               \n"
-					"{                                                                      \n"
-					"    gl_TexCoord[shadowTextureUnit0].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit0] );             \n"
-					"    gl_TexCoord[shadowTextureUnit0].t = dot( ecPosition, gl_EyePlaneT[shadowTextureUnit0] );             \n"
-					"    gl_TexCoord[shadowTextureUnit0].p = dot( ecPosition, gl_EyePlaneR[shadowTextureUnit0] );             \n"
-					"    gl_TexCoord[shadowTextureUnit0].q = dot( ecPosition, gl_EyePlaneQ[shadowTextureUnit0] );             \n"
-					"    gl_TexCoord[shadowTextureUnit1].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit1] );             \n"
-					"    gl_TexCoord[shadowTextureUnit1].t = dot( ecPosition, gl_EyePlaneT[shadowTextureUnit1] );             \n"
-					"    gl_TexCoord[shadowTextureUnit1].p = dot( ecPosition, gl_EyePlaneR[shadowTextureUnit1] );             \n"
-					"    gl_TexCoord[shadowTextureUnit1].q = dot( ecPosition, gl_EyePlaneQ[shadowTextureUnit1] );             \n"
-					"} \n";
-				*/
-				
-		
+			
 				vertexShaderSource << "void DynamicShadow(in vec4 ecPosition )                               \n"
 					"{                                                                      \n"
 					"    // generate coords for shadow mapping                              \n";
-				if (data.ShadowMode == SM_LISPSM)
+				if (env_settings.ShadowMode == SM_LISPSM)
 				{
-				/*	vertexShaderSource <<
-						"    gl_TexCoord[2].s = dot( ecPosition, gl_EyePlaneS[2] );             \n"
-						"    gl_TexCoord[2].t = dot( ecPosition, gl_EyePlaneT[2] );             \n"
-						"    gl_TexCoord[2].p = dot( ecPosition, gl_EyePlaneR[2] );             \n"
-						"    gl_TexCoord[2].q = dot( ecPosition, gl_EyePlaneQ[2] );             \n"
-						"} \n";*/
-
 					vertexShaderSource <<
 						"    gl_TexCoord[shadowTextureUnit].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit] );             \n"
 						"    gl_TexCoord[shadowTextureUnit].t = dot( ecPosition, gl_EyePlaneT[shadowTextureUnit] );             \n"
@@ -162,7 +123,7 @@ namespace osgVegetation
 						"    gl_TexCoord[shadowTextureUnit].q = dot( ecPosition, gl_EyePlaneQ[shadowTextureUnit] );             \n"
 						"} \n";
 				}
-				else if (data.ShadowMode == SM_VDSM1)
+				else if (env_settings.ShadowMode == SM_VDSM1)
 				{
 					vertexShaderSource <<
 						"    gl_TexCoord[shadowTextureUnit0].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit0] );             \n"
@@ -171,7 +132,7 @@ namespace osgVegetation
 						"    gl_TexCoord[shadowTextureUnit0].q = dot( ecPosition, gl_EyePlaneQ[shadowTextureUnit0] );             \n"
 						"} \n";
 				}
-				else if (data.ShadowMode == SM_VDSM2)
+				else if (env_settings.ShadowMode == SM_VDSM2)
 				{
 					vertexShaderSource <<
 						"    gl_TexCoord[shadowTextureUnit0].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit0] );             \n"
@@ -186,8 +147,6 @@ namespace osgVegetation
 				}
 			}
 
-			
-
 			vertexShaderSource <<
 				"void main()\n"
 				"{\n"
@@ -199,7 +158,7 @@ namespace osgVegetation
 				"   vec2 scale     = data.xy;\n"
 				"   VegetationType = data.z;\n"
 				"   vec4 camera_pos = gl_ModelViewMatrixInverse[3];\n";
-			if (!data.CastShadows) //shadow casting and vertex fading don't mix well
+			if (env_settings.ShadowMode == SM_DISABLED || !data.CastShadows) //shadow casting and vertex fading don't mix well
 			{
 				vertexShaderSource <<
 					"   float distance = length(camera_pos.xyz - position.xyz);\n"
@@ -218,7 +177,7 @@ namespace osgVegetation
 					"    m_pos.z *= scale.y;\n"
 					"	 m_pos.xy = m_pos.x*left.xy;\n"
 					"	 m_pos.xyz += position;\n";
-				if (data.ReceiveShadows)
+				if (env_settings.ShadowMode != SM_DISABLED && data.ReceiveShadows)
 					vertexShaderSource << "   DynamicShadow(gl_ModelViewMatrix * m_pos);\n";
 				vertexShaderSource << "   gl_Position = gl_ModelViewProjectionMatrix * m_pos;\n";
 				//"   gl_Position = gl_ProjectionMatrix * modelView * gl_Vertex ;\n";
@@ -243,7 +202,7 @@ namespace osgVegetation
 					"              0.0, 0.0, scale.y, 0.0,\n"
 					"              position.x, position.y, position.z, 1.0);\n"
 					"   vec4 mv_pos = modelView * gl_Vertex;\n";
-				if (data.ReceiveShadows)
+				if (env_settings.ShadowMode != SM_DISABLED &&  data.ReceiveShadows)
 					vertexShaderSource << "   DynamicShadow(mv_pos);\n";
 
 				vertexShaderSource << "   gl_Position = gl_ProjectionMatrix * mv_pos ;\n";
@@ -285,21 +244,21 @@ namespace osgVegetation
 				"#extension GL_EXT_texture_array : enable\n"
 				"uniform sampler2DArray baseTexture; \n";
 
-			if (data.ReceiveShadows)
+			if (env_settings.ShadowMode != SM_DISABLED && data.ReceiveShadows)
 			{
-				if (data.ShadowMode == SM_LISPSM)
+				if (env_settings.ShadowMode == SM_LISPSM)
 				{
 					fragmentShaderSource <<
 						"uniform sampler2DShadow shadowTexture; \n"
 						"uniform int shadowTextureUnit; \n";
 				}
-				else if (data.ShadowMode == SM_VDSM1)
+				else if (env_settings.ShadowMode == SM_VDSM1)
 				{
 					fragmentShaderSource <<
 						"uniform sampler2DShadow shadowTexture0; \n"
 						"uniform int shadowTextureUnit0; \n";
 				}
-				else if (data.ShadowMode == SM_VDSM2)
+				else if (env_settings.ShadowMode == SM_VDSM2)
 				{
 					fragmentShaderSource <<
 						"uniform sampler2DShadow shadowTexture0; \n"
@@ -328,19 +287,19 @@ namespace osgVegetation
 				"   vec4 outColor = texture2DArray( baseTexture, vec3(TexCoord, VegetationType)); \n"
 				"   float shadow = 1.0;\n";
 
-			if (data.ReceiveShadows)
+			if (env_settings.ShadowMode != SM_DISABLED && data.ReceiveShadows)
 			{
-				if (data.ShadowMode == SM_LISPSM)
+				if (env_settings.ShadowMode == SM_LISPSM)
 				{
 					fragmentShaderSource <<
 						"   shadow = shadow2DProj( shadowTexture, gl_TexCoord[shadowTextureUnit] ).r;   \n";
 				}
-				else if (data.ShadowMode == SM_VDSM1)
+				else if (env_settings.ShadowMode == SM_VDSM1)
 				{
 					fragmentShaderSource <<
 						"   shadow = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n";
 				}
-				else if (data.ShadowMode == SM_VDSM2)
+				else if (env_settings.ShadowMode == SM_VDSM2)
 				{
 					fragmentShaderSource <<
 						"   float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n"
@@ -363,9 +322,9 @@ namespace osgVegetation
 		
 			fragmentShaderSource <<
 				"   float depth = gl_FragCoord.z / gl_FragCoord.w;\n";
-			if (data.UseFog)
+			if (env_settings.UseFog)
 			{
-				switch (data.FogMode)
+				switch (env_settings.FogMode)
 				{
 				case osg::Fog::LINEAR:
 					// Linear fog

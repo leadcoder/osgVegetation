@@ -2,6 +2,7 @@
 #include "Common.h"
 #include "BillboardData.h"
 #include "CoverageData.h"
+#include "EnvironmentSettings.h"
 #include <osg/BoundingBox>
 #include <osg/Referenced>
 #include <osg/Vec4>
@@ -24,5 +25,8 @@ namespace osgVegetation
 		BillboardData loadBillboardData(TiXmlElement *bd_elem) const;
 		osg::ref_ptr<ITerrainQuery> loadTerrainQuery(osg::Node* terrain, const std::string &filename) const;
 		CoverageData loadCoverageData(TiXmlElement *cd_elem) const;
+		EnvironmentSettings loadEnvironmentSettings(const std::string &filename);
+		EnvironmentSettings loadEnvironmentSettingsImpl(TiXmlElement *es_elem) const;
+
 	};
 }

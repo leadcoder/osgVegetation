@@ -16,12 +16,17 @@ namespace osgVegetation
 		BT_ROTATED_QUAD,
 		BT_CROSS_QUADS
 	};
-
-	enum OSGShadowMode
+	
+	/**
+		Rendering technique enumeration
+		This list the type of technique used to realize the billboard rendering.
+		For example if we should use shader instancing (BRTShaderInstancing) or 
+		geometry shaders (BRTGeometryShader) .
+	*/
+	enum BillboardRenderingTechnique
 	{
-		SM_LISPSM,
-		SM_VDSM1, //one texture
-		SM_VDSM2, //two textures
+		BRT_SHADER_INSTANCING,
+		BRT_GEOMETRY_SHADER
 	};
 
 	/**
@@ -40,11 +45,9 @@ namespace osgVegetation
 			TerrainNormal(terrain_normal),
 			ReceiveShadows(false),
 			CastShadows(false),
-			UseFog(false),
-			FogMode(osg::Fog::LINEAR),
 			Type(BT_CROSS_QUADS),
 			TilePixelSize(0),
-			ShadowMode(SM_VDSM2)
+			Technique(BRT_SHADER_INSTANCING)
 		{
 
 		}
@@ -59,7 +62,6 @@ namespace osgVegetation
 		*/
 		float AlphaRefValue;
 
-
 		/**
 			Enable terrain normals, this will replace regular billboard normals (perpendicular to the billboard)
 			with the terrain normal under the billboard. This is useful for small translucent billboards like
@@ -68,15 +70,10 @@ namespace osgVegetation
 		bool TerrainNormal;
 
 		/**
-			Should geometry receive shadows or not.
+			Should geometry receive shadows or not. Default to false
 		*/
 		bool ReceiveShadows;
-
-		/*
-			This will be used when generating shadow map look up in the shader generator
-		*/
-		OSGShadowMode ShadowMode;
-
+		
 		/**
 			Should geometry cast shadows or not.
 		*/
@@ -86,19 +83,10 @@ namespace osgVegetation
 			The billboard collection
 		*/
 		BillboardLayerVector Layers;
+		
 
 		/**
-			Indicates if fog should be inject in shaders,
-		*/
-		bool UseFog;
-
-		/**
-			Fog mode that should be used if UseFog is true
-		*/
-		osg::Fog::Mode FogMode;
-
-		/**
-			Type of billboard
+			Type of billboard, Default to BT_CROSS_QUADS
 		*/
 		BillboardType Type;
 
@@ -106,9 +94,15 @@ namespace osgVegetation
 			Set this value if you want to override default distance based range mode
 			If this value is 0 (default) osg::LOD::DISTANCE_FROM_EYE_POINT range mode 
 			is used otherwise osg::LOD::PIXEL_SIZE_ON_SCREEN is used.
+			Default to 0
 		*/
 		int TilePixelSize;
 
+
+		/**
+			Rendering Technique, default to BRT_SHADER_INSTANCING
+		*/
+		BillboardRenderingTechnique Technique;
 		
 	};
 }

@@ -97,24 +97,9 @@ namespace osgVegetation
 		bd_elem->QueryBoolAttribute("ReceiveShadows", &bb_data.ReceiveShadows);
 		bd_elem->QueryBoolAttribute("CastShadows", &bb_data.CastShadows);
 		bd_elem->QueryBoolAttribute("TerrainNormal", &bb_data.TerrainNormal);
-		bd_elem->QueryBoolAttribute("UseFog", &bb_data.UseFog);
+		//bd_elem->QueryBoolAttribute("UseFog", &bb_data.UseFog);
 		bd_elem->QueryIntAttribute("TilePixelSize", &bb_data.TilePixelSize);
 
-		if (!bd_elem->Attribute("FogMode"))
-			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to find attribute: FogMode").c_str());
-
-		const std::string fog_mode = bd_elem->Attribute("FogMode");
-
-		if (fog_mode == "LINEAR")
-			bb_data.FogMode = osg::Fog::LINEAR;
-		else if (fog_mode == "EXP")
-			bb_data.FogMode = osg::Fog::EXP;
-		else if (fog_mode == "EXP2")
-			bb_data.FogMode = osg::Fog::EXP2;
-		else
-			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown FogMode:" + fog_mode).c_str());
-
-		bd_elem->QueryBoolAttribute("UseFog", &bb_data.UseFog);
 		const std::string bb_type = bd_elem->Attribute("Type");
 
 		if (bb_type == "BT_CROSS_QUADS")
@@ -125,20 +110,75 @@ namespace osgVegetation
 			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown billboard type:" + bb_type).c_str());
 
 
-		if (bd_elem->Attribute("ShadowMode"))
-		{
-			const std::string shadow_mode = bd_elem->Attribute("ShadowMode");
+		if(bd_elem->Attribute("Technique"))
+		{ 
+		const std::string technique = bd_elem->Attribute("Technique");
 
-			if (shadow_mode == "LISPSM")
-				bb_data.ShadowMode = SM_LISPSM;
-			else if (shadow_mode == "VDSM1")
-				bb_data.ShadowMode = SM_VDSM1;
-			else if (shadow_mode == "VDSM2")
-				bb_data.ShadowMode = SM_VDSM2;
-			else
-				OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown Shadow mode:" + shadow_mode).c_str());
+		if (technique == "BRT_GEOMETRY_SHADER")
+			bb_data.Technique = BRT_GEOMETRY_SHADER;
+		else if (technique == "BRT_SHADER_INSTANCING")
+			bb_data.Technique = BRT_SHADER_INSTANCING;
+		else
+			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown billboard type:" + bb_type).c_str());
 		}
 		return bb_data;
+	}
+
+	EnvironmentSettings Serializer::loadEnvironmentSettings(const std::string &filename)
+	{
+		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
+		if (!xmlDoc->LoadFile())
+		{
+			OSGV_EXCEPT(std::string("Serializer::loadEnvironmentSettings - Failed to load file:" + filename).c_str());
+		}
+		TiXmlElement *es_elem = xmlDoc->FirstChildElement("EnvironmentSettings");
+		if (es_elem  == NULL)
+		{
+			OSGV_EXCEPT(std::string("Serializer::loadEnvironmentSettings - Failed to find tag: EnvironmentSettings").c_str());
+		}
+		EnvironmentSettings settings = loadEnvironmentSettingsImpl(es_elem);
+		
+		xmlDoc->Clear();
+		// Delete our allocated document and return data
+		delete xmlDoc;
+		return settings;
+	}
+
+	EnvironmentSettings Serializer::loadEnvironmentSettingsImpl(TiXmlElement *es_elem) const
+	{
+		EnvironmentSettings settings;
+		if (!es_elem->Attribute("FogMode"))
+			OSGV_EXCEPT(std::string("Serializer::loadEnvironmentSettings - Failed to find attribute: FogMode").c_str());
+
+		const std::string fog_mode = es_elem->Attribute("FogMode");
+
+		if (fog_mode == "LINEAR")
+			settings.FogMode = osg::Fog::LINEAR;
+		else if (fog_mode == "EXP")
+			settings.FogMode = osg::Fog::EXP;
+		else if (fog_mode == "EXP2")
+			settings.FogMode = osg::Fog::EXP2;
+		else
+			OSGV_EXCEPT(std::string("Serializer::loadEnvironmentSettings  - Unknown FogMode:" + fog_mode).c_str());
+
+		es_elem->QueryBoolAttribute("UseFog", &settings.UseFog);
+		
+
+		if (es_elem->Attribute("ShadowMode"))
+		{
+			const std::string shadow_mode = es_elem->Attribute("ShadowMode");
+			if (shadow_mode == "LISPSM")
+				settings.ShadowMode = SM_LISPSM;
+			else if (shadow_mode == "VDSM1")
+				settings.ShadowMode = SM_VDSM1;
+			else if (shadow_mode == "VDSM2")
+				settings.ShadowMode = SM_VDSM2;
+			else if (shadow_mode == "DISABLED")
+				settings.ShadowMode = SM_DISABLED;
+			else
+				OSGV_EXCEPT(std::string("Serializer::loadEnvironmentSettings - Unknown Shadow mode:" + shadow_mode).c_str());
+		}
+		return settings;
 	}
 
 	osg::ref_ptr<ITerrainQuery> Serializer::loadTerrainQuery(osg::Node* terrain, const std::string &filename) const

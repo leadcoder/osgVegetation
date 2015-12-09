@@ -145,8 +145,8 @@ int main( int argc, char **argv )
 		osgDB::Registry::instance()->getDataFilePathList().push_back(config_path); 
 
 		osg::ref_ptr<osgVegetation::ITerrainQuery> tq = serializer.loadTerrainQuery(terrain, tq_filename);
-
-		osgVegetation::BillboardQuadTreeScattering scattering(tq);
+		osgVegetation::EnvironmentSettings env_settings;
+		osgVegetation::BillboardQuadTreeScattering scattering(tq, env_settings);
 		std::cout << "Using bounding box:" << bounding_box.xMin() << " " << bounding_box.yMin() << " "<< bounding_box.xMax() << " " << bounding_box.yMax() << "\n";
 		std::cout << "Start Scattering...\n";
 

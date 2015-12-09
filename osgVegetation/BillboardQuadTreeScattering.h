@@ -14,6 +14,7 @@
 #include "IBillboardRenderingTech.h"
 #include "BillboardLayer.h"
 #include "BillboardData.h"
+#include "EnvironmentSettings.h"
 
 namespace osgVegetation
 {
@@ -33,7 +34,7 @@ namespace osgVegetation
 		/**
 		@param tq Pointer to TerrainQuery class, used during the scattering step.
 		*/
-		BillboardQuadTreeScattering(ITerrainQuery* tq);
+		BillboardQuadTreeScattering(ITerrainQuery* tq, const EnvironmentSettings& env_settings);
 		/**
 			Generate vegetation data by providing billboard data
 			@param bb Generation area
@@ -61,7 +62,7 @@ namespace osgVegetation
 		osg::Vec3d m_Offset; 
 	
 		ITerrainQuery* m_TerrainQuery;
-
+		EnvironmentSettings m_EnvironmentSettings;
 		bool m_UsePagedLOD;
 
 		//Output stuff

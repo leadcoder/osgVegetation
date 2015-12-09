@@ -17,11 +17,12 @@
 
 namespace osgVegetation
 {
-	BillboardQuadTreeScattering::BillboardQuadTreeScattering(ITerrainQuery* tq) :
+	BillboardQuadTreeScattering::BillboardQuadTreeScattering(ITerrainQuery* tq, const EnvironmentSettings &env_settings) :
 			m_BRT(NULL),
 			m_TerrainQuery(tq),
 			m_UsePagedLOD(false),
-			m_FilenamePrefix("quadtree_")
+			m_FilenamePrefix("quadtree_"),
+			m_EnvironmentSettings(env_settings)
 	{
 
 	}
@@ -296,8 +297,14 @@ namespace osgVegetation
 		//remove any previous render technique
 		delete m_BRT;
 
-		m_BRT = new BRTShaderInstancing(data);
-		//m_BRT = new BRTGeometryShader(data);
+		if(data.Technique == BRT_SHADER_INSTANCING)
+			m_BRT = new BRTShaderInstancing(data, m_EnvironmentSettings);
+		else if (data.Technique == BRT_GEOMETRY_SHADER)
+			m_BRT = new BRTGeometryShader(data, m_EnvironmentSettings);
+		else
+			OSGV_EXCEPT(std::string("BillboardQuadTreeScattering::generate - unkown rendering tech").c_str());
+
+
 
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(),
