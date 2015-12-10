@@ -41,6 +41,7 @@ int main( int argc, char **argv )
 	
 	arguments.getApplicationUsage()->addCommandLineOption("--out","out file");
 	arguments.getApplicationUsage()->addCommandLineOption("--terrain","Terrain file");
+	arguments.getApplicationUsage()->addCommandLineOption("--seed_value","Seed value");
 
 	arguments.getApplicationUsage()->addCommandLineOption("--bounding_box <x.min x-max y-min y-max>","Optional bounding box");
 	arguments.getApplicationUsage()->addCommandLineOption("--paged_lod","Optional save paged LOD database");
@@ -89,6 +90,12 @@ int main( int argc, char **argv )
 		return 0;
 	}
 
+	int seed_value  = 0;
+	if(arguments.read("--seed_value", seed_value))
+	{
+		std::cout << "Using seed" << seed_value << "\n";
+	}
+
 	//Load terrain
 	osg::ref_ptr<osg::Group> group = new osg::Group;
 	osg::Node* terrain = NULL;
@@ -106,15 +113,8 @@ int main( int argc, char **argv )
 		const std::string terrain_path = osgDB::getFilePath(terrain_file);
 		osgDB::Registry::instance()->getDataFilePathList().push_back(terrain_path);  
 
-		/*if(save_terrain)
-		{
-			group->addChild(terrain);
-		}*/
-
 		osg::ComputeBoundsVisitor  cbv;
-		
 		terrain->accept(cbv);
-		//osg::BoundingBox bb(cbv.getBoundingBox());
 		bounding_box = osg::BoundingBoxd(cbv.getBoundingBox());
 		if(useBBox)
 		{
@@ -160,7 +160,7 @@ int main( int argc, char **argv )
 		std::cout << "Using bounding box:" << bounding_box.xMin() << " " << bounding_box.yMin() << " "<< bounding_box.xMax() << " " << bounding_box.yMax() << "\n";
 		std::cout << "Start Scattering...\n";
 
-		srand(0); //reset random numbers, TODO: support layer seed
+		srand(seed_value); //reset random numbers, TODO: support layer seed
 
 		osg::Node* bb_node = scattering.generate(bounding_box, bb_vector, out_file, pagedLOD);
 		group->addChild(bb_node);
