@@ -82,8 +82,9 @@ int main( int argc, char **argv )
 	keyswitchManipulator->addMatrixManipulator( '7', "Spherical", new osgGA::SphericalManipulator() );
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
 
-	//Add sample data path
+	osg::DisplaySettings::instance()->setNumMultiSamples(8);
 
+	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //hack to be able to run from GCC out dir
 
@@ -108,7 +109,7 @@ int main( int argc, char **argv )
 
 	//Create billboard layers
 	//First LOD...
-	osgVegetation::BillboardLayer  tree_l0("billboards/fir01_bb.png", 1000);
+	osgVegetation::BillboardLayer  tree_l0("billboards/pine.png", 1000);
 	tree_l0.Density = 0.002;
 	tree_l0.Height.set(15,20);
 	tree_l0.Width.set(6,7);
@@ -139,7 +140,7 @@ int main( int argc, char **argv )
 	tree_layers.push_back(tree_l1);
 
 	//create billboard data by supplying layers and rendering settings.
-	osgVegetation::BillboardData tree_data(tree_layers, false,0.5,false);
+	osgVegetation::BillboardData tree_data(tree_layers, false, 0.5, false);
 	tree_data.CastShadows = true;
 	
 	tree_data.TerrainNormal = false;
@@ -273,7 +274,7 @@ int main( int argc, char **argv )
 		float minLightMargin = 20.f;
 		float maxFarPlane = 1400;
 		int baseTexUnit = 0;
-		int shadowTexUnit = 6;
+		int shadowTexUnit = env_settings.BaseShadowTextureUnit;
 		sm->setMinLightMargin( minLightMargin );
 		sm->setMaxFarPlane( maxFarPlane );
 		sm->setTextureSize( osg::Vec2s( mapres, mapres ) );
@@ -323,7 +324,7 @@ int main( int argc, char **argv )
 		settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
 		settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
 		//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
-		unsigned int unit=2;
+		unsigned int unit=env_settings.BaseShadowTextureUnit;
 		settings->setBaseShadowTextureUnit(unit);
 
 		double n=0.8;
@@ -333,7 +334,6 @@ int main( int argc, char **argv )
 		if (shadow_type == osgVegetation::SM_VDSM2)
 			numShadowMaps = 2;
 		settings->setNumShadowMapsPerLight(numShadowMaps);
-
 		//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
 		settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
 

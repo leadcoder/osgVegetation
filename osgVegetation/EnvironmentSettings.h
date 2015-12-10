@@ -21,7 +21,8 @@ namespace osgVegetation
 		EnvironmentSettings() :
 			UseFog(false),
 			FogMode(osg::Fog::LINEAR),
-			ShadowMode(SM_DISABLED)
+			ShadowMode(SM_DISABLED),
+			BaseShadowTextureUnit(6)
 		{
 
 		}
@@ -39,5 +40,10 @@ namespace osgVegetation
 		This will be used when generating shadow map look up in the shader generator
 		*/
 		OSGShadowMode ShadowMode;
+
+		/**
+		
+		*/
+		int BaseShadowTextureUnit;
 	};
 }

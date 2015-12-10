@@ -47,6 +47,7 @@ int main(int argc, char **argv)
 	const std::string shadow_type = "LISPSM";
 	//const std::string shadow_type = "VDSM";
 
+	osg::DisplaySettings::instance()->setNumMultiSamples(4);
 	// use an ArgumentParser object to manage the program arguments.
 	osg::ArgumentParser arguments(&argc, argv);
 

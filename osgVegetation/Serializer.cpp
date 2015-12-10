@@ -151,18 +151,17 @@ namespace osgVegetation
 			OSGV_EXCEPT(std::string("Serializer::loadEnvironmentSettings - Failed to find attribute: FogMode").c_str());
 
 		const std::string fog_mode = es_elem->Attribute("FogMode");
-
+		settings.UseFog = true;
 		if (fog_mode == "LINEAR")
 			settings.FogMode = osg::Fog::LINEAR;
 		else if (fog_mode == "EXP")
 			settings.FogMode = osg::Fog::EXP;
 		else if (fog_mode == "EXP2")
 			settings.FogMode = osg::Fog::EXP2;
+		else if (fog_mode == "DISABLED")
+			settings.UseFog = false;
 		else
 			OSGV_EXCEPT(std::string("Serializer::loadEnvironmentSettings  - Unknown FogMode:" + fog_mode).c_str());
-
-		es_elem->QueryBoolAttribute("UseFog", &settings.UseFog);
-		
 
 		if (es_elem->Attribute("ShadowMode"))
 		{
@@ -178,6 +177,7 @@ namespace osgVegetation
 			else
 				OSGV_EXCEPT(std::string("Serializer::loadEnvironmentSettings - Unknown Shadow mode:" + shadow_mode).c_str());
 		}
+		es_elem->QueryIntAttribute("BaseShadowTextureUnit", &settings.BaseShadowTextureUnit);
 		return settings;
 	}
 

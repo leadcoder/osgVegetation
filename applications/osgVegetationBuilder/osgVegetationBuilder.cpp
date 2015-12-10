@@ -36,14 +36,15 @@ int main( int argc, char **argv )
 #endif
 */
 	arguments.getApplicationUsage()->addCommandLineOption("--vegetation_config <filename>","Configuration file");
+	arguments.getApplicationUsage()->addCommandLineOption("--environment_config <filename>", "Environment config file");
+	arguments.getApplicationUsage()->addCommandLineOption("--terrain_query_config <filename>", "Terrain query config file");
+	
 	arguments.getApplicationUsage()->addCommandLineOption("--out","out file");
 	arguments.getApplicationUsage()->addCommandLineOption("--terrain","Terrain file");
 
 	arguments.getApplicationUsage()->addCommandLineOption("--bounding_box <x.min x-max y-min y-max>","Optional bounding box");
 	arguments.getApplicationUsage()->addCommandLineOption("--paged_lod","Optional save paged LOD database");
 	arguments.getApplicationUsage()->addCommandLineOption("--save_terrain","Optional inject terrain in database");
-
-
 
 	unsigned int helpType = 0;
 	if ((helpType = arguments.readHelpType()))
@@ -129,6 +130,13 @@ int main( int argc, char **argv )
 		return 0;
 	}
 
+	std::string env_filename;
+	if (!arguments.read("--environment_config", env_filename))
+	{
+		std::cerr << "No environment config provided\n";
+		return 0;
+	}
+
 	std::string tq_filename;
 	if(!arguments.read("--terrain_query_config",tq_filename))
 	{
@@ -146,6 +154,8 @@ int main( int argc, char **argv )
 
 		osg::ref_ptr<osgVegetation::ITerrainQuery> tq = serializer.loadTerrainQuery(terrain, tq_filename);
 		osgVegetation::EnvironmentSettings env_settings;
+		if(env_filename != "")
+			env_settings = serializer.loadEnvironmentSettings(env_filename);
 		osgVegetation::BillboardQuadTreeScattering scattering(tq, env_settings);
 		std::cout << "Using bounding box:" << bounding_box.xMin() << " " << bounding_box.yMin() << " "<< bounding_box.xMax() << " " << bounding_box.yMax() << "\n";
 		std::cout << "Start Scattering...\n";

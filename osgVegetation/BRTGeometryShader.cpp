@@ -362,7 +362,7 @@ namespace osgVegetation
 
 		
 		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
-		shadowTextureUnit->set(1);
+		shadowTextureUnit->set(env_settings.BaseShadowTextureUnit);
 		m_StateSet->addUniform(shadowTextureUnit);
 	
 		m_StateSet->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
@@ -370,7 +370,7 @@ namespace osgVegetation
 		m_StateSet->setAttribute(program);
 		
 		//Protect to avoid problems with LIPSSM shadows
-		m_StateSet->setAttribute(program, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
+		m_StateSet->setAttribute(program, osg::StateAttribute::PROTECTED| osg::StateAttribute::ON);
 		m_StateSet->setDataVariance(osg::Object::DYNAMIC);
 		return m_StateSet;
 	}

@@ -15,6 +15,7 @@
 #include <osg/CullFace>
 #include <osg/Image>
 #include <osg/Texture2DArray>
+#include <osg/Multisample>
 #include <osgDB/ReadFile>
 #include <osgDB/WriteFile>
 #include <osgDB/FileUtils>
@@ -49,7 +50,9 @@ namespace osgVegetation
 		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
 		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, data.AlphaRefValue);
 
+		// enable alpha-to-coverage multisampling for vegetation.
 		dstate->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
+
 		if (m_TrueBillboards)
 			dstate->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF);
 		else
@@ -62,19 +65,26 @@ namespace osgVegetation
 			dstate->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
 			dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 		}
+
+		dstate->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+		dstate->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+		dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+
+
+		
 		const int num_textures = tex->getNumImages();
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);
 		dstate->addUniform(baseTextureSampler);
 
 		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
-		shadowTextureUnit->set(6);
+		shadowTextureUnit->set(env_settings.BaseShadowTextureUnit);
 		dstate->addUniform(shadowTextureUnit);
 		dstate->setMode(GL_LIGHTING, osg::StateAttribute::ON);
 		{
 			osg::Program* program = new osg::Program;
 			//dstate->setAttribute(program);
 			//Protect to avoid problems with LIPSSM shadows
-			dstate->setAttributeAndModes(program, osg::StateAttribute::ON | osg::StateAttribute::PROTECTED);
+			dstate->setAttributeAndModes(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 			dstate->setDataVariance(osg::Object::DYNAMIC);
 		
 			std::stringstream vertexShaderSource;
@@ -372,10 +382,9 @@ namespace osgVegetation
 			{
 				vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
 				//Save shader
-				osgDB::writeShaderFile(*vertex_shader, btr_vertex_file);
+				//osgDB::writeShaderFile(*vertex_shader, btr_vertex_file);
 			}
 			program->addShader(vertex_shader);
-
 
 			osg::Shader* fragment_shader = NULL;
 			/*if(osgDB::fileExists(btr_fragment_file))
@@ -388,7 +397,7 @@ namespace osgVegetation
 			{
 				fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
 				//Save shader
-				osgDB::writeShaderFile(*fragment_shader, btr_fragment_file);
+				//osgDB::writeShaderFile(*fragment_shader, btr_fragment_file);
 			}
 			program->addShader(fragment_shader);
 		}
