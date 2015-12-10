@@ -109,7 +109,7 @@ int main( int argc, char **argv )
 
 	//Create billboard layers
 	//First LOD...
-	osgVegetation::BillboardLayer  tree_l0("billboards/pine.png", 1000);
+	osgVegetation::BillboardLayer  tree_l0("billboards/fir01_bb.png", 1000);
 	tree_l0.Density = 0.002;
 	tree_l0.Height.set(15,20);
 	tree_l0.Width.set(6,7);
@@ -124,13 +124,13 @@ int main( int argc, char **argv )
 	osgVegetation::BillboardLayer  tree_l1 = tree_l0;
 	tree_l1.Density *= 4; //scale density 4 times to match quad tree structure
 	tree_l1.Scale *= 0.8;
-	tree_l1.ViewDistance *= 0.5;
+	tree_l1.MinTileSize *= 0.5;
 
 	//third LOD start at 100m
 	osgVegetation::BillboardLayer  tree_l2 = tree_l1;
 	tree_l2.Density *= 4;
 	tree_l2.Scale *= 0.8;
-	tree_l2.ViewDistance *= 0.5;
+	tree_l2.MinTileSize *= 0.5;
 
 	//add all layers, the order is not important,
 	//the layers will be sorted by distance before generation
@@ -166,7 +166,7 @@ int main( int argc, char **argv )
 	osgVegetation::BillboardLayer  grass_l1 = grass_l0;
 	grass_l1.Density *= 4; //scale density 4 times to match quad tree structure
 	grass_l1.Scale *= 0.8;
-	grass_l1.ViewDistance *= 0.5;
+	grass_l1.MinTileSize *= 0.5;
 
 	osgVegetation::BillboardLayerVector grass_layers;
 
@@ -222,18 +222,16 @@ int main( int argc, char **argv )
 		//Start generation
 		std::cout << "Start tree generation" << std::endl;
 		tree_node = scattering.generate(tree_bb, tree_data);
-
+		group->addChild(tree_node);
 		std::cout << "Start grass generation" << std::endl;
-		grass_node = scattering.generate(grass_bb, grass_data);
+		//grass_node = scattering.generate(grass_bb, grass_data);
+		//group->addChild(grass_node);
 	}
 	catch (std::exception& e)
 	{
 		std::cerr << e.what();
 		return 0;
 	}
-	//We are done, add vegetation to root node
-	group->addChild(tree_node);
-	group->addChild(grass_node);
 
 	if(use_fog)
 	{
@@ -344,8 +342,10 @@ int main( int argc, char **argv )
 	}
 	
 	terrain->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
-	tree_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask) ;
-	grass_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
+	if(tree_node)
+		tree_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask) ;
+	if(grass_node)
+		grass_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
 
 	if(shadow_type != osgVegetation::SM_DISABLED)
 	{
@@ -362,7 +362,7 @@ int main( int argc, char **argv )
 		//animate light if shadows enabled
 		//if(shadow_type != osgVegetation::SM_DISABLED)
 		{
-			float t = viewer.getFrameStamp()->getSimulationTime()*0.4;
+			float t = viewer.getFrameStamp()->getSimulationTime()*0.1;
 			lightPos.set(sinf(t),cosf(t),0.7f,0.0f);
 			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
 			pLight->setPosition(lightPos);

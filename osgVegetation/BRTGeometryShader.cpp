@@ -47,7 +47,7 @@ namespace osgVegetation
 		//static const char* geomSource = {
 		geomSource <<	"#version 120\n"
 			"#extension GL_EXT_geometry_shader4 : enable\n"
-			"uniform float FadeInDist; \n";
+			"uniform float TileRadius; \n";
 		if(env_settings.ShadowMode != SM_DISABLED && data.ReceiveShadows)
 		{
 			if(env_settings.ShadowMode == SM_LISPSM)
@@ -124,7 +124,7 @@ namespace osgVegetation
 		{
 			geomSource <<
 				"    float distance = length(camera_pos.xyz - pos.xyz);\n"
-				"    scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
+				"    scale = scale*clamp((1.0 - (distance-TileRadius))/(TileRadius*0.2),0.0,1.0);\n";
 		}
 		geomSource <<
 			"    vec4 e;\n"
@@ -255,7 +255,7 @@ namespace osgVegetation
 			}
 		}
 		fragSource << 
-			"uniform float FadeInDist; \n"
+			"uniform float TileRadius; \n"
 			"varying vec2 TexCoord; \n"
 			"varying vec3 Normal; \n"
 			"varying vec3 Color; \n"
@@ -295,7 +295,7 @@ namespace osgVegetation
 		}
 		fragSource <<
 			"   outColor.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz);\n"
-			"   outColor.w = outColor.w * clamp(1.0 - ((depth-FadeInDist)/(FadeInDist*0.1)), 0.0, 1.0);\n";
+			"   outColor.w = outColor.w * clamp(1.0 - ((depth-TileRadius)/(TileRadius*0.1)), 0.0, 1.0);\n";
 		if(env_settings.UseFog)
 		{
 			switch(env_settings.FogMode)
@@ -375,7 +375,7 @@ namespace osgVegetation
 		return m_StateSet;
 	}
 
-	osg::Node* BRTGeometryShader::create(double view_dist, const BillboardVegetationObjectVector &objects, const osg::BoundingBoxd &bb)
+	osg::Node* BRTGeometryShader::create(const BillboardVegetationObjectVector &objects, const osg::BoundingBoxd &bb)
 	{
 		osg::Geode* geode = new osg::Geode;
 
@@ -392,13 +392,10 @@ namespace osgVegetation
 		geometry->setVertexArray( v );
 		geometry->addPrimitiveSet( new osg::DrawArrays( GL_TRIANGLES, 0, v->size() ) );
 
-		osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "FadeInDist");
-		fadeInDist->set( (float) view_dist);
-
-		//double bb_size = (bb._max.x() - bb._min.x());
-		//float radius = sqrt(bb_size*bb_size);
-
-		geometry->getOrCreateStateSet()->addUniform(fadeInDist);
+		osg::Uniform* tile_rad_uniform = new osg::Uniform(osg::Uniform::FLOAT, "TileRadius");
+		float radius = bb.radius();
+		tile_rad_uniform->set( (float) radius);
+		geometry->getOrCreateStateSet()->addUniform(tile_rad_uniform);
 
 		return geode;
 		//osg::StateSet* sset = geode->getOrCreateStateSet();

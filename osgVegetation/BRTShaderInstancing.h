@@ -20,7 +20,7 @@ namespace osgVegetation
 		virtual ~BRTShaderInstancing();
 		
 		//IBillboardRenderingTech
-		osg::Node* create(double view_dist, const BillboardVegetationObjectVector &trees, const osg::BoundingBoxd &bb);
+		osg::Node* create(const BillboardVegetationObjectVector &trees, const osg::BoundingBoxd &bb);
 		osg::StateSet* getStateSet() const {return m_StateSet;}
 
 	protected:

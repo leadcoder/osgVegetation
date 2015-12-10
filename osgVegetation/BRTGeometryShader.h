@@ -18,7 +18,7 @@ namespace osgVegetation
 		BRTGeometryShader(BillboardData &data, const EnvironmentSettings &env_settings);
 
 		//IBillboardRenderingTech
-		osg::Node* create(double view_dist, const BillboardVegetationObjectVector &trees, const osg::BoundingBoxd &bb);
+		osg::Node* create(const BillboardVegetationObjectVector &trees, const osg::BoundingBoxd &bb);
 		osg::StateSet* getStateSet() const {return m_StateSet;}
 	protected:
 		osg::StateSet* _createStateSet(BillboardData &data, const EnvironmentSettings &env_settings);

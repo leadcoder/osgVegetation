@@ -52,7 +52,7 @@ namespace osgVegetation
 
 				layer.TextureName = bl_elem->Attribute("TextureName");
 
-				bl_elem->QueryDoubleAttribute("ViewDistance", &layer.ViewDistance);
+				bl_elem->QueryDoubleAttribute("ViewDistance", &layer.MinTileSize);
 				bl_elem->QueryDoubleAttribute("Density", &layer.Density);
 				double _min = 1.0;
 				double _max = 1.0;

@@ -92,7 +92,7 @@ namespace osgVegetation
 				//"#version 430 compatibility\n"
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
 				"uniform samplerBuffer DataBufferTexture;\n"
-				"uniform float FadeInDist;\n"
+				"uniform float TileRadius;\n"
 				"varying vec2 TexCoord;\n"
 				"varying vec4 Color;\n"
 				"varying vec3 Ambient;\n"
@@ -172,7 +172,7 @@ namespace osgVegetation
 			{
 				vertexShaderSource <<
 					"   float distance = length(camera_pos.xyz - position.xyz);\n"
-					"   scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
+					"   scale = scale*clamp((1.0 - (distance-TileRadius))/(TileRadius*0.2),0.0,1.0);\n";
 			}
 			if (m_TrueBillboards)
 			{
@@ -279,7 +279,7 @@ namespace osgVegetation
 			}
 			fragmentShaderSource <<
 
-				"uniform float FadeInDist;\n"
+				"uniform float TileRadius;\n"
 				"varying float VegetationType; \n"
 				"varying vec3 Ambient; \n"
 				"varying vec2 TexCoord;\n";
@@ -354,7 +354,11 @@ namespace osgVegetation
 					"   outColor.xyz = mix(gl_Fog.color.xyz, outColor.xyz, fogFactor);\n";
 			}
 			fragmentShaderSource <<
-				//"    finalColor.w = finalColor.w * clamp(1.0 - ((depth-FadeInDist)/(FadeInDist*0.1)), 0.0, 1.0);\n"
+				"   float fade_in_dist = TileRadius*0.5;\n"
+				"   //float fade_value = clamp((1.0 - (depth - (fade_in_dist*gl_ProjectionMatrix[0][0])))/((fade_in_dist*gl_ProjectionMatrix[0][0])*0.2),0.0,1.0);\n"
+				"   float fade_value = clamp(1.0 - ((depth - fade_in_dist) / (fade_in_dist * 0.1)), 0.0, 1.0);\n"
+				"   outColor.w = outColor.w * fade_value;\n"
+				"   if(outColor.w < 0.01) discard;\n"
 				"   gl_FragColor = outColor;\n"
 				"}\n";
 
@@ -592,7 +596,7 @@ namespace osgVegetation
 		return geom;
 	}
 
-	osg::Node* BRTShaderInstancing::create(double view_dist, const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBoxd &bb)
+	osg::Node* BRTShaderInstancing::create(const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBoxd &bb)
 	{
 		osg::Geode* geode = 0;
 		osg::Group* group = 0;
@@ -633,20 +637,16 @@ namespace osgVegetation
 			geometry->setInitialBound(bb);
 			osg::Uniform* dataBufferSampler = new osg::Uniform("DataBufferTexture", 1);
 			geometry->getOrCreateStateSet()->addUniform(dataBufferSampler);
+
+			osg::Uniform* tile_rad_uniform = new osg::Uniform(osg::Uniform::FLOAT, "TileRadius");
+			float radius = bb.radius();
+			tile_rad_uniform->set(radius);
+			geometry->getOrCreateStateSet()->addUniform(tile_rad_uniform);
+
+			//assume square tile
+			//double tile_size = (bb._max.x() - bb._min.x());
+			//float radius = sqrt(tile_size*tile_size);
 			
-			/*osg::BoundingBoxd box;
-			box._max = osg::Vec3d(100000, 100000, 100000);
-			box._min = -box._max;
-			geometry->setInitialBound(box);
-			*/
-
-			osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "FadeInDist");
-
-			//use
-			double bb_size = (bb._max.x() - bb._min.x());
-			float radius = sqrt(bb_size*bb_size);
-			fadeInDist->set(radius*2.0f);
-			geometry->getOrCreateStateSet()->addUniform(fadeInDist);
 
 			//geode->setStateSet((osg::StateSet*) m_StateSet->clone(osg::CopyOp::DEEP_COPY_STATESETS));
 		}
