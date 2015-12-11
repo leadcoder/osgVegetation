@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 	group->addChild(pLightSource);
 	group->addChild(loadedModel);
 
-	double fov = 30;
+	double fov = 5;
 	double nearClip = 1;
 	double farClip = 10000;
 	viewer.getCamera()->setComputeNearFarMode(osgUtil::CullVisitor::DO_NOT_COMPUTE_NEAR_FAR);

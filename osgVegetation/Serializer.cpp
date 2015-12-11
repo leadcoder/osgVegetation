@@ -52,7 +52,10 @@ namespace osgVegetation
 
 				layer.TextureName = bl_elem->Attribute("TextureName");
 
-				bl_elem->QueryDoubleAttribute("ViewDistance", &layer.MinTileSize);
+				if (!bl_elem->Attribute("MinTileSize"))
+					OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Failed to find attribute: MinTileSize").c_str());
+
+				bl_elem->QueryDoubleAttribute("MinTileSize", &layer.MinTileSize);
 				bl_elem->QueryDoubleAttribute("Density", &layer.Density);
 				double _min = 1.0;
 				double _max = 1.0;
@@ -93,6 +96,8 @@ namespace osgVegetation
 		BillboardData bb_data(layers, false, 0, false);
 
 		bd_elem->QueryBoolAttribute("UseAlphaBlend", &bb_data.UseAlphaBlend);
+		bd_elem->QueryBoolAttribute("UseMultiSample", &bb_data.UseMultiSample);
+		
 		bd_elem->QueryFloatAttribute("AlphaRefValue", &bb_data.AlphaRefValue);
 		bd_elem->QueryBoolAttribute("ReceiveShadows", &bb_data.ReceiveShadows);
 		bd_elem->QueryBoolAttribute("CastShadows", &bb_data.CastShadows);

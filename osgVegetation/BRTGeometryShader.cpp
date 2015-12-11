@@ -15,6 +15,7 @@
 #include <osg/Texture2D>
 #include <osg/Image>
 #include <osg/Texture2DArray>
+#include <osg/Multisample>
 #include <osgDB/ReadFile>
 
 namespace osgVegetation
@@ -295,7 +296,7 @@ namespace osgVegetation
 		}
 		fragSource <<
 			"   outColor.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz);\n"
-			"   outColor.w = outColor.w * clamp(1.0 - ((depth-TileRadius)/(TileRadius*0.1)), 0.0, 1.0);\n";
+			"   //outColor.w = outColor.w * clamp(1.0 - ((depth-TileRadius)/(TileRadius*0.1)), 0.0, 1.0);\n";
 		if(env_settings.UseFog)
 		{
 			switch(env_settings.FogMode)
@@ -355,6 +356,14 @@ namespace osgVegetation
 			m_StateSet->setAttributeAndModes( new osg::BlendFunc, osg::StateAttribute::ON );
 			m_StateSet->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 		}
+
+		if (data.UseMultiSample)
+		{
+			m_StateSet->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+			m_StateSet->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+			m_StateSet->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+		}
+
 		m_StateSet->setMode( GL_LIGHTING, osg::StateAttribute::ON);
 		const int num_textures = tex->getNumImages();
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);

@@ -183,19 +183,31 @@ namespace osgVegetation
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
-					plod->addChild(mesh_group, 0, FLT_MAX );
+					plod->addChild(mesh_group);// , 0, FLT_MAX );
 					c_index++;
 				}
 				const std::string filename = _createFileName(ld, x,y);
 				plod->setFileName( c_index, filename );
-				plod->setRange(c_index,0,tile_cutoff );
-
-				if(data.TilePixelSize > 0) //override
+				
+				if(data.TilePixelSize > 0)
 				{
 					plod->setRangeMode(osg::LOD::PIXEL_SIZE_ON_SCREEN);
 					plod->setRange( 0, data.TilePixelSize, FLT_MAX);
-					plod->setRange( 1, data.TilePixelSize, FLT_MAX );
+					if(c_index > 0)
+						plod->setRange( 1, data.TilePixelSize, FLT_MAX );
 				}
+				else
+				{
+					plod->setRange(0, data.TilePixelSize, FLT_MAX);
+					if (c_index > 0)
+					{
+						plod->setRange(0, 0, FLT_MAX);
+						plod->setRange(1, 0, tile_cutoff);
+					}
+					else
+						plod->setRange(0, 0, tile_cutoff);
+				}
+
 				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
 
 				

@@ -65,13 +65,12 @@ namespace osgVegetation
 			dstate->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
 			dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 		}
-
-		dstate->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
-		dstate->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
-		dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
-
-
-		
+		if (data.UseMultiSample)
+		{ 
+			dstate->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+			dstate->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+			dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+		}
 		const int num_textures = tex->getNumImages();
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);
 		dstate->addUniform(baseTextureSampler);
@@ -356,8 +355,8 @@ namespace osgVegetation
 			fragmentShaderSource <<
 				"   float fade_in_dist = TileRadius*0.5;\n"
 				"   //float fade_value = clamp((1.0 - (depth - (fade_in_dist*gl_ProjectionMatrix[0][0])))/((fade_in_dist*gl_ProjectionMatrix[0][0])*0.2),0.0,1.0);\n"
-				"   float fade_value = clamp(1.0 - ((depth - fade_in_dist) / (fade_in_dist * 0.1)), 0.0, 1.0);\n"
-				"   outColor.w = outColor.w * fade_value;\n"
+				"   //float fade_value = clamp(1.0 - ((depth - fade_in_dist) / (fade_in_dist * 0.1)), 0.0, 1.0);\n"
+				"   //outColor.w = outColor.w * fade_value;\n"
 				"   if(outColor.w < 0.01) discard;\n"
 				"   gl_FragColor = outColor;\n"
 				"}\n";
