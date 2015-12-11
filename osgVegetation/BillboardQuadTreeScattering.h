@@ -14,6 +14,7 @@
 #include "IBillboardRenderingTech.h"
 #include "BillboardLayer.h"
 #include "BillboardData.h"
+#include "EnvironmentSettings.h"
 
 namespace osgVegetation
 {
@@ -33,7 +34,7 @@ namespace osgVegetation
 		/**
 		@param tq Pointer to TerrainQuery class, used during the scattering step.
 		*/
-		BillboardQuadTreeScattering(ITerrainQuery* tq);
+		BillboardQuadTreeScattering(ITerrainQuery* tq, const EnvironmentSettings& env_settings);
 		/**
 			Generate vegetation data by providing billboard data
 			@param bb Generation area
@@ -43,6 +44,8 @@ namespace osgVegetation
 			@param filename_prefix Added to all files (only relevant if out_put_file is defined)
 		*/
 		osg::Node* generate(const osg::BoundingBoxd &bb, BillboardData &data, const std::string &output_file = "", bool use_paged_lod = false, const std::string &filename_prefix = "");
+
+		osg::Node* generate(const osg::BoundingBoxd &bb,std::vector<osgVegetation::BillboardData> &data, const std::string &output_file, bool use_paged_lod);
 	private:
 		int m_FinalLOD;
 
@@ -59,7 +62,7 @@ namespace osgVegetation
 		osg::Vec3d m_Offset; 
 	
 		ITerrainQuery* m_TerrainQuery;
-
+		EnvironmentSettings m_EnvironmentSettings;
 		bool m_UsePagedLOD;
 
 		//Output stuff
@@ -69,7 +72,7 @@ namespace osgVegetation
 
 		//Helpers
 		std::string _createFileName(unsigned int lv,	unsigned int x, unsigned int y) const;
-		void _populateVegetationTile(const BillboardLayer& layer,const osg::BoundingBoxd &box, BillboardVegetationObjectVector& instances) const;
+		void _populateVegetationTile(const BillboardLayer& layer,const osg::BoundingBoxd &box, BillboardVegetationObjectVector& instances, osg::BoundingBoxd& out_bb) const;
 		osg::Node* _createLODRec(int ld, BillboardData &data, BillboardVegetationObjectVector trees, const osg::BoundingBoxd &box ,int x, int y);
 	};
 }

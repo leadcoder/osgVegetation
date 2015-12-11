@@ -5,6 +5,7 @@
 #include <math.h>
 #include "IBillboardRenderingTech.h"
 #include "BillboardData.h"
+#include "EnvironmentSettings.h"
 
 namespace osgVegetation
 {
@@ -14,14 +15,14 @@ namespace osgVegetation
 	class BRTGeometryShader :  public IBillboardRenderingTech
 	{
 	public:
-		BRTGeometryShader(BillboardData &data);
+		BRTGeometryShader(BillboardData &data, const EnvironmentSettings &env_settings);
 
 		//IBillboardRenderingTech
-		osg::Node* create(double view_dist, const BillboardVegetationObjectVector &trees, const osg::BoundingBoxd &bb);
+		osg::Node* create(const BillboardVegetationObjectVector &trees, const osg::BoundingBoxd &bb);
 		osg::StateSet* getStateSet() const {return m_StateSet;}
 	protected:
-		osg::StateSet* _createStateSet(BillboardData &data);
-		osg::Program* _createShaders(BillboardData &data) const;
+		osg::StateSet* _createStateSet(BillboardData &data, const EnvironmentSettings &env_settings);
+		osg::Program* _createShaders(BillboardData &data, const EnvironmentSettings &env_settings) const;
 		osg::StateSet* m_StateSet;
 		bool m_PPL;
 	};

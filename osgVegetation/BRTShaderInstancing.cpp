@@ -15,6 +15,7 @@
 #include <osg/CullFace>
 #include <osg/Image>
 #include <osg/Texture2DArray>
+#include <osg/Multisample>
 #include <osgDB/ReadFile>
 #include <osgDB/WriteFile>
 #include <osgDB/FileUtils>
@@ -24,14 +25,14 @@
 
 namespace osgVegetation
 {
-	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data) : m_PPL(false)
+	BRTShaderInstancing::BRTShaderInstancing(BillboardData &data, const EnvironmentSettings &env_settings) : m_PPL(true)
 	{
 		m_TrueBillboards = (data.Type == BT_ROTATED_QUAD);
 
-		if(!(data.Type == BT_ROTATED_QUAD || data.Type == BT_CROSS_QUADS))
+		if (!(data.Type == BT_ROTATED_QUAD || data.Type == BT_CROSS_QUADS))
 			OSGV_EXCEPT(std::string("BRTShaderInstancing::BRTShaderInstancing - Unsupported billboard type").c_str());
 
-		m_StateSet = _createStateSet(data);
+		m_StateSet = _createStateSet(data, env_settings);
 	}
 
 	BRTShaderInstancing::~BRTShaderInstancing()
@@ -39,72 +40,123 @@ namespace osgVegetation
 
 	}
 
-	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardData &data)
+	osg::StateSet* BRTShaderInstancing::_createStateSet(BillboardData &data, const EnvironmentSettings &env_settings)
 	{
 		osg::ref_ptr<osg::Texture2DArray> tex = Utils::loadTextureArray(data);
 
 		osg::StateSet *dstate = new osg::StateSet;
-		dstate->setTextureAttribute(0, tex,	osg::StateAttribute::ON);
+		dstate->setTextureAttribute(0, tex, osg::StateAttribute::ON);
 
 		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
-		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL,data.AlphaRefValue);
+		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, data.AlphaRefValue);
 
-		dstate->setAttributeAndModes( alphaFunc, osg::StateAttribute::ON );
-		if(m_TrueBillboards)
-			dstate->setAttributeAndModes(new osg::CullFace(),osg::StateAttribute::OFF);
+		// enable alpha-to-coverage multisampling for vegetation.
+		dstate->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
+
+		if (m_TrueBillboards)
+			dstate->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF);
 		else
-			dstate->setAttributeAndModes(new osg::CullFace(),osg::StateAttribute::ON);
+			dstate->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::ON);
 
 		//dstate->setMode( GL_LIGHTING, osg::StateAttribute::OFF );
 
-		if(data.UseAlphaBlend)
+		if (data.UseAlphaBlend)
 		{
-			dstate->setAttributeAndModes( new osg::BlendFunc, osg::StateAttribute::ON );
+			dstate->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
+			dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+		}
+		if (data.UseMultiSample)
+		{ 
+			dstate->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+			dstate->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
 			dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 		}
 		const int num_textures = tex->getNumImages();
 		osg::Uniform* baseTextureSampler = new osg::Uniform(osg::Uniform::SAMPLER_2D_ARRAY, "baseTexture", num_textures);
 		dstate->addUniform(baseTextureSampler);
 
-		dstate->setMode( GL_LIGHTING, osg::StateAttribute::ON );
-
+		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
+		shadowTextureUnit->set(env_settings.BaseShadowTextureUnit);
+		dstate->addUniform(shadowTextureUnit);
+		dstate->setMode(GL_LIGHTING, osg::StateAttribute::ON);
 		{
 			osg::Program* program = new osg::Program;
 			//dstate->setAttribute(program);
-			dstate->setAttributeAndModes( program, osg::StateAttribute::ON | osg::StateAttribute::PROTECTED );
-
-
+			//Protect to avoid problems with LIPSSM shadows
+			dstate->setAttributeAndModes(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
+			dstate->setDataVariance(osg::Object::DYNAMIC);
+		
 			std::stringstream vertexShaderSource;
 			vertexShaderSource <<
 				//"#version 430 compatibility\n"
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
-
-				"void DynamicShadow( in vec4 ecPosition )                               \n"
-				"{                                                                      \n"
-				"    // generate coords for shadow mapping                              \n"
-				"    gl_TexCoord[2].s = dot( ecPosition, gl_EyePlaneS[2] );             \n"
-				"    gl_TexCoord[2].t = dot( ecPosition, gl_EyePlaneT[2] );             \n"
-				"    gl_TexCoord[2].p = dot( ecPosition, gl_EyePlaneR[2] );             \n"
-				"    gl_TexCoord[2].q = dot( ecPosition, gl_EyePlaneQ[2] );             \n"
-				"    gl_TexCoord[3].s = dot( ecPosition, gl_EyePlaneS[3] );             \n"
-				"    gl_TexCoord[3].t = dot( ecPosition, gl_EyePlaneT[3] );             \n"
-				"    gl_TexCoord[3].p = dot( ecPosition, gl_EyePlaneR[3] );             \n"
-				"    gl_TexCoord[3].q = dot( ecPosition, gl_EyePlaneQ[3] );             \n"
-				"} \n"
 				"uniform samplerBuffer DataBufferTexture;\n"
-				"uniform float FadeInDist;\n"
-				"varying vec2 TexCoord;\n";
-			if(m_PPL)
+				"uniform float TileRadius;\n"
+				"varying vec2 TexCoord;\n"
+				"varying vec4 Color;\n"
+				"varying vec3 Ambient;\n"
+				"varying float VegetationType; \n";
+			if (m_PPL)
 			{
 				vertexShaderSource <<
 					"varying vec3 Normal;\n"
 					"varying vec3 LightDir;\n";
 			}
+
+			if (env_settings.ShadowMode != SM_DISABLED &&  data.ReceiveShadows)
+			{
+				if (env_settings.ShadowMode == SM_LISPSM)
+				{
+					vertexShaderSource << "uniform int shadowTextureUnit; \n";
+				}
+				else if (env_settings.ShadowMode == SM_VDSM1)
+				{
+					vertexShaderSource << "uniform int shadowTextureUnit0; \n";
+				}
+				else if (env_settings.ShadowMode == SM_VDSM2)
+				{
+					vertexShaderSource <<
+						"uniform int shadowTextureUnit0; \n"
+						"uniform int shadowTextureUnit1; \n";
+				}
+			
+				vertexShaderSource << "void DynamicShadow(in vec4 ecPosition )                               \n"
+					"{                                                                      \n"
+					"    // generate coords for shadow mapping                              \n";
+				if (env_settings.ShadowMode == SM_LISPSM)
+				{
+					vertexShaderSource <<
+						"    gl_TexCoord[shadowTextureUnit].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit] );             \n"
+						"    gl_TexCoord[shadowTextureUnit].t = dot( ecPosition, gl_EyePlaneT[shadowTextureUnit] );             \n"
+						"    gl_TexCoord[shadowTextureUnit].p = dot( ecPosition, gl_EyePlaneR[shadowTextureUnit] );             \n"
+						"    gl_TexCoord[shadowTextureUnit].q = dot( ecPosition, gl_EyePlaneQ[shadowTextureUnit] );             \n"
+						"} \n";
+				}
+				else if (env_settings.ShadowMode == SM_VDSM1)
+				{
+					vertexShaderSource <<
+						"    gl_TexCoord[shadowTextureUnit0].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit0] );             \n"
+						"    gl_TexCoord[shadowTextureUnit0].t = dot( ecPosition, gl_EyePlaneT[shadowTextureUnit0] );             \n"
+						"    gl_TexCoord[shadowTextureUnit0].p = dot( ecPosition, gl_EyePlaneR[shadowTextureUnit0] );             \n"
+						"    gl_TexCoord[shadowTextureUnit0].q = dot( ecPosition, gl_EyePlaneQ[shadowTextureUnit0] );             \n"
+						"} \n";
+				}
+				else if (env_settings.ShadowMode == SM_VDSM2)
+				{
+					vertexShaderSource <<
+						"    gl_TexCoord[shadowTextureUnit0].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit0] );             \n"
+						"    gl_TexCoord[shadowTextureUnit0].t = dot( ecPosition, gl_EyePlaneT[shadowTextureUnit0] );             \n"
+						"    gl_TexCoord[shadowTextureUnit0].p = dot( ecPosition, gl_EyePlaneR[shadowTextureUnit0] );             \n"
+						"    gl_TexCoord[shadowTextureUnit0].q = dot( ecPosition, gl_EyePlaneQ[shadowTextureUnit0] );             \n"
+						"    gl_TexCoord[shadowTextureUnit1].s = dot( ecPosition, gl_EyePlaneS[shadowTextureUnit1] );             \n"
+						"    gl_TexCoord[shadowTextureUnit1].t = dot( ecPosition, gl_EyePlaneT[shadowTextureUnit1] );             \n"
+						"    gl_TexCoord[shadowTextureUnit1].p = dot( ecPosition, gl_EyePlaneR[shadowTextureUnit1] );             \n"
+						"    gl_TexCoord[shadowTextureUnit1].q = dot( ecPosition, gl_EyePlaneQ[shadowTextureUnit1] );             \n"
+						"} \n";
+				}
+			}
+
 			vertexShaderSource <<
-				"varying vec4 Color;\n"
-				"varying vec3 Ambient;\n"
-				"varying float VegetationType; \n"
-				"const vec3 LightPosition = vec3(0.0, 0.0, 4.0);\n"
 				"void main()\n"
 				"{\n"
 				"   vec3 normal;\n"
@@ -115,17 +167,17 @@ namespace osgVegetation
 				"   vec2 scale     = data.xy;\n"
 				"   VegetationType = data.z;\n"
 				"   vec4 camera_pos = gl_ModelViewMatrixInverse[3];\n";
-			if(!data.CastShadows) //shadow casting and vertex fading don't mix well
+			if (env_settings.ShadowMode == SM_DISABLED || !data.CastShadows) //shadow casting and vertex fading don't mix well
 			{
 				vertexShaderSource <<
 					"   float distance = length(camera_pos.xyz - position.xyz);\n"
-					"   scale = scale*clamp((1.0 - (distance-FadeInDist))/(FadeInDist*0.2),0.0,1.0);\n";
+					"   scale = scale*clamp((1.0 - (distance-TileRadius))/(TileRadius*0.2),0.0,1.0);\n";
 			}
-			if(m_TrueBillboards)
+			if (m_TrueBillboards)
 			{
 				vertexShaderSource <<
 					"    vec3 dir = camera_pos.xyz - position.xyz;\n"
-					"	 dir.z = 0;\n //we are only instrested in xy-plane direction"
+					"	 dir.z = 0;\n //we are only interested in xy-plane direction"
 					"    dir = normalize(dir);\n"
 					"    vec3 left = vec3(-dir.y,dir.x, 0);\n"
 					"	 left = normalize(left);\n"
@@ -134,11 +186,11 @@ namespace osgVegetation
 					"    m_pos.z *= scale.y;\n"
 					"	 m_pos.xy = m_pos.x*left.xy;\n"
 					"	 m_pos.xyz += position;\n";
-				if(data.ReceiveShadows)
+				if (env_settings.ShadowMode != SM_DISABLED && data.ReceiveShadows)
 					vertexShaderSource << "   DynamicShadow(gl_ModelViewMatrix * m_pos);\n";
 				vertexShaderSource << "   gl_Position = gl_ModelViewProjectionMatrix * m_pos;\n";
 				//"   gl_Position = gl_ProjectionMatrix * modelView * gl_Vertex ;\n";
-				if(data.TerrainNormal)
+				if (data.TerrainNormal)
 				{
 					vertexShaderSource <<
 						"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
@@ -159,11 +211,11 @@ namespace osgVegetation
 					"              0.0, 0.0, scale.y, 0.0,\n"
 					"              position.x, position.y, position.z, 1.0);\n"
 					"   vec4 mv_pos = modelView * gl_Vertex;\n";
-				if(data.ReceiveShadows)
+				if (env_settings.ShadowMode != SM_DISABLED &&  data.ReceiveShadows)
 					vertexShaderSource << "   DynamicShadow(mv_pos);\n";
 
 				vertexShaderSource << "   gl_Position = gl_ProjectionMatrix * mv_pos ;\n";
-				if(data.TerrainNormal)
+				if (data.TerrainNormal)
 				{
 					vertexShaderSource <<
 						"   normal = normalize(gl_NormalMatrix * vec3(0,0,1));\n";
@@ -176,7 +228,7 @@ namespace osgVegetation
 				}
 			}
 
-			if(m_PPL)
+			if (m_PPL)
 			{
 				vertexShaderSource <<
 					"   Normal = normal;\n"
@@ -199,18 +251,38 @@ namespace osgVegetation
 				//"#version 430 core\n"
 				"#extension GL_EXT_gpu_shader4 : enable\n"
 				"#extension GL_EXT_texture_array : enable\n"
-				"uniform sampler2DArray baseTexture; \n"
+				"uniform sampler2DArray baseTexture; \n";
 
-				"uniform sampler2DShadow shadowTexture0;                                 \n"
-				"uniform int shadowTextureUnit0;                                         \n"
-				"uniform sampler2DShadow shadowTexture1;                                 \n"
-				"uniform int shadowTextureUnit1;                                         \n"
+			if (env_settings.ShadowMode != SM_DISABLED && data.ReceiveShadows)
+			{
+				if (env_settings.ShadowMode == SM_LISPSM)
+				{
+					fragmentShaderSource <<
+						"uniform sampler2DShadow shadowTexture; \n"
+						"uniform int shadowTextureUnit; \n";
+				}
+				else if (env_settings.ShadowMode == SM_VDSM1)
+				{
+					fragmentShaderSource <<
+						"uniform sampler2DShadow shadowTexture0; \n"
+						"uniform int shadowTextureUnit0; \n";
+				}
+				else if (env_settings.ShadowMode == SM_VDSM2)
+				{
+					fragmentShaderSource <<
+						"uniform sampler2DShadow shadowTexture0; \n"
+						"uniform int shadowTextureUnit0; \n"
+						"uniform sampler2DShadow shadowTexture1; \n"
+						"uniform int shadowTextureUnit1; \n";
+				}
+			}
+			fragmentShaderSource <<
 
-				"uniform float FadeInDist;\n"
+				"uniform float TileRadius;\n"
 				"varying float VegetationType; \n"
 				"varying vec3 Ambient; \n"
 				"varying vec2 TexCoord;\n";
-			if(m_PPL)
+			if (m_PPL)
 			{
 				fragmentShaderSource <<
 					"varying vec3 Normal;\n"
@@ -221,60 +293,80 @@ namespace osgVegetation
 				"varying vec4 Color;\n"
 				"void main(void) \n"
 				"{\n"
-				"    vec4 outColor = texture2DArray( baseTexture, vec3(TexCoord, VegetationType)); \n";
-			if(m_PPL)
+				"   vec4 outColor = texture2DArray( baseTexture, vec3(TexCoord, VegetationType)); \n"
+				"   float shadow = 1.0;\n";
+
+			if (env_settings.ShadowMode != SM_DISABLED && data.ReceiveShadows)
+			{
+				if (env_settings.ShadowMode == SM_LISPSM)
+				{
+					fragmentShaderSource <<
+						"   shadow = shadow2DProj( shadowTexture, gl_TexCoord[shadowTextureUnit] ).r;   \n";
+				}
+				else if (env_settings.ShadowMode == SM_VDSM1)
+				{
+					fragmentShaderSource <<
+						"   shadow = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n";
+				}
+				else if (env_settings.ShadowMode == SM_VDSM2)
+				{
+					fragmentShaderSource <<
+						"   float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n"
+						"   float shadow1 = shadow2DProj( shadowTexture1, gl_TexCoord[shadowTextureUnit1] ).r;   \n"
+						"   shadow  = shadow0*shadow1; \n";
+				}
+			}
+			if (m_PPL)
 			{
 				fragmentShaderSource <<
 					"   float NdotL = max(dot(normalize(Normal), LightDir), 0.0);\n"
-					"   outColor.xyz = NdotL*outColor.xyz*Color.xyz + Ambient.xyz*outColor.xyz*Color.xyz;\n";
+					"   outColor.xyz = shadow*NdotL*outColor.xyz*Color.xyz + Ambient.xyz*outColor.xyz*Color.xyz; \n";
 			}
 			else
 			{
 				fragmentShaderSource <<
-					"   outColor.xyz = outColor.xyz * Color.xyz;\n";
+					"   outColor.xyz = shadow*outColor.xyz * Color.xyz;\n";
 			}
-
-			if(data.ReceiveShadows)
-			{
-				fragmentShaderSource <<
-					"  float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n"
-					"  float shadow1 = shadow2DProj( shadowTexture1, gl_TexCoord[shadowTextureUnit1] ).r;   \n"
-					"  outColor.xyz = outColor.xyz *  shadow0*shadow1;                     \n";
-			}
+			
+		
 			fragmentShaderSource <<
-				"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n";
-			if(data.UseFog)
+				"   float depth = gl_FragCoord.z / gl_FragCoord.w;\n";
+			if (env_settings.UseFog)
 			{
-				switch(data.FogMode)
+				switch (env_settings.FogMode)
 				{
 				case osg::Fog::LINEAR:
 					// Linear fog
-					fragmentShaderSource << "float fogFactor = (gl_Fog.end - depth) * gl_Fog.scale;\n";
+					fragmentShaderSource << "   float fogFactor = (gl_Fog.end - depth) * gl_Fog.scale;\n";
 					break;
 				case osg::Fog::EXP:
 					// Exp fog
-					fragmentShaderSource << "float fogFactor = exp(-gl_Fog.density * depth);\n";
+					fragmentShaderSource << "   float fogFactor = exp(-gl_Fog.density * depth);\n";
 					break;
 				case osg::Fog::EXP2:
 					// Exp fog
-					fragmentShaderSource << "float fogFactor = exp(-pow((gl_Fog.density * depth), 2.0));\n";
+					fragmentShaderSource << "   float fogFactor = exp(-pow((gl_Fog.density * depth), 2.0));\n";
 					break;
 				}
 				fragmentShaderSource <<
-					"fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
-					"outColor.xyz = mix(gl_Fog.color.xyz, outColor.xyz, fogFactor);\n";
+					"   fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
+					"   outColor.xyz = mix(gl_Fog.color.xyz, outColor.xyz, fogFactor);\n";
 			}
 			fragmentShaderSource <<
-				//"    finalColor.w = finalColor.w * clamp(1.0 - ((depth-FadeInDist)/(FadeInDist*0.1)), 0.0, 1.0);\n"
-				"    gl_FragColor = outColor;\n"
+				"   float fade_in_dist = TileRadius*0.5;\n"
+				"   //float fade_value = clamp((1.0 - (depth - (fade_in_dist*gl_ProjectionMatrix[0][0])))/((fade_in_dist*gl_ProjectionMatrix[0][0])*0.2),0.0,1.0);\n"
+				"   //float fade_value = clamp(1.0 - ((depth - fade_in_dist) / (fade_in_dist * 0.1)), 0.0, 1.0);\n"
+				"   //outColor.w = outColor.w * fade_value;\n"
+				"   if(outColor.w < 0.01) discard;\n"
+				"   gl_FragColor = outColor;\n"
 				"}\n";
 
 
 			std::stringstream ss_sufix;
-			if(m_PPL) ss_sufix << "_ppl";
-			if(m_TrueBillboards) ss_sufix << "_tbb";
-			if(data.TerrainNormal)	ss_sufix << "_tn";
-			if(data.ReceiveShadows) ss_sufix << "_s";
+			if (m_PPL) ss_sufix << "_ppl";
+			if (m_TrueBillboards) ss_sufix << "_tbb";
+			if (data.TerrainNormal)	ss_sufix << "_tn";
+			if (data.ReceiveShadows) ss_sufix << "_s";
 			ss_sufix << ".glsl";
 
 			const std::string btr_vertex_file(std::string("btr_vertex" + ss_sufix.str()));
@@ -293,10 +385,9 @@ namespace osgVegetation
 			{
 				vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
 				//Save shader
-				//osgDB::writeShaderFile(*vertex_shader,btr_vertex_file);
+				//osgDB::writeShaderFile(*vertex_shader, btr_vertex_file);
 			}
 			program->addShader(vertex_shader);
-
 
 			osg::Shader* fragment_shader = NULL;
 			/*if(osgDB::fileExists(btr_fragment_file))
@@ -309,14 +400,14 @@ namespace osgVegetation
 			{
 				fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
 				//Save shader
-				//osgDB::writeShaderFile(*fragment_shader,btr_fragment_file);
+				//osgDB::writeShaderFile(*fragment_shader, btr_fragment_file);
 			}
 			program->addShader(fragment_shader);
 		}
 		return dstate;
 	}
 
-	osg::Geometry* BRTShaderInstancing::_createSingleQuadsWithNormals( const osg::Vec3& pos, float w, float h)
+	osg::Geometry* BRTShaderInstancing::_createSingleQuadsWithNormals(const osg::Vec3& pos, float w, float h)
 	{
 		// set up the coords
 		osg::Vec3Array& v = *(new osg::Vec3Array(8));
@@ -324,51 +415,51 @@ namespace osgVegetation
 		osg::Vec2Array& t = *(new osg::Vec2Array(8));
 
 		float sw = w*0.5f;
-		v[0].set(pos.x()-sw,pos.y(),pos.z()+0.0f);
-		v[1].set(pos.x()   ,pos.y(),pos.z()+0.0f);
-		v[2].set(pos.x()   ,pos.y(),pos.z()+h);
-		v[3].set(pos.x()-sw,pos.y(),pos.z()+h);
+		v[0].set(pos.x() - sw, pos.y(), pos.z() + 0.0f);
+		v[1].set(pos.x(), pos.y(), pos.z() + 0.0f);
+		v[2].set(pos.x(), pos.y(), pos.z() + h);
+		v[3].set(pos.x() - sw, pos.y(), pos.z() + h);
 
-		v[4].set(pos.x()   ,pos.y(),pos.z()+0.0f);
-		v[5].set(pos.x()+sw,pos.y(),pos.z()+0.0f);
-		v[6].set(pos.x()+sw,pos.y(),pos.z()+h);
-		v[7].set(pos.x()   ,pos.y(),pos.z()+h);
+		v[4].set(pos.x(), pos.y(), pos.z() + 0.0f);
+		v[5].set(pos.x() + sw, pos.y(), pos.z() + 0.0f);
+		v[6].set(pos.x() + sw, pos.y(), pos.z() + h);
+		v[7].set(pos.x(), pos.y(), pos.z() + h);
 
 		double roundness = 1.0;
 
-		n[0].set(-roundness,-1,0);
-		n[1].set( 0,-1,0);
-		n[2].set( 0,-1,0);
-		n[3].set(-roundness,-1,0);
+		n[0].set(-roundness, -1, 0);
+		n[1].set(0, -1, 0);
+		n[2].set(0, -1, 0);
+		n[3].set(-roundness, -1, 0);
 
-		n[4].set( 0,-1.0,0);
-		n[5].set( roundness,-1,0);
-		n[6].set( roundness,-1,0);
-		n[7].set( 0,-1,0);
+		n[4].set(0, -1.0, 0);
+		n[5].set(roundness, -1, 0);
+		n[6].set(roundness, -1, 0);
+		n[7].set(0, -1, 0);
 
-		t[0].set(0.0f,0.0f);
-		t[1].set(0.5f,0.0f);
-		t[2].set(0.5f,1.0f);
-		t[3].set(0.0f,1.0f);
+		t[0].set(0.0f, 0.0f);
+		t[1].set(0.5f, 0.0f);
+		t[2].set(0.5f, 1.0f);
+		t[3].set(0.0f, 1.0f);
 
-		t[4].set(0.5f,0.0f);
-		t[5].set(1.0f,0.0f);
-		t[6].set(1.0f,1.0f);
-		t[7].set(0.5f,1.0f);
+		t[4].set(0.5f, 0.0f);
+		t[5].set(1.0f, 0.0f);
+		t[6].set(1.0f, 1.0f);
+		t[7].set(0.5f, 1.0f);
 
 		osg::Geometry *geom = new osg::Geometry;
 
-		geom->setVertexArray( &v );
+		geom->setVertexArray(&v);
 		geom->setNormalArray(&n);
-		geom->setTexCoordArray( 0, &t );
+		geom->setTexCoordArray(0, &t);
 		geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
-		geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::QUADS,0,8));
+		geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::QUADS, 0, 8));
 
 		return geom;
 	}
 
 
-	osg::Geometry* BRTShaderInstancing::_createOrthogonalQuadsWithNormals( const osg::Vec3& pos, float w, float h)
+	osg::Geometry* BRTShaderInstancing::_createOrthogonalQuadsWithNormals(const osg::Vec3& pos, float w, float h)
 	{
 		// set up the coords
 		osg::Vec3Array& v = *(new osg::Vec3Array(16));
@@ -376,32 +467,32 @@ namespace osgVegetation
 		osg::Vec2Array& t = *(new osg::Vec2Array(16));
 
 		float sw = w*0.5f;
-		v[0].set(pos.x()-sw,pos.y(),pos.z()+0.0f);
-		v[1].set(pos.x()+sw,pos.y(),pos.z()+0.0f);
-		v[2].set(pos.x()+sw,pos.y(),pos.z()+h);
-		v[3].set(pos.x()-sw,pos.y(),pos.z()+h);
+		v[0].set(pos.x() - sw, pos.y(), pos.z() + 0.0f);
+		v[1].set(pos.x() + sw, pos.y(), pos.z() + 0.0f);
+		v[2].set(pos.x() + sw, pos.y(), pos.z() + h);
+		v[3].set(pos.x() - sw, pos.y(), pos.z() + h);
 
-		v[4].set(pos.x()-sw,pos.y(),pos.z()+h);
-		v[5].set(pos.x()+sw,pos.y(),pos.z()+h);
-		v[6].set(pos.x()+sw,pos.y(),pos.z()+0.0f);
-		v[7].set(pos.x()-sw,pos.y(),pos.z()+0.0f);
+		v[4].set(pos.x() - sw, pos.y(), pos.z() + h);
+		v[5].set(pos.x() + sw, pos.y(), pos.z() + h);
+		v[6].set(pos.x() + sw, pos.y(), pos.z() + 0.0f);
+		v[7].set(pos.x() - sw, pos.y(), pos.z() + 0.0f);
 
-		v[8].set(pos.x(),pos.y()+sw,pos.z()+0.0f);
-		v[9].set(pos.x(),pos.y()-sw,pos.z()+0.0f);
-		v[10].set(pos.x(),pos.y()-sw,pos.z()+h);
-		v[11].set(pos.x(),pos.y()+sw,pos.z()+h);
+		v[8].set(pos.x(), pos.y() + sw, pos.z() + 0.0f);
+		v[9].set(pos.x(), pos.y() - sw, pos.z() + 0.0f);
+		v[10].set(pos.x(), pos.y() - sw, pos.z() + h);
+		v[11].set(pos.x(), pos.y() + sw, pos.z() + h);
 
-		v[12].set(pos.x(),pos.y()+sw,pos.z()+h);
-		v[13].set(pos.x(),pos.y()-sw,pos.z()+h);
-		v[14].set(pos.x(),pos.y()-sw,pos.z()+0.0f);
-		v[15].set(pos.x(),pos.y()+sw,pos.z()+0.0f);
+		v[12].set(pos.x(), pos.y() + sw, pos.z() + h);
+		v[13].set(pos.x(), pos.y() - sw, pos.z() + h);
+		v[14].set(pos.x(), pos.y() - sw, pos.z() + 0.0f);
+		v[15].set(pos.x(), pos.y() + sw, pos.z() + 0.0f);
 
 
-		osg::Vec3 n1(0,-1,0);
-		osg::Vec3 n2(0,1,0);
+		osg::Vec3 n1(0, -1, 0);
+		osg::Vec3 n2(0, 1, 0);
 
-		osg::Vec3 n3(-1,0,0);
-		osg::Vec3 n4(1,0,0);
+		osg::Vec3 n3(-1, 0, 0);
+		osg::Vec3 n4(1, 0, 0);
 
 
 
@@ -428,26 +519,26 @@ namespace osgVegetation
 
 		double roundness = 0.0;
 
-		n[0].set(-roundness,-1,0);
-		n[1].set( 0,-1,0);
-		n[2].set( 0,-1,0);
-		n[3].set(-roundness,-1,0);
+		n[0].set(-roundness, -1, 0);
+		n[1].set(0, -1, 0);
+		n[2].set(0, -1, 0);
+		n[3].set(-roundness, -1, 0);
 
-		n[4].set( 0,-1.0,0);
-		n[5].set( roundness,-1,0);
-		n[6].set( roundness,-1,0);
-		n[7].set( 0,-1,0);
+		n[4].set(0, -1.0, 0);
+		n[5].set(roundness, -1, 0);
+		n[6].set(roundness, -1, 0);
+		n[7].set(0, -1, 0);
 
 
-		n[8].set(-roundness,-1,0);
-		n[9].set( 0,-1,0);
-		n[10].set( 0,-1,0);
-		n[11].set(-roundness,-1,0);
+		n[8].set(-roundness, -1, 0);
+		n[9].set(0, -1, 0);
+		n[10].set(0, -1, 0);
+		n[11].set(-roundness, -1, 0);
 
-		n[12].set( 0,-1.0,0);
-		n[13].set( roundness,-1,0);
-		n[14].set( roundness,-1,0);
-		n[15].set( 0,-1,0);
+		n[12].set(0, -1.0, 0);
+		n[13].set(roundness, -1, 0);
+		n[14].set(roundness, -1, 0);
+		n[15].set(0, -1, 0);
 
 
 
@@ -472,88 +563,89 @@ namespace osgVegetation
 		n[14].set( roundness,-1,0);
 		n[15].set(-roundness,-1,0);*/
 
-		t[0].set(0.0f,0.0f);
-		t[1].set(1.0f,0.0f);
-		t[2].set(1.0f,1.0f);
-		t[3].set(0.0f,1.0f);
+		t[0].set(0.0f, 0.0f);
+		t[1].set(1.0f, 0.0f);
+		t[2].set(1.0f, 1.0f);
+		t[3].set(0.0f, 1.0f);
 
 
-		t[4].set(0.0f,1.0f);
-		t[5].set(1.0f,1.0f);
-		t[6].set(1.0f,0.0f);
-		t[7].set(0.0f,0.0f);
+		t[4].set(0.0f, 1.0f);
+		t[5].set(1.0f, 1.0f);
+		t[6].set(1.0f, 0.0f);
+		t[7].set(0.0f, 0.0f);
 
-		t[8].set(0.0f,0.0f);
-		t[9].set(1.0f,0.0f);
-		t[10].set(1.0f,1.0f);
-		t[11].set(0.0f,1.0f);
+		t[8].set(0.0f, 0.0f);
+		t[9].set(1.0f, 0.0f);
+		t[10].set(1.0f, 1.0f);
+		t[11].set(0.0f, 1.0f);
 
-		t[12].set(0.0f,1.0f);
-		t[13].set(1.0f,1.0f);
-		t[14].set(1.0f,0.0f);
-		t[15].set(0.0f,0.0f);
+		t[12].set(0.0f, 1.0f);
+		t[13].set(1.0f, 1.0f);
+		t[14].set(1.0f, 0.0f);
+		t[15].set(0.0f, 0.0f);
 
 		osg::Geometry *geom = new osg::Geometry;
 
-		geom->setVertexArray( &v );
+		geom->setVertexArray(&v);
 		geom->setNormalArray(&n);
-		geom->setTexCoordArray( 0, &t );
+		geom->setTexCoordArray(0, &t);
 		geom->setNormalBinding(osg::Geometry::BIND_PER_VERTEX);
-		geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::QUADS,0,16));
+		geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::QUADS, 0, 16));
 
 		return geom;
 	}
 
-	osg::Node* BRTShaderInstancing::create(double view_dist, const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBoxd &bb)
+	osg::Node* BRTShaderInstancing::create(const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBoxd &bb)
 	{
 		osg::Geode* geode = 0;
 		osg::Group* group = 0;
-		if(veg_objects.size() > 0)
+		if (veg_objects.size() > 0)
 		{
 			osg::ref_ptr<osg::Geometry> templateGeometry;
-			if(m_TrueBillboards)
-				templateGeometry = _createSingleQuadsWithNormals(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
+			if (m_TrueBillboards)
+				templateGeometry = _createSingleQuadsWithNormals(osg::Vec3(0.0f, 0.0f, 0.0f), 1.0f, 1.0f);
 			else
-				templateGeometry = _createOrthogonalQuadsWithNormals(osg::Vec3(0.0f,0.0f,0.0f),1.0f,1.0f);
+				templateGeometry = _createOrthogonalQuadsWithNormals(osg::Vec3(0.0f, 0.0f, 0.0f), 1.0f, 1.0f);
 
 			templateGeometry->setUseVertexBufferObjects(true);
 			templateGeometry->setUseDisplayList(false);
-			osg::Geometry* geometry = (osg::Geometry*)templateGeometry->clone( osg::CopyOp::DEEP_COPY_PRIMITIVES );
+			osg::Geometry* geometry = (osg::Geometry*)templateGeometry->clone(osg::CopyOp::DEEP_COPY_PRIMITIVES);
 			geometry->setUseDisplayList(false);
-			osg::DrawArrays* primSet = dynamic_cast<osg::DrawArrays*>( geometry->getPrimitiveSet(0) );
-			primSet->setNumInstances( veg_objects.size() );
+			osg::DrawArrays* primSet = dynamic_cast<osg::DrawArrays*>(geometry->getPrimitiveSet(0));
+			primSet->setNumInstances(veg_objects.size());
 			geode = new osg::Geode;
 			geode->addDrawable(geometry);
-			unsigned int i=0;
+			unsigned int i = 0;
 			osg::ref_ptr<osg::Image> treeParamsImage = new osg::Image;
-			treeParamsImage->allocateImage( 3*veg_objects.size(), 1, 1, GL_RGBA, GL_FLOAT );
-			for(BillboardVegetationObjectVector::const_iterator itr= veg_objects.begin();
-				itr!= veg_objects.end();
-				++itr,++i)
+			treeParamsImage->allocateImage(3 * veg_objects.size(), 1, 1, GL_RGBA, GL_FLOAT);
+			for (BillboardVegetationObjectVector::const_iterator itr = veg_objects.begin();
+			itr != veg_objects.end();
+				++itr, ++i)
 			{
-				osg::Vec4f* ptr = (osg::Vec4f*)treeParamsImage->data(3*i);
+				osg::Vec4f* ptr = (osg::Vec4f*)treeParamsImage->data(3 * i);
 				BillboardObject& tree = **itr;
-				ptr[0] = osg::Vec4f(tree.Position.x(),tree.Position.y(),tree.Position.z(),1.0);
-				ptr[1] = osg::Vec4f((float)tree.Color.r(),(float)tree.Color.g(), (float)tree.Color.b(), 1.0);
+				ptr[0] = osg::Vec4f(tree.Position.x(), tree.Position.y(), tree.Position.z(), 1.0);
+				ptr[1] = osg::Vec4f((float)tree.Color.r(), (float)tree.Color.g(), (float)tree.Color.b(), 1.0);
 				ptr[2] = osg::Vec4f(tree.Width, tree.Height, tree.TextureIndex, 1.0);
 			}
 
 			osg::ref_ptr<osg::TextureBuffer> tbo = new osg::TextureBuffer;
-			tbo->setImage( treeParamsImage.get() );
+			tbo->setImage(treeParamsImage.get());
 			tbo->setInternalFormat(GL_RGBA32F_ARB);
-			geometry->getOrCreateStateSet()->setTextureAttribute(1, tbo.get(),osg::StateAttribute::ON);
-			geometry->setInitialBound( bb );
-			osg::Uniform* dataBufferSampler = new osg::Uniform("DataBufferTexture",1);
+			geometry->getOrCreateStateSet()->setTextureAttribute(1, tbo.get(), osg::StateAttribute::ON);
+			geometry->setInitialBound(bb);
+			osg::Uniform* dataBufferSampler = new osg::Uniform("DataBufferTexture", 1);
 			geometry->getOrCreateStateSet()->addUniform(dataBufferSampler);
 
+			osg::Uniform* tile_rad_uniform = new osg::Uniform(osg::Uniform::FLOAT, "TileRadius");
+			float radius = bb.radius();
+			tile_rad_uniform->set(radius);
+			geometry->getOrCreateStateSet()->addUniform(tile_rad_uniform);
 
-			osg::Uniform* fadeInDist = new osg::Uniform(osg::Uniform::FLOAT, "FadeInDist");
-
-			//use
-			double bb_size = (bb._max.x() - bb._min.x());
-			float radius = sqrt(bb_size*bb_size);
-			fadeInDist->set(radius*2.0f);
-			geometry->getOrCreateStateSet()->addUniform(fadeInDist);
+			//assume square tile
+			//double tile_size = (bb._max.x() - bb._min.x());
+			//float radius = sqrt(tile_size*tile_size);
+			
 
 			//geode->setStateSet((osg::StateSet*) m_StateSet->clone(osg::CopyOp::DEEP_COPY_STATESETS));
 		}

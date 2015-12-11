@@ -101,7 +101,7 @@ int main( int argc, char **argv )
 
 	osgVegetation::BillboardData grass_data(grass_layers, true,0.2,true);
 	grass_data.CastShadows = false;
-	grass_data.UseFog = false;
+	//grass_data.UseFog = false;
 	grass_data.Type = osgVegetation::BT_ROTATED_QUAD;
 	grass_data.ReceiveShadows = false;
 

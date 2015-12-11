@@ -1,6 +1,7 @@
 #include <osg/Geode>
 #include <osg/Geometry>
 #include <osg/MatrixTransform>
+#include <osg/ProxyNode>
 #include <osg/StateSet>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
@@ -23,7 +24,7 @@ int main( int argc, char **argv )
 	// use an ArgumentParser object to manage the program arguments.
 	osg::ArgumentParser arguments(&argc,argv);
 	//setup optimization variables
-	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
+/*	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
 #ifdef WIN32
 	_putenv(opt_env.c_str());
 #else
@@ -33,22 +34,18 @@ int main( int argc, char **argv )
 	putenv(writable);
 	delete[] writable;
 #endif
-
-	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/tiles");
-	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/material_textures");  
-	//osgDB::Registry::instance()->getDataFilePathList().push_back("f:/temp/detail_mapping/Grid0/color_textures");  
-
-
-	/////////////////////////////////////////////////////
+*/
 	arguments.getApplicationUsage()->addCommandLineOption("--vegetation_config <filename>","Configuration file");
+	arguments.getApplicationUsage()->addCommandLineOption("--environment_config <filename>", "Environment config file");
+	arguments.getApplicationUsage()->addCommandLineOption("--terrain_query_config <filename>", "Terrain query config file");
+	
 	arguments.getApplicationUsage()->addCommandLineOption("--out","out file");
 	arguments.getApplicationUsage()->addCommandLineOption("--terrain","Terrain file");
+	arguments.getApplicationUsage()->addCommandLineOption("--seed_value","Seed value");
 
 	arguments.getApplicationUsage()->addCommandLineOption("--bounding_box <x.min x-max y-min y-max>","Optional bounding box");
 	arguments.getApplicationUsage()->addCommandLineOption("--paged_lod","Optional save paged LOD database");
 	arguments.getApplicationUsage()->addCommandLineOption("--save_terrain","Optional inject terrain in database");
-
-
 
 	unsigned int helpType = 0;
 	if ((helpType = arguments.readHelpType()))
@@ -93,6 +90,12 @@ int main( int argc, char **argv )
 		return 0;
 	}
 
+	int seed_value  = 0;
+	if(arguments.read("--seed_value", seed_value))
+	{
+		std::cout << "Using seed" << seed_value << "\n";
+	}
+
 	//Load terrain
 	osg::ref_ptr<osg::Group> group = new osg::Group;
 	osg::Node* terrain = NULL;
@@ -110,15 +113,8 @@ int main( int argc, char **argv )
 		const std::string terrain_path = osgDB::getFilePath(terrain_file);
 		osgDB::Registry::instance()->getDataFilePathList().push_back(terrain_path);  
 
-		if(save_terrain)
-		{
-			group->addChild(terrain);
-		}
-
 		osg::ComputeBoundsVisitor  cbv;
-		
 		terrain->accept(cbv);
-		//osg::BoundingBox bb(cbv.getBoundingBox());
 		bounding_box = osg::BoundingBoxd(cbv.getBoundingBox());
 		if(useBBox)
 		{
@@ -131,6 +127,13 @@ int main( int argc, char **argv )
 	if(!arguments.read("--vegetation_config",config_file))
 	{
 		std::cerr << "No config provided\n";
+		return 0;
+	}
+
+	std::string env_filename;
+	if (!arguments.read("--environment_config", env_filename))
+	{
+		std::cerr << "No environment config provided\n";
 		return 0;
 	}
 
@@ -150,27 +153,34 @@ int main( int argc, char **argv )
 		osgDB::Registry::instance()->getDataFilePathList().push_back(config_path); 
 
 		osg::ref_ptr<osgVegetation::ITerrainQuery> tq = serializer.loadTerrainQuery(terrain, tq_filename);
-
-		//if(material_suffix != "")
-		//	tq->setMaterialTextureSuffix(material_suffix);
-		
-		osgVegetation::BillboardQuadTreeScattering scattering(tq);
+		osgVegetation::EnvironmentSettings env_settings;
+		if(env_filename != "")
+			env_settings = serializer.loadEnvironmentSettings(env_filename);
+		osgVegetation::BillboardQuadTreeScattering scattering(tq, env_settings);
 		std::cout << "Using bounding box:" << bounding_box.xMin() << " " << bounding_box.yMin() << " "<< bounding_box.xMax() << " " << bounding_box.yMax() << "\n";
 		std::cout << "Start Scattering...\n";
 
-		srand(0); //reset random numbers, TODO: support layer seed
-		for(size_t i=0; i < bb_vector.size();i++)
-		{
-			std::stringstream ss;
-			ss << "bb_" << i << "_";
-			osg::Node* bb_node = scattering.generate(bounding_box,bb_vector[i], out_file, pagedLOD, ss.str());
-			group->addChild(bb_node);
+		srand(seed_value); //reset random numbers, TODO: support layer seed
 
+		osg::Node* bb_node = scattering.generate(bounding_box, bb_vector, out_file, pagedLOD);
+		group->addChild(bb_node);
 		
+		if(save_terrain)
+		{
+			osg::ProxyNode* pn = dynamic_cast<osg::ProxyNode*>(bb_node);
+			if(pn)
+			{
+				pn->setFileName(pn->getNumFileNames(),terrain_file );
+			}
+			else
+			{
+				osg::Group* veg_group = dynamic_cast<osg::Group*>(bb_node);
+				if(veg_group)
+					veg_group->addChild(terrain);
+			}
 		}
-		osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
-		options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
-		osgDB::writeNodeFile(*group, out_file,options);
+		osgDB::writeNodeFile(*bb_node, out_file);
+		osgDB::writeNodeFile(*bb_node, out_file + ".osg");
 	}
 
 	catch(std::exception& e)

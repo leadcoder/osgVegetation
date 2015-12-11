@@ -6,7 +6,6 @@
 #include <osg/ProxyNode>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
-#include <osgDB/Output>
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
 #include <sstream>
@@ -18,28 +17,28 @@
 
 namespace osgVegetation
 {
-	BillboardQuadTreeScattering::BillboardQuadTreeScattering(ITerrainQuery* tq) :
+	BillboardQuadTreeScattering::BillboardQuadTreeScattering(ITerrainQuery* tq, const EnvironmentSettings &env_settings) :
 			m_BRT(NULL),
 			m_TerrainQuery(tq),
 			m_UsePagedLOD(false),
-			m_FilenamePrefix("quadtree_")
+			m_FilenamePrefix("quadtree_"),
+			m_EnvironmentSettings(env_settings)
 	{
 
 	}
 
-	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBoxd& bb,BillboardVegetationObjectVector& instances) const
+	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBoxd& bb,BillboardVegetationObjectVector& instances, osg::BoundingBoxd& out_bb) const
 	{
-
 		osg::Vec3d origin = bb._min; 
 		osg::Vec3d size = bb._max - bb._min; 
-
+		double min_z = FLT_MAX;
+		double max_z = -FLT_MAX;
 		unsigned int num_objects_to_create = size.x()*size.y()*layer.Density;
 		instances.reserve(instances.size()+num_objects_to_create);
-
+		out_bb = bb;
 		//std::cout << "pos:" << origin.x() << "size: " << size.x();
 		for(unsigned int i=0;i<num_objects_to_create;++i)
 		{
-
 			double rand_x = Utils::random(origin.x(), origin.x() + size.x());
 			double rand_y = Utils::random(origin.y(), origin.y() + size.y());
 			osg::Vec3d pos(rand_x, rand_y,0);
@@ -71,9 +70,22 @@ namespace osgVegetation
 						veg_obj->Color += osg::Vec4(1,1,1,1)*(rand_int * (1.0 - layer.TerrainColorRatio));
 						veg_obj->Color.set(veg_obj->Color.r(), veg_obj->Color.g(), veg_obj->Color.b(), 1.0);
 						instances.push_back(veg_obj);
+
+						if (veg_obj->Position.z() > max_z)
+							max_z = veg_obj->Position.z();
+						if (veg_obj->Position.z() < min_z)
+							min_z = veg_obj->Position.z();
 					}
 				}
 			}
+		}
+		
+		if (instances.size() > 0)
+		{
+			if(max_z > out_bb._max.z())
+				out_bb._max.z() = max_z;
+			if (min_z > out_bb._min.z())
+				out_bb._min.z() = min_z;
 		}
 	}
 
@@ -90,10 +102,7 @@ namespace osgVegetation
 			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
 		m_CurrentTile++;
 
-		const double bb_size = (bb._max.x() - bb._min.x());
-		const double tile_radius = sqrt(bb_size*bb_size);
-		const double tile_cutoff = tile_radius*2.0f;
-
+		
 		osg::ref_ptr<osg::Group> children_group = new osg::Group;
 
 		//mesh_group is returned as raw pointer
@@ -101,24 +110,41 @@ namespace osgVegetation
 
 
 		BillboardVegetationObjectVector tile_instances;
-		double max_view_dist = 0;
+		//double max_tile_size = 0;
+		osg::BoundingBoxd tile_bb = bb;
+		tile_bb._min.z() = FLT_MAX;
+		tile_bb._max.z() = -FLT_MAX;
+
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
 			if(ld == data.Layers[i]._QTLevel)
 			{
-				 _populateVegetationTile(data.Layers[i], bb, tile_instances);
-
+				 _populateVegetationTile(data.Layers[i], bb, tile_instances, tile_bb);
 				 //save view max view distance for this tile level
-				 if(data.Layers[i].ViewDistance > max_view_dist)
-					 max_view_dist = data.Layers[i].ViewDistance;
+				 //if(data.Layers[i].MinTileSize > max_tile_size)
+				//	 max_tile_size = data.Layers[i].MinTileSize;
 			}
 		}
+	
+		const double bb_size = (bb._max.x() - bb._min.x());
+		double tile_radius = bb.radius();
+		double tile_cutoff = tile_radius*2.0f;
+		osg::Vec3d tile_center = bb.center();
+		double tile_min_z = bb._min.z();
+		double tile_max_z = bb._max.z();
 
 		if(tile_instances.size() > 0)
 		{
+			//we have geometry in this tile, update radius etc.
+			tile_radius = tile_bb.radius();
+			tile_cutoff = tile_radius*2.0f;
+			tile_center = tile_bb.center();
+			tile_min_z = tile_bb._min.z();
+			tile_max_z = tile_bb._max.z();
 			//expand view distance to cutoff?
-			max_view_dist = std::max(max_view_dist, tile_cutoff);
-			osg::Node* tile_geometry = m_BRT->create(max_view_dist,tile_instances, bb);
+			//max_tile_size = std::max(max_tile_size, tile_cutoff);
+			osg::Node* tile_geometry = m_BRT->create(tile_instances, tile_bb);
+
 			mesh_group->addChild(tile_geometry);
 		}
 
@@ -129,16 +155,15 @@ namespace osgVegetation
 			double sx = (bb._max.x() - bb._min.x())*0.5;
 			double sy = (bb._max.x() - bb._min.x())*0.5;
 
-			osg::BoundingBoxd b1(bb._min, 
-				osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,bb._max.z()));
-			osg::BoundingBoxd b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       ,bb._min.z()),
-				osg::Vec3(bb._max.x(),       bb._min.y() + sy  ,bb._max.z()));
+			osg::BoundingBoxd b1(bb._min, osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy  ,tile_max_z));
+			osg::BoundingBoxd b2(osg::Vec3(bb._min.x() + sx , bb._min.y()       , tile_min_z),
+								 osg::Vec3(bb._max.x(),       bb._min.y() + sy  , tile_max_z));
 
-			osg::BoundingBoxd b3(osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy   ,bb._min.z()),
-				osg::Vec3(bb._max.x(),       bb._max.y()		,bb._max.z()));
+			osg::BoundingBoxd b3(osg::Vec3(bb._min.x() + sx,  bb._min.y() + sy   , tile_min_z),
+				osg::Vec3(bb._max.x(),       bb._max.y()		, tile_max_z));
 
-			osg::BoundingBoxd b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  ,bb._min.z()),
-				osg::Vec3(bb._min.x() + sx,  bb._max.y()		,bb._max.z()));
+			osg::BoundingBoxd b4(osg::Vec3(bb._min.x(),		 bb._min.y() + sy  , tile_min_z),
+				osg::Vec3(bb._min.x() + sx,  bb._max.y()		, tile_max_z));
 
 			//first check that we are inside initial bounding box
 			if(b1.intersects(m_InitBB))	children_group->addChild( _createLODRec(ld+1,data,instances,b1, x*2,   y*2));
@@ -150,28 +175,58 @@ namespace osgVegetation
 			{
 				osg::PagedLOD* plod = new osg::PagedLOD;
 				plod->setCenterMode( osg::PagedLOD::USER_DEFINED_CENTER );
-				plod->setCenter(bb.center());
+				
+				plod->setCenter(tile_center);
 				plod->setRadius(tile_radius);
+				
 				int c_index = 0;
 				if(mesh_group->getNumChildren() > 0)
 				{
-					plod->addChild(mesh_group, 0, FLT_MAX );
+					plod->addChild(mesh_group);// , 0, FLT_MAX );
 					c_index++;
 				}
 				const std::string filename = _createFileName(ld, x,y);
 				plod->setFileName( c_index, filename );
-				plod->setRange(c_index,0,tile_cutoff );
+				
+				if(data.TilePixelSize > 0)
+				{
+					plod->setRangeMode(osg::LOD::PIXEL_SIZE_ON_SCREEN);
+					plod->setRange( 0, data.TilePixelSize, FLT_MAX);
+					if(c_index > 0)
+						plod->setRange( 1, data.TilePixelSize, FLT_MAX );
+				}
+				else
+				{
+					plod->setRange(0, data.TilePixelSize, FLT_MAX);
+					if (c_index > 0)
+					{
+						plod->setRange(0, 0, FLT_MAX);
+						plod->setRange(1, 0, tile_cutoff);
+					}
+					else
+						plod->setRange(0, 0, tile_cutoff);
+				}
+
 				osgDB::writeNodeFile( *children_group, m_SavePath + filename );
+
+				
 				return plod;
 			}
 			else
 			{
 				osg::LOD* plod = new osg::LOD;
 				plod->setCenterMode(osg::PagedLOD::USER_DEFINED_CENTER);
-				plod->setCenter( bb.center());
+				plod->setCenter( tile_center);
 				plod->setRadius(tile_radius);
 				plod->addChild(mesh_group, 0, FLT_MAX );
 				plod->addChild(children_group, 0.0f, tile_cutoff );
+
+				if(data.TilePixelSize > 0) //override
+				{
+					plod->setRangeMode(osg::LOD::PIXEL_SIZE_ON_SCREEN);
+					plod->setRange( 0, data.TilePixelSize, FLT_MAX);
+					plod->setRange( 1, data.TilePixelSize, FLT_MAX );
+				}
 				return plod;
 			}
 		}
@@ -181,15 +236,14 @@ namespace osgVegetation
 
 	bool BillboardSortPredicate(const BillboardLayer &lhs, const BillboardLayer &rhs)
 	{
-		return lhs.ViewDistance > rhs.ViewDistance;
+		return lhs.MinTileSize > rhs.MinTileSize;
 	}
 
-	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBoxd &boudning_box,BillboardData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
+	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBoxd &bounding_box,std::vector<osgVegetation::BillboardData> &data, const std::string &output_file, bool use_paged_lod)
 	{
 		if(output_file != "")
 		{
 			m_UsePagedLOD = use_paged_lod;
-			m_FilenamePrefix = filename_prefix;
 			m_SavePath = osgDB::getFilePath(output_file);
 			m_SavePath += "/";
 			m_SaveExt = osgDB::getFileExtension(output_file);
@@ -199,11 +253,70 @@ namespace osgVegetation
 			OSGV_EXCEPT(std::string("BillboardQuadTreeScattering::generate - paged lod requested but no output file supplied").c_str());
 		}
 
+		osg::Node *node = NULL;
+
+		//use proxy file for top node
+		if(m_UsePagedLOD)
+		{
+			osg::ProxyNode* pn = new osg::ProxyNode();
+			node  = pn;
+			for(size_t i=0; i < data.size();i++)
+			{
+				std::stringstream ss;
+				ss << "billboard_layer" << i;
+				osg::Node* bb_node = generate(bounding_box, data[i], output_file, use_paged_lod, ss.str());
+				if(bb_node)
+				{
+					//save osg files that can be used for editing
+					const std::string file_name = ss.str() + ".osg";
+					osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+					options->setOptionString(std::string("OutputShaderFiles"));
+					osgDB::writeNodeFile(*bb_node, m_SavePath + file_name,options);
+					pn->setFileName(i, file_name);
+					
+					/*const std::string file_name = ss.str() + ".ive";
+					osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+					options->setOptionString(std::string("OutputShaderFiles"));
+					osgDB::writeNodeFile(*bb_node, m_SavePath + file_name, options);
+					pn->setFileName(i, file_name);*/
+				}
+			}
+
+			if(output_file != "") //save proxy node
+			{
+				osgDB::writeNodeFile(*pn, output_file + ".osg");
+			}
+		}
+		else
+		{
+			osg::Group* group = new osg::Group();
+			node = group;
+			for(size_t i=0; i < data.size();i++)
+			{
+				std::stringstream ss;
+				ss << "billboard_layer" << i;
+				osg::Node* bb_node = generate(bounding_box, data[i], output_file, use_paged_lod, ss.str());
+				if(bb_node)
+				{
+					group->addChild(bb_node);
+				}
+			}
+		}
+		return node;
+	}
+
+	osg::Node* BillboardQuadTreeScattering::generate(const osg::BoundingBoxd &boudning_box, BillboardData &data, const std::string &output_file, bool use_paged_lod, const std::string &filename_prefix)
+	{
+		m_FilenamePrefix = filename_prefix;
 		//remove any previous render technique
 		delete m_BRT;
 
-		//m_BRT = new BRTShaderInstancing(data);
-		m_BRT = new BRTGeometryShader(data);
+		if(data.Technique == BRT_SHADER_INSTANCING)
+			m_BRT = new BRTShaderInstancing(data, m_EnvironmentSettings);
+		else if (data.Technique == BRT_GEOMETRY_SHADER)
+			m_BRT = new BRTGeometryShader(data, m_EnvironmentSettings);
+		else
+			OSGV_EXCEPT(std::string("BillboardQuadTreeScattering::generate - unkown rendering tech").c_str());
 
 		//get max bb side, we want square area for to begin quad tree splitting
 		double max_bb_size = std::max(boudning_box._max.x() - boudning_box._min.x(),
@@ -225,13 +338,13 @@ namespace osgVegetation
 		m_NumberOfTiles = 1; //at least one LOD tile
 		m_CurrentTile = 0;
 
-		//distance sort mesh LODs
+		//sort by tile size
 		std::sort(data.Layers.begin(), data.Layers.end(), BillboardSortPredicate);
 
-		//Get max view dist
+		//Get max tile size
 		for(size_t i = 0; i < data.Layers.size(); i++)
 		{
-			max_bb_size = std::max(max_bb_size, data.Layers[i].ViewDistance);
+			max_bb_size = std::max(max_bb_size, data.Layers[i].MinTileSize);
 		}
 
 		//set quad tree LOD level for each billboard layer
@@ -239,7 +352,7 @@ namespace osgVegetation
 		{
 			double temp_size  = max_bb_size;
 			int ld = 0;
-			while(temp_size > data.Layers[i].ViewDistance)
+			while(temp_size > data.Layers[i].MinTileSize)
 			{
 				ld++;
 				temp_size *= 0.5;
@@ -270,16 +383,6 @@ namespace osgVegetation
 		//Add state set to top node
 		outnode->setStateSet((osg::StateSet*) m_BRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
 		transform->addChild(outnode);
-
-		if(output_file != "")
-		{
-			osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
-			options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
-			osgDB::writeNodeFile(*transform, output_file, options);
-			//out put osgt and osg files that can be used for editing
-			osgDB::writeNodeFile(*transform, output_file + "_debug.osgt",options);
-			osgDB::writeNodeFile(*transform, output_file + "_debug.osg",options);
-		}
 		return transform;
 	}
 }

@@ -17,8 +17,8 @@ namespace osgVegetation
 	struct BillboardLayer
 	{
 	public:
-		BillboardLayer(const std::string &tex_name, double view_dist) : TextureName(tex_name),
-			ViewDistance(view_dist),
+		BillboardLayer(const std::string &tex_name, double min_tile_size) : TextureName(tex_name),
+			MinTileSize(min_tile_size),
 			Height(1.0, 1.0),
 			Width(1.0, 1.0),
 			Scale(1.0, 1.0),
@@ -39,10 +39,10 @@ namespace osgVegetation
 		std::string TextureName;
 
 		/**
-			Min view distance. This layer is always visible below this distance.
+			Min tile size. This layer .
 			The exact distance is depending on other layers view distance (and quad tree tile cutoff).
 		*/
-		double ViewDistance;
+		double MinTileSize;
 
 		/**
 			Height interval (x=min, y=max) for all billboards populated in this layers

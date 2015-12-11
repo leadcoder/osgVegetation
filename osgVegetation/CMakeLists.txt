@@ -28,12 +28,14 @@ SET(H_FILES
 	Common.h
 	CoverageColor.h
 	CoverageData.h
+	EnvironmentSettings.h
 	IBillboardRenderingTech.h
 	IMeshRenderingTech.h
 	MeshLayer.h
 	MeshData.h
 	MeshObject.h
 	MeshQuadTreeScattering.h
+	MRTShaderInstancing.h
 	Serializer.h
 	ITerrainQuery.h
 	TerrainQuery.h

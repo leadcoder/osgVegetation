@@ -56,7 +56,7 @@ int main( int argc, char **argv )
 	delete[] writable;
 #endif
 
-	const bool enableShadows = false;
+	const bool enableShadows = true;
 
 	// use an ArgumentParser object to manage the program arguments.
 	osg::ArgumentParser arguments(&argc,argv);
@@ -84,6 +84,7 @@ int main( int argc, char **argv )
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //hack to be able to runt from GCC out dir
 
+	osg::DisplaySettings::instance()->setNumMultiSamples(4);
 
 	//Load terrain
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
@@ -104,7 +105,7 @@ int main( int argc, char **argv )
 
 	//Create one mesh layers with LODS
 	osgVegetation::MeshLayer  spruce(lods);
-	spruce.Density = 0.02;
+	spruce.Density = 0.1;
 	spruce.Height.set(0.5,0.5);
 	spruce.Width.set(0.5,0.5);
 	spruce.Scale.set(0.8,0.9);
@@ -116,7 +117,7 @@ int main( int argc, char **argv )
 	//Create mesh data that hold all mesh layers
 	osgVegetation::MeshData tree_data;
 	tree_data.ReceiveShadows = enableShadows;
-
+	
 	//Add layers
 	tree_data.Layers.push_back(spruce);
 
@@ -167,7 +168,7 @@ int main( int argc, char **argv )
 	osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
 	lightDir.normalize();
 	pLight->setDirection(lightDir);
-	pLight->setAmbient(osg::Vec4(0.7f, 0.7f, 0.7f, 1.0f) );
+	pLight->setAmbient(osg::Vec4(0.3f, 0.3f, 0.3f, 1.0f) );
 	//pLight->setDiffuse(osg::Vec4(0.0f, 0.0f, 0.0f, 1.0f) );
 
 	osg::LightSource* pLightSource = new osg::LightSource;

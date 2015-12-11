@@ -35,6 +35,8 @@
 #include "BillboardQuadTreeScattering.h"
 #include "TerrainQuery.h"
 #include "CoverageData.h"
+#include "Serializer.h"
+
 
 //Define some coverage material names
 #define WOODS "WOODS"
@@ -45,9 +47,19 @@
 int main( int argc, char **argv )
 {
 	//Global settings
-	const bool enableShadows = false;
+	//const bool enableShadows = true;
+
+	osgVegetation::OSGShadowMode shadow_type = osgVegetation::SM_LISPSM;
+	//osgVegetation::OSGShadowMode shadow_type = osgVegetation::SM_VDSM2;
+	
+	osgVegetation::BillboardType bbtype = osgVegetation::BT_CROSS_QUADS;
+	//osgVegetation::BillboardType bbtype = osgVegetation::BT_ROTATED_QUAD;
+	
+	//osgVegetation::BillboardRenderingTechnique tech = osgVegetation::BRT_GEOMETRY_SHADER;
+	osgVegetation::BillboardRenderingTechnique tech = osgVegetation::BRT_SHADER_INSTANCING;
+
 	const bool use_fog = true;
-	const osg::Fog::Mode fog_mode = osg::Fog::LINEAR;
+	const osg::Fog::Mode fog_mode = osg::Fog::EXP2;
 
 	// use an ArgumentParser object to manage the program arguments.
 	osg::ArgumentParser arguments(&argc,argv);
@@ -70,10 +82,11 @@ int main( int argc, char **argv )
 	keyswitchManipulator->addMatrixManipulator( '7', "Spherical", new osgGA::SphericalManipulator() );
 	viewer.setCameraManipulator( keyswitchManipulator.get() );
 
-	//Add sample data path
+	osg::DisplaySettings::instance()->setNumMultiSamples(8);
 
+	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
-	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //hack to be able to runt from GCC out dir
+	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //hack to be able to run from GCC out dir
 
 	//load terrain
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
@@ -87,31 +100,37 @@ int main( int argc, char **argv )
 	osg::Group* group = new osg::Group;
 	group->addChild(terrain);
 
+	//Setup environment
+	osgVegetation::EnvironmentSettings env_settings;
+	env_settings.ShadowMode = shadow_type;
+	env_settings.UseFog = use_fog;
+	env_settings.FogMode = fog_mode;
+
+
 	//Create billboard layers
-
-	//First LOD start at 400m
-
-	osgVegetation::BillboardLayer  tree_l0("billboards/fir01_bb.dds", 400);
-	tree_l0.Density = 0.02;
-	tree_l0.Height.set(5,5);
-	tree_l0.Width.set(2,2);
+	//First LOD...
+	osgVegetation::BillboardLayer  tree_l0("billboards/fir01_bb.png", 1000);
+	tree_l0.Density = 0.002;
+	tree_l0.Height.set(15,20);
+	tree_l0.Width.set(6,7);
 	tree_l0.Scale.set(0.8,0.9);
-	tree_l0.ColorIntensity.set(3.0,3.0);
+	tree_l0.ColorIntensity.set(2.0,3.0);
 	tree_l0.TerrainColorRatio = 0.7;
 	tree_l0.UseTerrainIntensity = false;
 	tree_l0.CoverageMaterials.push_back(WOODS);
+
 
 	//second LOD start at 200m, also increase density and decrease scale
 	osgVegetation::BillboardLayer  tree_l1 = tree_l0;
 	tree_l1.Density *= 4; //scale density 4 times to match quad tree structure
 	tree_l1.Scale *= 0.8;
-	tree_l1.ViewDistance *= 0.5;
+	tree_l1.MinTileSize *= 0.5;
 
 	//third LOD start at 100m
 	osgVegetation::BillboardLayer  tree_l2 = tree_l1;
 	tree_l2.Density *= 4;
 	tree_l2.Scale *= 0.8;
-	tree_l2.ViewDistance *= 0.5;
+	tree_l2.MinTileSize *= 0.5;
 
 	//add all layers, the order is not important,
 	//the layers will be sorted by distance before generation
@@ -121,21 +140,22 @@ int main( int argc, char **argv )
 	tree_layers.push_back(tree_l1);
 
 	//create billboard data by supplying layers and rendering settings.
-	osgVegetation::BillboardData tree_data(tree_layers, false,0.5,false);
-	tree_data.CastShadows = enableShadows;
-	tree_data.UseFog = use_fog;
+	osgVegetation::BillboardData tree_data(tree_layers, false, 0.5, false);
+	tree_data.CastShadows = true;
+	
 	tree_data.TerrainNormal = false;
-	tree_data.Type = osgVegetation::BT_ROTATED_QUAD;
-	tree_data.ReceiveShadows = false; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts
+	tree_data.Type = bbtype;
+	tree_data.Technique = tech;
+	tree_data.ReceiveShadows = true; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts
 
 	//grass data
-	osgVegetation::BillboardLayer  grass_l0("billboards/grass0.png", 40);
+	osgVegetation::BillboardLayer  grass_l0("billboards/grass0.png", 200);
 
-	grass_l0.Density = 1.6;
-	grass_l0.Height.set(0.8,0.8);
-	grass_l0.Width.set(1.0,1.0);
+	grass_l0.Density = 0.4;
+	grass_l0.Height.set(1.5,1.8);
+	grass_l0.Width.set(2.0,2.5);
 	grass_l0.Scale.set(0.8,0.9);
-	grass_l0.ColorIntensity.set(3.0,3.0);
+	grass_l0.ColorIntensity.set(2.0,3.0);
 	grass_l0.TerrainColorRatio = 1.0;
 	grass_l0.UseTerrainIntensity = false;
 	grass_l0.CoverageMaterials.push_back(WOODS);
@@ -146,8 +166,7 @@ int main( int argc, char **argv )
 	osgVegetation::BillboardLayer  grass_l1 = grass_l0;
 	grass_l1.Density *= 4; //scale density 4 times to match quad tree structure
 	grass_l1.Scale *= 0.8;
-	grass_l1.ViewDistance *= 0.5;
-
+	grass_l1.MinTileSize *= 0.5;
 
 	osgVegetation::BillboardLayerVector grass_layers;
 
@@ -155,19 +174,17 @@ int main( int argc, char **argv )
 	grass_layers.push_back(grass_l1);
 
 	osgVegetation::BillboardData grass_data(grass_layers, true,0.2,true);
-	grass_data.CastShadows = false;
-	grass_data.UseFog = use_fog;
-	grass_data.FogMode = fog_mode;
-	grass_data.Type = osgVegetation::BT_ROTATED_QUAD;
-	grass_data.ReceiveShadows = enableShadows;
-
+	grass_data.CastShadows = true;
+	grass_data.Type = bbtype;
+	grass_data.Technique = tech;
+	grass_data.ReceiveShadows = true;
 
 	osg::ComputeBoundsVisitor  cbv;
 	osg::BoundingBox &bb(cbv.getBoundingBox());
 	terrain->accept(cbv);
 
 	//down size bb for faster generation...useful for testing purpose
-	const float tree_bb_scale = 0.4;
+	const float tree_bb_scale = 0.7;
 	osg::BoundingBoxd tree_bb = bb;
 	osg::Vec3d bb_size = tree_bb._max - tree_bb._min;
 	osg::Vec3d bb_center = (tree_bb._max + tree_bb._min)*0.5;
@@ -175,8 +192,8 @@ int main( int argc, char **argv )
 	tree_bb._max = bb_center + bb_size*0.5*tree_bb_scale;
 	tree_bb._min.set(tree_bb._min.x(),tree_bb._min.y(),bb._min.z());
 	tree_bb._max.set(tree_bb._max.x(),tree_bb._max.y(),bb._max.z());
-
-	const float grass_bb_scale = 0.3;
+	
+	const float grass_bb_scale = 0.25;
 
 	osg::BoundingBoxd grass_bb = bb; 
 
@@ -186,7 +203,7 @@ int main( int argc, char **argv )
 	grass_bb._max = bb_center + bb_size*0.5*grass_bb_scale;
 	grass_bb._min.set(grass_bb._min.x(),grass_bb._min.y(),bb._min.z());
 	grass_bb._max.set(grass_bb._max.x(),grass_bb._max.y(),bb._max.z());
-
+	
 	//coverage data used by the terrain query class
 	osgVegetation::CoverageData cd;
 	//...add the materials, here we match material name with colors
@@ -194,32 +211,27 @@ int main( int argc, char **argv )
 	cd.CoverageMaterials.push_back(osgVegetation::CoverageData::CoverageMaterial(WOODS,osgVegetation::CoverageColor(1,1,1,1)));
 	cd.CoverageMaterials.push_back(osgVegetation::CoverageData::CoverageMaterial(ROAD,osgVegetation::CoverageColor(0,0,1,1)));
 	cd.CoverageMaterials.push_back(osgVegetation::CoverageData::CoverageMaterial(DIRT,osgVegetation::CoverageColor(1,0,0,1)));
-
 	//Create terrain query class and by feeding terrain and coverage data
 	osgVegetation::TerrainQuery tq(terrain.get(),cd);
 
 	//create scattering class
-	osgVegetation::BillboardQuadTreeScattering scattering(&tq);
-
+	osgVegetation::BillboardQuadTreeScattering scattering(&tq,env_settings);
 	osg::Node* tree_node = NULL;
 	osg::Node* grass_node = NULL;
-	try{
+	try {
 		//Start generation
-		std::cout<<"Start tree generation"<<std::endl;
-		tree_node = scattering.generate(tree_bb,tree_data);
-
-		std::cout<<"Start grass generation"<<std::endl;
-		grass_node = scattering.generate(grass_bb,grass_data);
+		std::cout << "Start tree generation" << std::endl;
+		tree_node = scattering.generate(tree_bb, tree_data);
+		group->addChild(tree_node);
+		std::cout << "Start grass generation" << std::endl;
+		//grass_node = scattering.generate(grass_bb, grass_data);
+		//group->addChild(grass_node);
 	}
-	catch(std::exception& e)
+	catch (std::exception& e)
 	{
 		std::cerr << e.what();
 		return 0;
 	}
-
-	//We are done, add vegetation to root node
-	group->addChild(tree_node);
-	group->addChild(grass_node);
 
 	if(use_fog)
 	{
@@ -229,12 +241,11 @@ int main( int argc, char **argv )
 		state->setMode(GL_FOG, osg::StateAttribute::ON);
 		state->setAttributeAndModes(fog.get());
 		fog->setMode(fog_mode);
-		fog->setDensity(0.000005);
+		fog->setDensity(0.0005);
 		fog->setEnd(800);
 		fog->setStart(30);
 		fog->setColor(osg::Vec4(1.0, 1.0, 1.0,1.0));
 	}
-
 
 	//Add light and shadows
 	osg::Light* pLight = new osg::Light;
@@ -245,7 +256,6 @@ int main( int argc, char **argv )
 	lightDir.normalize();
 	pLight->setDirection(lightDir);
 	pLight->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f) );
-	//pLight->setAmbient(osg::Vec4(0.0f, 0.0f, 0.0f, 1.0f) );
 
 	osg::LightSource* pLightSource = new osg::LightSource;
 	pLightSource->setLight( pLight );
@@ -255,34 +265,89 @@ int main( int argc, char **argv )
 	static int CastsShadowTraversalMask = 0x2;
 
 	osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
-	osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
-	settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
-	settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
-	//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
-
-	unsigned int unit=2;
-	settings->setBaseShadowTextureUnit(unit);
-
-	double n=0.8;
-	settings->setMinimumShadowMapNearFarRatio(n);
-
-	unsigned int numShadowMaps = 2;
-	settings->setNumShadowMapsPerLight(numShadowMaps);
-
-	//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
-	settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
-
 	int mapres = 2048;
-	settings->setTextureSize(osg::Vec2s(mapres,mapres));
-	//settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
+	if(shadow_type == osgVegetation::SM_LISPSM)
+	{
+		osg::ref_ptr<osgShadow::MinimalShadowMap> sm = new osgShadow::LightSpacePerspectiveShadowMapVB;
+		float minLightMargin = 20.f;
+		float maxFarPlane = 1400;
+		int baseTexUnit = 0;
+		int shadowTexUnit = env_settings.BaseShadowTextureUnit;
+		sm->setMinLightMargin( minLightMargin );
+		sm->setMaxFarPlane( maxFarPlane );
+		sm->setTextureSize( osg::Vec2s( mapres, mapres ) );
+		
+		sm->setBaseTextureCoordIndex(baseTexUnit);
+		sm->setBaseTextureUnit(baseTexUnit);
 
-	osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
-	shadowedScene->setShadowTechnique(vdsm.get());
-	terrain->setNodeMask(ReceivesShadowTraversalMask);
-	tree_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
-	grass_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
+		sm->setShadowTextureCoordIndex( shadowTexUnit );
+		sm->setShadowTextureUnit( shadowTexUnit );
+		
+		//sm->setMainVertexShader( NULL );
+		//sm->setShadowVertexShader(NULL);
 
-	if(enableShadows)
+		shadowedScene->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
+		shadowedScene->setCastsShadowTraversalMask(CastsShadowTraversalMask);
+
+		//sm->setMainFragmentShader(NULL);
+		osg::Shader* mainFragmentShader = new osg::Shader( osg::Shader::FRAGMENT,
+			" // following expressions are auto modified - do not change them:       \n"
+			" // gl_TexCoord[0]  0 - can be subsituted with other index              \n"
+			"                                                                        \n"
+			"float DynamicShadow( );                                                 \n"
+			"                                                                        \n"
+			"uniform sampler2D baseTexture;                                          \n"
+			"                                                                        \n"
+			"void main(void)                                                         \n"
+			"{                                                                       \n"
+			"  vec4 colorAmbientEmissive = gl_FrontLightModelProduct.sceneColor;     \n"
+			"  // Add ambient from Light of index = 0                                \n"
+			"  colorAmbientEmissive += gl_FrontLightProduct[0].ambient;              \n"
+			"  vec4 color = texture2D( baseTexture, gl_TexCoord[0].xy );             \n"
+			"  color *= mix( colorAmbientEmissive, gl_Color, DynamicShadow() );      \n"
+			"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
+			"    float fogFactor = exp(-pow((gl_Fog.density * depth), 2.0));\n"
+			"    fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
+			"    //color.rgb = mix( gl_Fog.color.rgb, color.rgb, fogFactor );            \n"
+			"    gl_FragColor = color;                                                 \n"
+			"} \n" );
+
+		sm->setMainFragmentShader(mainFragmentShader);
+		shadowedScene->setShadowTechnique(sm);
+	}
+	else if(shadow_type == osgVegetation::SM_VDSM1 || shadow_type == osgVegetation::SM_VDSM2)
+	{
+		
+		osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
+		settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
+		settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
+		//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
+		unsigned int unit=env_settings.BaseShadowTextureUnit;
+		settings->setBaseShadowTextureUnit(unit);
+
+		double n=0.8;
+		settings->setMinimumShadowMapNearFarRatio(n);
+
+		unsigned int numShadowMaps = 1;
+		if (shadow_type == osgVegetation::SM_VDSM2)
+			numShadowMaps = 2;
+		settings->setNumShadowMapsPerLight(numShadowMaps);
+		//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
+		settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
+
+		settings->setTextureSize(osg::Vec2s(mapres,mapres));
+		//settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
+		osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
+		shadowedScene->setShadowTechnique(vdsm.get());
+	}
+	
+	terrain->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
+	if(tree_node)
+		tree_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask) ;
+	if(grass_node)
+		grass_node->setNodeMask(CastsShadowTraversalMask | ReceivesShadowTraversalMask);
+
+	if(shadow_type != osgVegetation::SM_DISABLED)
 	{
 		shadowedScene->addChild(group);
 		viewer.setSceneData(shadowedScene);
@@ -291,13 +356,13 @@ int main( int argc, char **argv )
 	{
 		viewer.setSceneData(group);
 	}
-
+	
 	while (!viewer.done())
 	{
 		//animate light if shadows enabled
-		if(enableShadows)
+		//if(shadow_type != osgVegetation::SM_DISABLED)
 		{
-			float t = viewer.getFrameStamp()->getSimulationTime()*0.4;
+			float t = viewer.getFrameStamp()->getSimulationTime()*0.1;
 			lightPos.set(sinf(t),cosf(t),0.7f,0.0f);
 			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
 			pLight->setPosition(lightPos);

@@ -16,10 +16,11 @@
 
 namespace osgVegetation
 {
-	MeshQuadTreeScattering::MeshQuadTreeScattering(ITerrainQuery* tq) : m_MRT(NULL),
+	MeshQuadTreeScattering::MeshQuadTreeScattering(ITerrainQuery* tq, const EnvironmentSettings& env_settings) : m_MRT(NULL),
 		m_TerrainQuery(tq),
 		m_UsePagedLOD(false),
-		m_FilenamePrefix("quadtree_")
+		m_FilenamePrefix("quadtree_"),
+		m_EnvSettings(env_settings)
 	{
 
 	}
@@ -215,7 +216,7 @@ namespace osgVegetation
 		//remove  previous render tech
 		delete m_MRT;
 
-		m_MRT = new MRTShaderInstancing(data);
+		m_MRT = new MRTShaderInstancing(data, m_EnvSettings);
 
 
 		//get max bb side, we want square area for to begin quad tree splitting
