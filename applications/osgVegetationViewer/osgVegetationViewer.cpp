@@ -3,9 +3,6 @@
 #include <osg/CoordinateSystemNode>
 #include <osg/Fog>
 #include <osg/Switch>
-
-
-
 #include <osgText/Text>
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
@@ -60,6 +57,7 @@ int main(int argc, char **argv)
 	arguments.getApplicationUsage()->addCommandLineOption("-p <filename>", "Play specified camera path animation file, previously saved with 'z' key.");
 	arguments.getApplicationUsage()->addCommandLineOption("--speed <factor>", "Speed factor for animation playing (1 == normal speed).");
 	arguments.getApplicationUsage()->addCommandLineOption("--device <device-name>", "add named device to the viewer");
+	arguments.getApplicationUsage()->addCommandLineOption("--fov <value>", "Field of view");
 
 	osgViewer::Viewer viewer(arguments);
 
@@ -336,7 +334,7 @@ int main(int argc, char **argv)
 		//animate light if shadows enabled
 	//	if (enableShadows)
 		{
-			float t = viewer.getFrameStamp()->getSimulationTime()*0.4;
+			float t = viewer.getFrameStamp()->getSimulationTime()*0.04;
 			lightPos.set(sinf(t), cosf(t), 0.7f, 0.0f);
 			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
 			pLight->setPosition(lightPos);
