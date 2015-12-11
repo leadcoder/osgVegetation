@@ -47,7 +47,8 @@ namespace osgVegetation
 			CastShadows(false),
 			Type(BT_CROSS_QUADS),
 			TilePixelSize(0),
-			Technique(BRT_SHADER_INSTANCING)
+			Technique(BRT_SHADER_INSTANCING),
+			UseMultiSample(false)
 		{
 
 		}
@@ -56,6 +57,11 @@ namespace osgVegetation
 			Enable alpha blending for all layers
 		*/
 		bool UseAlphaBlend;
+
+		/**
+		Enable multi sampling
+		*/
+		bool UseMultiSample;
 
 		/**
 			Set alpha rejection value for all layers
