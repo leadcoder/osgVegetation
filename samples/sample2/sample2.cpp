@@ -147,7 +147,8 @@ int main( int argc, char **argv )
 	osgVegetation::TerrainQuery tq(terrain.get(),cd);
 
 	//create scattering class
-	osgVegetation::MeshQuadTreeScattering scattering(&tq);
+	osgVegetation::EnvironmentSettings env_settings;
+	osgVegetation::MeshQuadTreeScattering scattering(&tq,env_settings);
 
 	try{
 		//Start generation
