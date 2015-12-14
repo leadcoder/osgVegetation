@@ -108,12 +108,12 @@ namespace osgVegetation
 		std::list<osg::PrimitiveSet*> _primitiveSets;
 	};
 
-	MRTShaderInstancing::MRTShaderInstancing(MeshData &data)
+	MRTShaderInstancing::MRTShaderInstancing(MeshData &data,const EnvironmentSettings& env_settings)
 	{
-		m_StateSet = _createStateSet(data);
+		m_StateSet = _createStateSet(data,env_settings);
 	}
 
-	osg::StateSet* MRTShaderInstancing::_createStateSet(MeshData &data)
+	osg::StateSet* MRTShaderInstancing::_createStateSet(MeshData &data,const EnvironmentSettings& env_settings)
 	{
 		//Load mesh data
 		const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options();
@@ -217,14 +217,12 @@ namespace osgVegetation
 			dstate->addUniform(baseTextureSampler);
 
 
-			if (osg::DisplaySettings::instance()->getMultiSamples())
-			{
-				dstate->setAttributeAndModes(new osg::Multisample, osg::StateAttribute::ON);
-				dstate->setMode(GL_MULTISAMPLE_ARB, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-				dstate->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-				dstate->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO),	osg::StateAttribute::OVERRIDE);
+			if (data.UseMultiSample)
+			{ 
+				dstate->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+				dstate->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+				dstate->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 			}
-
 			return dstate;
 		}
 		return NULL;

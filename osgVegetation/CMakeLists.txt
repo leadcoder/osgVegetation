@@ -35,6 +35,7 @@ SET(H_FILES
 	MeshData.h
 	MeshObject.h
 	MeshQuadTreeScattering.h
+	MRTShaderInstancing.h
 	Serializer.h
 	ITerrainQuery.h
 	TerrainQuery.h

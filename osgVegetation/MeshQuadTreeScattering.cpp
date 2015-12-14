@@ -16,10 +16,11 @@
 
 namespace osgVegetation
 {
-	MeshQuadTreeScattering::MeshQuadTreeScattering(ITerrainQuery* tq) : m_MRT(NULL),
+	MeshQuadTreeScattering::MeshQuadTreeScattering(ITerrainQuery* tq, const EnvironmentSettings& env_settings) : m_MRT(NULL),
 		m_TerrainQuery(tq),
 		m_UsePagedLOD(false),
-		m_FilenamePrefix("quadtree_")
+		m_FilenamePrefix("quadtree_"),
+		m_EnvSettings(env_settings)
 	{
 
 	}
@@ -215,7 +216,7 @@ namespace osgVegetation
 		//remove  previous render tech
 		delete m_MRT;
 
-		m_MRT = new MRTShaderInstancing(data);
+		m_MRT = new MRTShaderInstancing(data, m_EnvSettings);
 
 
 		//get max bb side, we want square area for to begin quad tree splitting
@@ -316,10 +317,12 @@ namespace osgVegetation
 
 		if(output_file != "")
 		{
-			osgDB::writeNodeFile(*transform, output_file);
-
-			//debug purpose
-			osgDB::writeNodeFile(*transform, output_file + ".osgt");
+			osgDB::ReaderWriter::Options *options = new osgDB::ReaderWriter::Options();
+			options->setOptionString(std::string("OutputTextureFiles OutputShaderFiles"));
+			osgDB::writeNodeFile(*transform, output_file, options);
+			//out put osgt and osg files that can be used for editing
+			osgDB::writeNodeFile(*transform, output_file + "_debug.osgt",options);
+			osgDB::writeNodeFile(*transform, output_file + "_debug.osg",options);
 		}
 		return transform;
 	}

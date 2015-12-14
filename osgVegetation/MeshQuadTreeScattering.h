@@ -12,6 +12,7 @@
 #include "IMeshRenderingTech.h"
 #include "MeshLayer.h"
 #include "MeshData.h"
+#include "EnvironmentSettings.h"
 
 namespace osgVegetation
 {
@@ -30,7 +31,7 @@ namespace osgVegetation
 		/**
 		@param tq Pointer to TerrainQuery class, used during the scattering step.
 		*/
-		MeshQuadTreeScattering(ITerrainQuery* tq);
+		MeshQuadTreeScattering(ITerrainQuery* tq, const EnvironmentSettings& env_settings);
 		/**
 			Generate vegetation data by providing mesh data
 			@param bb Generation area
@@ -60,6 +61,8 @@ namespace osgVegetation
 		std::string m_SavePath;
 		std::string m_FilenamePrefix;
 		std::string m_SaveExt;
+
+		EnvironmentSettings m_EnvSettings;
 
 		//Helpers
 		std::string _createFileName(unsigned int lv, unsigned int x, unsigned int y);

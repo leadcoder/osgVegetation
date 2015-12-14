@@ -16,7 +16,8 @@ namespace osgVegetation
 	*/
 	struct MeshData
 	{
-		MeshData() : ReceiveShadows(false)
+		MeshData() : ReceiveShadows(false),
+			UseMultiSample(false)
 		{
 
 		}
@@ -25,6 +26,12 @@ namespace osgVegetation
 			Should geometry receive shadows or not.
 		*/
 		bool ReceiveShadows;
+
+		/**
+		Enable multi sampling
+		*/
+		bool UseMultiSample;
+
 
 		/**
 			The mesh layer collection

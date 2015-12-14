@@ -29,7 +29,6 @@ namespace osgVegetation
 
 	void BillboardQuadTreeScattering::_populateVegetationTile(const BillboardLayer& layer,const  osg::BoundingBoxd& bb,BillboardVegetationObjectVector& instances, osg::BoundingBoxd& out_bb) const
 	{
-
 		osg::Vec3d origin = bb._min; 
 		osg::Vec3d size = bb._max - bb._min; 
 		double min_z = FLT_MAX;
