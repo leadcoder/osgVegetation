@@ -39,9 +39,8 @@ int main(int argc, char **argv)
 //#ifdef WIN32
 	//_putenv(opt_env.c_str());
 //#else
-	const bool use_fog = true;
-	const bool enableShadows = true;
-	const std::string shadow_type = "LISPSM";
+	
+
 	//const std::string shadow_type = "VDSM";
 
 	osg::DisplaySettings::instance()->setNumMultiSamples(4);
@@ -58,6 +57,8 @@ int main(int argc, char **argv)
 	arguments.getApplicationUsage()->addCommandLineOption("--speed <factor>", "Speed factor for animation playing (1 == normal speed).");
 	arguments.getApplicationUsage()->addCommandLineOption("--device <device-name>", "add named device to the viewer");
 	arguments.getApplicationUsage()->addCommandLineOption("--fov <value>", "Field of view");
+	arguments.getApplicationUsage()->addCommandLineOption("--enable_fog", "Use Fog");
+	arguments.getApplicationUsage()->addCommandLineOption("--shadow_type <value>", "Set Shadow type NONE,LISPSM or VDSM");
 
 	osgViewer::Viewer viewer(arguments);
 
@@ -107,6 +108,29 @@ int main(int argc, char **argv)
 			viewer.addDevice(dev);
 		}
 	}
+
+	double fov = 35;
+	while (arguments.read("--fov", fov))
+	{
+
+	}
+
+	bool use_fog = false;
+	while (arguments.read("--enable_fog"))
+	{
+		use_fog =  true;
+	}
+
+	bool enableShadows = true;
+	std::string shadow_type = "NONE";
+	while (arguments.read("--shadow_type", shadow_type))
+	{
+
+	}
+
+	if(shadow_type == "NONE")
+		enableShadows = false;
+
 
 	// set up the camera manipulators.
 	{
@@ -226,8 +250,8 @@ int main(int argc, char **argv)
 	group->addChild(pLightSource);
 	group->addChild(loadedModel);
 
-	double fov = 5;
-	double nearClip = 1;
+	
+	double nearClip = 10;
 	double farClip = 10000;
 	viewer.getCamera()->setComputeNearFarMode(osgUtil::CullVisitor::DO_NOT_COMPUTE_NEAR_FAR);
 	viewer.getCamera()->setProjectionResizePolicy(osg::Camera::HORIZONTAL);
@@ -248,7 +272,7 @@ int main(int argc, char **argv)
 	{
 		osg::ref_ptr<osgShadow::MinimalShadowMap> sm = new osgShadow::LightSpacePerspectiveShadowMapCB;
 		float minLightMargin = 20.f;
-		float maxFarPlane = 500;
+		float maxFarPlane = farClip;
 		int baseTexUnit = 0;
 		int shadowTexUnit = 6;
 		sm->setMinLightMargin(minLightMargin);
