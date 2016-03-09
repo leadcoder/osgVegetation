@@ -3,17 +3,18 @@
 	<BillboardData 
 	UseAlphaBlend="false"
 	AlphaRefValue="0.5"
-	ReceiveShadows="false"
 	CastShadows="false"
+	ReceiveShadows="false"
 	TerrainNormal="false"
-	UseFog="false"
-	FogMode="LINEAR"
+	TilePixelSize="0"
+	UseMultiSample="true"
+	Technique ="BRT_SHADER_INSTANCING"
 	Type="BT_CROSS_QUADS">
 		<BillboardLayers>
 			<!--Far distance-->
 			<BillboardLayer 
 				TextureName="billboards/tree0.rgba"
-				ViewDistance="400"
+				MinTileSize="400"
 				Density="0.005"
 				MinScale="0.8" MaxScale="0.9"
 				MinWidth="2" MaxWidth="2"
@@ -26,7 +27,7 @@
 			<!-- Intermediate distance-->
 			<BillboardLayer 
 				TextureName="billboards/tree0.rgba"
-				ViewDistance="200"
+				MinTileSize="200"
 				Density="0.02"
 				MinScale="0.6" MaxScale="0.7"
 				MinWidth="2" MaxWidth="2"
@@ -39,7 +40,7 @@
 			<!-- Near distance-->
 			<BillboardLayer 
 				TextureName="billboards/tree0.rgba"
-				ViewDistance="100"
+				MinTileSize="100"
 				Density="0.08"
 				MinScale="0.4" MaxScale="0.5"
 				MinWidth="2" MaxWidth="2"
