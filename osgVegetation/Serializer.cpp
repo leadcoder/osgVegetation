@@ -252,13 +252,21 @@ namespace osgVegetation
 			if (!mat_elem->Attribute("MatName"))
 				OSGV_EXCEPT(std::string("Serializer::loadMaterialMapping - Failed to find attribute: MatName").c_str());
 			const std::string name = mat_elem->Attribute("MatName");
-			int r, g, b, a;
+			int r = 0, g = 0, b = 0, a = 0;
+			int tr = 0, tg = 0, tb = 0, ta = 0;
 			mat_elem->QueryIntAttribute("r", &r);
 			mat_elem->QueryIntAttribute("g", &g);
 			mat_elem->QueryIntAttribute("b", &b);
 			mat_elem->QueryIntAttribute("a", &a);
+			
+			mat_elem->QueryIntAttribute("tr", &tr);
+			mat_elem->QueryIntAttribute("tg", &tg);
+			mat_elem->QueryIntAttribute("tb", &tb);
+			mat_elem->QueryIntAttribute("ta", &ta);
+
 			const CoverageColor color(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, float(a) / 255.0);
-			data.CoverageMaterials.push_back(CoverageData::CoverageMaterial(name, color));
+			const CoverageColor tolerance(float(tr) / 255.0, float(tg) / 255.0, float(tb) / 255.0, float(ta) / 255.0);
+			data.CoverageMaterials.push_back(CoverageData::CoverageMaterial(name, color, tolerance));
 			mat_elem = mat_elem->NextSiblingElement("CoverageMaterial");
 		}
 		return data;

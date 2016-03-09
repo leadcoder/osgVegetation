@@ -109,7 +109,9 @@ namespace osgVegetation
 					}
 					else
 					{
-						coverage_name = "WOODS";
+						
+						coverage_name = m_CoverageData.getCoverageMaterialName(texture_color);
+						//coverage_name = "WOODS";
 					}
 				}
 				inter = intersection.getWorldIntersectPoint();
