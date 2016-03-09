@@ -135,11 +135,17 @@ namespace osgVegetation
 		tex->setWrap( osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP );
 		tex->setImage(osgDB::readImageFile("Images/tree0.rgba"));
 		dstate->setTextureAttributeAndModes(0, tex, osg::StateAttribute::ON );
+
+		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
+		shadowTextureUnit->set(env_settings.BaseShadowTextureUnit);
+		dstate->addUniform(shadowTextureUnit);
+
 		{
 			osg::Program* program = new osg::Program;
 			dstate->setAttribute(program);
 
-			char vertexShaderSource[] =
+			std::stringstream vertexShaderSource;
+			vertexShaderSource <<
 				"#extension GL_ARB_uniform_buffer_object : enable\n"
 				"uniform samplerBuffer dataBuffer;\n"
 				"varying vec2 TexCoord;\n"
@@ -172,9 +178,10 @@ namespace osgVegetation
 				"              v3.x, v3.y, v3.z, 0.0,\n"
 				"              v4.x, v4.y, v4.z, 1.0);\n"
 				"   vec4 mv_pos = modelView * gl_Vertex;\n"
-				"   mat4 mvpMatrix =  gl_ProjectionMatrix * modelView;\n"
-				"   DynamicShadow(mv_pos);\n"
-				"   Color = vec4(v1.w, v2.w, v3.w, v4.w);\n"
+				"   mat4 mvpMatrix =  gl_ProjectionMatrix * modelView;\n";
+			if (env_settings.ShadowMode != SM_DISABLED)
+				vertexShaderSource << "   DynamicShadow(mv_pos);\n";
+			vertexShaderSource << "   Color = vec4(v1.w, v2.w, v3.w, v4.w);\n"
 				"   gl_Position = mvpMatrix * vec4(gl_Vertex.xyz,1.0) ;\n"
 				"   Normal = normalize(gl_NormalMatrix * gl_Normal);\n"
 				//"   vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
@@ -182,14 +189,21 @@ namespace osgVegetation
 				//"   Color.xyz = NdotL*Color.xyz*gl_LightSource[0].diffuse.xyz*gl_FrontMaterial.diffuse.xyz + gl_LightSource[0].ambient.xyz*Color.xyz*gl_FrontMaterial.ambient.xyz;\n"
 				"   TexCoord = gl_MultiTexCoord0.st;\n"
 				"}\n";
-
-			char fragmentShaderSource[] =
-				"uniform sampler2D baseTexture; \n"
-				"uniform sampler2DShadow shadowTexture0;                                 \n"
-				"uniform int shadowTextureUnit0;                                         \n"
-				"uniform sampler2DShadow shadowTexture1;                                 \n"
-				"uniform int shadowTextureUnit1;                                         \n"
-				"varying  vec2 TexCoord;\n"
+			std::stringstream fragmentShaderSource;
+			
+			fragmentShaderSource <<
+				"uniform sampler2D baseTexture; \n";
+			if (env_settings.ShadowMode == SM_VDSM1 || env_settings.ShadowMode == SM_VDSM2)
+			{
+				fragmentShaderSource << "uniform sampler2DShadow shadowTexture0;\n"
+					"uniform int shadowTextureUnit0;\n";
+			}
+			if (env_settings.ShadowMode == SM_VDSM2)
+			{
+				fragmentShaderSource << "uniform sampler2DShadow shadowTexture1;\n"
+					"uniform int shadowTextureUnit1;\n";
+			}
+			fragmentShaderSource << "varying  vec2 TexCoord;\n"
 				"varying  vec4 Color;\n"
 				"varying  vec3 Normal; \n"
 				"void main(void) \n"
@@ -199,18 +213,26 @@ namespace osgVegetation
 				"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
 				"    vec3 lightDir = normalize(gl_LightSource[0].position.xyz);\n"
 				"    vec3 normal = normalize(Normal);\n"
-				"    float NdotL = max(dot(normal, lightDir), 0);\n"
-				"    float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n"
-				"    float shadow1 = shadow2DProj( shadowTexture1, gl_TexCoord[shadowTextureUnit1] ).r;   \n"
-				"    NdotL *= shadow0*shadow1; \n"
-				"    finalColor.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz);\n"
+				"    float NdotL = max(dot(normal, lightDir), 0);\n";
+			if (env_settings.ShadowMode == SM_VDSM1 || env_settings.ShadowMode == SM_VDSM2)
+			{
+				fragmentShaderSource << "    float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;\n"
+				"    NdotL *= shadow0;\n";
+			}
+			if (env_settings.ShadowMode == SM_VDSM2)
+			{
+				fragmentShaderSource << "    float shadow1 = shadow2DProj( shadowTexture1, gl_TexCoord[shadowTextureUnit1] ).r;   \n"
+					"    NdotL *= shadow1;\n";
+			}
+			fragmentShaderSource << 
+				"    finalColor.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz*gl_FrontMaterial.diffuse.xyz + gl_LightSource[0].ambient.xyz*gl_FrontMaterial.ambient.xyz);\n"
 				"    gl_FragColor = finalColor;\n"
 				"}\n";
 			
-			osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource);
+			osg::Shader* vertex_shader = new osg::Shader(osg::Shader::VERTEX, vertexShaderSource.str());
 			program->addShader(vertex_shader);
 
-			osg::Shader* fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource);
+			osg::Shader* fragment_shader = new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource.str());
 			program->addShader(fragment_shader);
 
 			osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture",0);
