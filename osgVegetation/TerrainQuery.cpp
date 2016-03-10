@@ -80,9 +80,14 @@ namespace osgVegetation
 
 						//std::cout << tex_filename <<"\n";
 						osg::Image* image = _loadImage(tex_filename);
-						if(m_FlipColorCoordinates)
-							tc.set(tc.x(),1.0 - tc.y(),tc.z());
-						texture_color = image->getColor(tc);
+						if(image)
+						{
+							if(m_FlipColorCoordinates)
+								tc.set(tc.x(),1.0 - tc.y(),tc.z());
+							texture_color = image->getColor(tc);
+						}
+						else
+							return false;
 					}
 					else
 						texture_color = texture->getImage(0)->getColor(tc);
@@ -97,15 +102,19 @@ namespace osgVegetation
 							mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + m_CoverageTextureSuffix;
 
 						osg::Image* image = _loadImage(mat_image_filename);
+						if(image)
+						{
+							if (m_FlipCoverageCoordinates)
+								tc.set(tc.x(), 1.0 - tc.y(), tc.z());
 
-						if (m_FlipCoverageCoordinates)
-							tc.set(tc.x(), 1.0 - tc.y(), tc.z());
-
-						//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
-						tc.set(osg::clampTo((double)tc.x(), (double) 0.0, (double) 1.0),
-							osg::clampTo((double)tc.y(), (double) 0.0, (double)1.0), (double)tc.z());
-						coverage_color = image->getColor(tc);
-						coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
+							//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
+							tc.set(osg::clampTo((double)tc.x(), (double) 0.0, (double) 1.0),
+								osg::clampTo((double)tc.y(), (double) 0.0, (double)1.0), (double)tc.z());
+							coverage_color = image->getColor(tc);
+							coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
+						}
+						else
+							return false;
 					}
 					else
 					{
@@ -141,8 +150,10 @@ namespace osgVegetation
 			image = m_ImageCache[filename].get();
 		}
 		if(!image)
-			OSGV_EXCEPT(std::string("TerrainQuery::_loadImage - Failed to load file:" + filename).c_str());
-
+		{
+			//OSGV_EXCEPT(std::string("TerrainQuery::_loadImage - Failed to load file:" + filename).c_str());
+			std::cout << "TerrainQuery::_loadImage - Failed to load file:" << filename << "\n";
+		}
 		return image;
 	}
 
