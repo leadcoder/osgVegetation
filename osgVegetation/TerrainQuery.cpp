@@ -82,9 +82,10 @@ namespace osgVegetation
 						osg::Image* image = _loadImage(tex_filename);
 						if(image)
 						{
+							osg::Vec3 color_tc = tc;
 							if(m_FlipColorCoordinates)
-								tc.set(tc.x(),1.0 - tc.y(),tc.z());
-							texture_color = image->getColor(tc);
+								color_tc.set(color_tc.x(),1.0 - color_tc.y(),color_tc.z());
+							texture_color = image->getColor(color_tc);
 						}
 						else
 							return false;
@@ -104,13 +105,14 @@ namespace osgVegetation
 						osg::Image* image = _loadImage(mat_image_filename);
 						if(image)
 						{
+							osg::Vec3 coverage_tc = tc;
 							if (m_FlipCoverageCoordinates)
-								tc.set(tc.x(), 1.0 - tc.y(), tc.z());
+								coverage_tc.set(coverage_tc.x(), 1.0 - coverage_tc.y(), coverage_tc.z());
 
 							//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
 							tc.set(osg::clampTo((double)tc.x(), (double) 0.0, (double) 1.0),
 								osg::clampTo((double)tc.y(), (double) 0.0, (double)1.0), (double)tc.z());
-							coverage_color = image->getColor(tc);
+							coverage_color = image->getColor(coverage_tc);
 							coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
 						}
 						else
@@ -118,7 +120,6 @@ namespace osgVegetation
 					}
 					else
 					{
-						
 						coverage_name = m_CoverageData.getCoverageMaterialName(texture_color);
 						//coverage_name = "WOODS";
 					}
