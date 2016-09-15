@@ -1,15 +1,11 @@
 #pragma once
 #include "Common.h"
-#include <osg/BoundingBox>
-#include <osg/Referenced>
 #include <osg/Vec4>
 #include <osg/Vec3>
-#include <osg/Vec2>
 #include <osg/Node>
 #include <osg/Texture>
 #include <osg/ref_ptr>
 #include <osgUtil/LineSegmentIntersector>
-#include <vector>
 #include "ITerrainQuery.h"
 #include "CoverageColor.h"
 #include "CoverageData.h"

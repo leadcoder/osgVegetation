@@ -1,6 +1,4 @@
 #include <osg/Geometry>
-#include <osg/Math>
-#include <osg/MatrixTransform>
 #include <osg/StateSet>
 #include <osg/ComputeBoundsVisitor>
 #include <osgDB/WriteFile>
@@ -13,30 +11,20 @@
 #include <osgGA/FlightManipulator>
 #include <osgGA/DriveManipulator>
 #include <osgGA/KeySwitchMatrixManipulator>
-#include <osgGA/StateSetManipulator>
-#include <osgGA/AnimationPathManipulator>
 #include <osgGA/TerrainManipulator>
 #include <osgGA/SphericalManipulator>
-
 #include <osgShadow/ShadowedScene>
 #include <osgShadow/ShadowVolume>
-#include <osgShadow/ShadowTexture>
 #include <osgShadow/ShadowMap>
-#include <osgShadow/SoftShadowMap>
 #include <osgShadow/ParallelSplitShadowMap>
 #include <osgShadow/LightSpacePerspectiveShadowMap>
 #include <osgShadow/StandardShadowMap>
 #include <osgShadow/ViewDependentShadowMap>
-
-
 #include <iostream>
-#include <sstream>
-#include "MRTShaderInstancing.h"
 #include "BillboardQuadTreeScattering.h"
 #include "TerrainQuery.h"
 #include "CoverageData.h"
 #include "Serializer.h"
-
 
 //Define some coverage material names
 #define WOODS "WOODS"

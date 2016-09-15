@@ -3,9 +3,7 @@
 #include <osg/StateSet>
 #include <osg/Geometry>
 #include <osg/Node>
-#include <math.h>
 #include "MeshObject.h"
-#include "MeshData.h"
 
 namespace osgVegetation
 {

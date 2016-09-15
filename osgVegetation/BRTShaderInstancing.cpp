@@ -2,12 +2,9 @@
 #include <osg/AlphaFunc>
 #include <osg/Billboard>
 #include <osg/BlendFunc>
-#include <osg/Depth>
 #include <osg/Geode>
 #include <osg/Material>
 #include <osg/Math>
-#include <osg/MatrixTransform>
-#include <osg/PolygonOffset>
 #include <osg/Projection>
 #include <osg/ShapeDrawable>
 #include <osg/Texture2D>
@@ -19,7 +16,6 @@
 #include <osgDB/ReadFile>
 #include <osgDB/WriteFile>
 #include <osgDB/FileUtils>
-#include "BillboardLayer.h"
 #include "VegetationUtils.h"
 
 

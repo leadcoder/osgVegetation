@@ -14,7 +14,6 @@
 #include <osgUtil/IntersectionVisitor>
 #include <osgSim/LineOfSight>
 #include <iostream>
-#include <sstream>
 #include "VegetationUtils.h"
 
 namespace osgVegetation

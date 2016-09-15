@@ -1,13 +1,10 @@
 #include "MRTShaderInstancing.h"
 #include <osg/AlphaFunc>
 #include <osg/BlendFunc>
-#include <osg/Depth>
 #include <osg/Geode>
 #include <osg/Material>
 #include <osg/LOD>
 #include <osg/Math>
-#include <osg/MatrixTransform>
-#include <osg/PolygonOffset>
 #include <osg/Projection>
 #include <osg/ShapeDrawable>
 #include <osg/Texture2D>

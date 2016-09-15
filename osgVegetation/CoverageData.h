@@ -1,11 +1,9 @@
 #pragma once
 #include "Common.h"
 #include <osg/Vec4>
-#include <string>
 #include <map>
 #include <vector>
 #include "CoverageColor.h"
-#include <iostream>
 #include <sstream>
 
 namespace osgVegetation

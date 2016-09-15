@@ -1,17 +1,7 @@
 #pragma once
 #include "Common.h"
-#include <osg/BoundingBox>
-#include <osg/Referenced>
-#include <osg/Vec4>
-#include <osg/Vec3>
-#include <osg/Vec2>
-#include <osg/Vec4ub>
-#include <osg/Node>
-#include <osg/LOD>
 #include <osg/ref_ptr>
-#include <osgUtil/IntersectionVisitor>
 #include <osg/Texture2DArray>
-#include <vector>
 #include <cstdlib>
 
 namespace osgVegetation

@@ -1,13 +1,9 @@
 #pragma once
 #include "Common.h"
-#include "BillboardLayer.h"
 #include "BillboardObject.h"
-
 #include <osg/StateSet>
 #include <osg/Geometry>
 #include <osg/Node>
-#include <math.h>
-
 
 namespace osgVegetation
 {

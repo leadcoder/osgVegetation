@@ -1,12 +1,10 @@
 #pragma once
 #include "Common.h"
-#include "BillboardLayer.h"
 #include <osg/Referenced>
 #include <osg/Vec4>
 #include <osg/Vec3>
 #include <osg/ref_ptr>
 #include <vector>
-#include <map>
 
 namespace osgVegetation
 {

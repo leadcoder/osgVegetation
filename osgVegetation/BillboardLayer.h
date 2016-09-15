@@ -1,12 +1,6 @@
 #pragma once
 #include "Common.h"
-#include "CoverageColor.h"
-#include <osg/Referenced>
-#include <osg/Vec4>
-#include <osg/Vec3>
 #include <osg/Vec2>
-#include <osg/ref_ptr>
-#include <string>
 #include <vector>
 
 namespace osgVegetation

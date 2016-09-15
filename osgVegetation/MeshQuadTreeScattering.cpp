@@ -9,7 +9,6 @@
 #include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
 #include <sstream>
-
 #include "MRTShaderInstancing.h"
 #include "VegetationUtils.h"
 #include "ITerrainQuery.h"

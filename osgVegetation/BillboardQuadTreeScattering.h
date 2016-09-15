@@ -2,12 +2,7 @@
 #include "Common.h"
 #include <osg/BoundingBox>
 #include <osg/Referenced>
-#include <osg/Vec4>
-#include <osg/Vec3>
-#include <osg/Vec2>
-#include <osg/Vec4ub>
 #include <osg/Node>
-#include <osg/Fog>
 #include <osg/ref_ptr>
 
 #include <vector>

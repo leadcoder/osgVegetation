@@ -3,7 +3,6 @@
 #include <osg/StateSet>
 #include <osg/Geometry>
 #include <osg/BoundingBox>
-#include <math.h>
 #include "IBillboardRenderingTech.h"
 #include "BillboardData.h"
 #include "EnvironmentSettings.h"

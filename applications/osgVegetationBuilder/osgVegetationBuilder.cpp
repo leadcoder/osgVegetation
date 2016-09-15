@@ -1,22 +1,15 @@
-#include <osg/Geode>
 #include <osg/Geometry>
-#include <osg/MatrixTransform>
 #include <osg/ProxyNode>
-#include <osg/StateSet>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osg/ComputeBoundsVisitor>
-#include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
-
 #include <iostream>
 #include <sstream>
-
 #include "BillboardQuadTreeScattering.h"
 #include "MeshQuadTreeScattering.h"
 #include "Serializer.h"
-
 #include "TerrainQuery.h"
 
 int main( int argc, char **argv )

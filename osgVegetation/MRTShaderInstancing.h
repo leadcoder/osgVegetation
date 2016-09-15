@@ -2,10 +2,10 @@
 #include "Common.h"
 #include <osg/StateSet>
 #include <osg/Geometry>
-#include <math.h>
 #include "IMeshRenderingTech.h"
 #include "MeshData.h"
 #include "EnvironmentSettings.h"
+
 namespace osgVegetation
 {
 

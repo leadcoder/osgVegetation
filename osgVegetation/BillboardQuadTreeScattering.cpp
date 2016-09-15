@@ -6,7 +6,6 @@
 #include <osg/ProxyNode>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
-#include <osgDB/FileUtils>
 #include <osgDB/FileNameUtils>
 #include <sstream>
 #include <stdexcept>

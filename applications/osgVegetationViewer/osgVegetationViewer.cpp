@@ -2,11 +2,9 @@
 #include <osgUtil/Optimizer>
 #include <osg/CoordinateSystemNode>
 #include <osg/Fog>
-#include <osg/Switch>
 #include <osgText/Text>
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
-
 #include <osgGA/TrackballManipulator>
 #include <osgGA/FlightManipulator>
 #include <osgGA/DriveManipulator>
@@ -15,15 +13,10 @@
 #include <osgGA/AnimationPathManipulator>
 #include <osgGA/TerrainManipulator>
 #include <osgGA/SphericalManipulator>
-
 #include <osgGA/Device>
-
 #include <osgShadow/ShadowedScene>
 #include <osgShadow/ShadowVolume>
-#include <osgShadow/ShadowTexture>
 #include <osgShadow/ShadowMap>
-#include <osgShadow/SoftShadowMap>
-#include <osgShadow/ParallelSplitShadowMap>
 #include <osgShadow/LightSpacePerspectiveShadowMap>
 #include <osgShadow/StandardShadowMap>
 #include <osgShadow/ViewDependentShadowMap>

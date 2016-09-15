@@ -3,13 +3,9 @@
 #include "BillboardData.h"
 #include "CoverageData.h"
 #include "EnvironmentSettings.h"
-#include <osg/BoundingBox>
-#include <osg/Referenced>
-#include <osg/Vec4>
-#include <osg/Vec3>
-#include <osg/Vec2>
 #include <osg/Node>
 #include <vector>
+
 class TiXmlElement;
 namespace osgVegetation
 {
