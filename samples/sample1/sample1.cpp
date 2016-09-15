@@ -354,7 +354,7 @@ int main( int argc, char **argv )
 			lightPos.set(sinf(t),cosf(t),0.7f,0.0f);
 			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
 			pLight->setPosition(lightPos);
-			osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
+			lightDir.set(-lightPos.x(),-lightPos.y(),-lightPos.z());
 			lightDir.normalize();
 			pLight->setDirection(lightDir);
 		}

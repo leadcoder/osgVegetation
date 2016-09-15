@@ -8,7 +8,7 @@ namespace osgVegetation
 	struct MeshLOD
 	{
 		MeshLOD(const std::string &mesh, double max_dist):MeshName(mesh),
-			MaxDistance(max_dist){}
+			MaxDistance(max_dist), _StartQTLevel(0) {}
 		/**
 			Max Distance this Mesh is visible at
 		*/

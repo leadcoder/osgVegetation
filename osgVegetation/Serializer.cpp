@@ -129,7 +129,7 @@ namespace osgVegetation
 		return bb_data;
 	}
 
-	EnvironmentSettings Serializer::loadEnvironmentSettings(const std::string &filename)
+	EnvironmentSettings Serializer::loadEnvironmentSettings(const std::string &filename) const
 	{
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())

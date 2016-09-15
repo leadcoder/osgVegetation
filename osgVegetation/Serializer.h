@@ -21,7 +21,7 @@ namespace osgVegetation
 		BillboardData loadBillboardData(TiXmlElement *bd_elem) const;
 		osg::ref_ptr<ITerrainQuery> loadTerrainQuery(osg::Node* terrain, const std::string &filename) const;
 		CoverageData loadCoverageData(TiXmlElement *cd_elem) const;
-		EnvironmentSettings loadEnvironmentSettings(const std::string &filename);
+		EnvironmentSettings loadEnvironmentSettings(const std::string &filename) const;
 		EnvironmentSettings loadEnvironmentSettingsImpl(TiXmlElement *es_elem) const;
 
 	};

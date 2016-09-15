@@ -19,7 +19,10 @@ namespace osgVegetation
 		m_TerrainQuery(tq),
 		m_UsePagedLOD(false),
 		m_FilenamePrefix("quadtree_"),
-		m_EnvSettings(env_settings)
+		m_EnvSettings(env_settings),
+		m_FinalLOD(0),
+		m_CurrentTile(0),
+		m_NumberOfTiles(0)
 	{
 
 	}
@@ -68,7 +71,7 @@ namespace osgVegetation
 		}
 	}
 
-	std::string MeshQuadTreeScattering::_createFileName(unsigned int lv,	unsigned int x, unsigned int y )
+	std::string MeshQuadTreeScattering::_createFileName(unsigned int lv,	unsigned int x, unsigned int y ) const
 	{
 		std::stringstream sstream;
 		sstream << m_FilenamePrefix << lv << "_X" << x << "_Y" << y << "." << m_SaveExt;
@@ -78,7 +81,7 @@ namespace osgVegetation
 	osg::Node* MeshQuadTreeScattering::_createLODRec(int ld, MeshData &data, MeshVegetationObjectVector instances, const osg::BoundingBoxd &bb,int x, int y)
 	{
 		if(ld < 6) //only show progress above level 6, we don't want to spam the console
-			std::cout << "Progress:" << (int)(100.0f*((float) m_CurrentTile/(float) m_NumberOfTiles)) <<  "% Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
+			std::cout << "Progress:" << static_cast<int>(100.0f*(static_cast<float>( m_CurrentTile)/ static_cast<float>(m_NumberOfTiles))) <<  "% Tile:" << m_CurrentTile << " of:" << m_NumberOfTiles << std::endl;
 		m_CurrentTile++;
 
 		osg::ref_ptr<osg::Group> children_group = new osg::Group;
@@ -301,7 +304,7 @@ namespace osgVegetation
 		osg::Node* outnode = _createLODRec(0, data, instances, qt_bb,0,0);
 
 		//Add state set to top node
-		outnode->setStateSet((osg::StateSet*) m_MRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
+		outnode->setStateSet(dynamic_cast<osg::StateSet*>( m_MRT->getStateSet()->clone(osg::CopyOp::DEEP_COPY_STATESETS)));
 
 		//clean up
 		for(size_t i = 0; i < data.Layers.size(); i++)

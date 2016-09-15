@@ -60,7 +60,7 @@ namespace osgVegetation
 		EnvironmentSettings m_EnvSettings;
 
 		//Helpers
-		std::string _createFileName(unsigned int lv, unsigned int x, unsigned int y);
+		std::string _createFileName(unsigned int lv, unsigned int x, unsigned int y) const;
 		void _populateVegetationTile(MeshLayer& layer,const osg::BoundingBoxd &box);
 		osg::Node* _createLODRec(int ld, MeshData &data, MeshVegetationObjectVector trees, const osg::BoundingBoxd &box ,int x, int y);
 	};

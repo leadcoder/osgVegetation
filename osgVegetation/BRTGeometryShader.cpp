@@ -276,7 +276,7 @@ namespace osgVegetation
 			else if(env_settings.ShadowMode == SM_VDSM1)
 			{
 				fragSource << 
-					"   float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n";
+					"   float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;   \n"
 					"   NdotL *= shadow0; \n";
 			}
 			else if(env_settings.ShadowMode == SM_VDSM2)
@@ -401,7 +401,7 @@ namespace osgVegetation
 
 		osg::Uniform* tile_rad_uniform = new osg::Uniform(osg::Uniform::FLOAT, "TileRadius");
 		float radius = bb.radius();
-		tile_rad_uniform->set( (float) radius);
+		tile_rad_uniform->set( radius);
 		geometry->getOrCreateStateSet()->addUniform(tile_rad_uniform);
 
 		return geode;

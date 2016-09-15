@@ -14,6 +14,5 @@ namespace osgVegetation
 		virtual ~IBillboardRenderingTech(){}
 		virtual osg::Node* create(const BillboardVegetationObjectVector &trees, const osg::BoundingBoxd &bb) = 0;
 		virtual osg::StateSet* getStateSet() const = 0;
-	protected:
 	};
 }

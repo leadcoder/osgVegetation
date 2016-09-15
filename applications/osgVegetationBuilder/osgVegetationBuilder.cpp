@@ -57,7 +57,7 @@ int main( int argc, char **argv )
 	osg::BoundingBoxd bounding_box;
 	bool useBBox = false;
 
-	double xmin=0,xmax=0,ymin=0,ymax=0,zmin=-1,zmax=1;
+	double xmin = 0, xmax = 0, ymin = 0, ymax = 0;// , zmin = -1, zmax = 1;
 
 	if(arguments.read("--bounding_box",xmin,ymin,xmax,ymax))
 	{

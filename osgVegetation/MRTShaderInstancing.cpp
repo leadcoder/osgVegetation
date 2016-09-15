@@ -244,17 +244,17 @@ namespace osgVegetation
 			}
 			return dstate;
 		}
-		return NULL;
+	
 	}
 
 	osg::Node* MRTShaderInstancing::create(const MeshVegetationObjectVector &trees, const std::string &mesh_name, const osg::BoundingBoxd &bb)
 	{
 		osg::Node* geode = 0;
-		osg::Group* group = 0;
+		//osg::Group* group = 0;
 
 		if(trees.size() > 0)
 		{
-			geode = (osg::Node*) m_MeshNodeMap[mesh_name]->clone( osg::CopyOp::DEEP_COPY_NODES | osg::CopyOp::DEEP_COPY_DRAWABLES | osg::CopyOp::DEEP_COPY_PRIMITIVES);
+			geode = dynamic_cast<osg::Node*>(m_MeshNodeMap[mesh_name]->clone( osg::CopyOp::DEEP_COPY_NODES | osg::CopyOp::DEEP_COPY_DRAWABLES | osg::CopyOp::DEEP_COPY_PRIMITIVES));
 			ConvertToDrawInstanced cdi(trees.size(), bb, true);
 			geode->accept( cdi );
 

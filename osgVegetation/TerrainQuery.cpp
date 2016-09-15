@@ -4,7 +4,6 @@
 #include <osg/Math>
 #include <osg/Texture2D>
 #include <osg/TexMat>
-#include <osg/TextureBuffer>
 #include <osg/Image>
 #include <osgDB/WriteFile>
 #include <osgDB/ReadFile>
@@ -61,9 +60,7 @@ namespace osgVegetation
 		if (intersector->containsIntersections())
 		{
 			osgUtil::LineSegmentIntersector::Intersections& intersections = intersector->getIntersections();
-			for(osgUtil::LineSegmentIntersector::Intersections::iterator itr = intersections.begin();
-				itr != intersections.end();
-				++itr)
+			for(osgUtil::LineSegmentIntersector::Intersections::iterator itr = intersections.begin(); itr != intersections.end(); ++itr)
 			{
 				const osgUtil::LineSegmentIntersector::Intersection& intersection = *itr;
 				osg::Vec3 tc;
@@ -101,8 +98,8 @@ namespace osgVegetation
 							tc.set(tc.x(), 1.0 - tc.y(), tc.z());
 
 						//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
-						tc.set(osg::clampTo((double)tc.x(), (double) 0.0, (double) 1.0),
-							osg::clampTo((double)tc.y(), (double) 0.0, (double)1.0), (double)tc.z());
+						tc.set(osg::clampTo(static_cast<double>(tc.x()), 0.0, 1.0),
+							osg::clampTo(static_cast<double>(tc.y()), 0.0, 1.0), static_cast<double>(tc.z()));
 						coverage_color = image->getColor(tc);
 						coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
 					}

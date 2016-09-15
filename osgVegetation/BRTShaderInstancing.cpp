@@ -484,11 +484,11 @@ namespace osgVegetation
 		v[15].set(pos.x(), pos.y() + sw, pos.z() + 0.0f);
 
 
-		osg::Vec3 n1(0, -1, 0);
-		osg::Vec3 n2(0, 1, 0);
+		//osg::Vec3 n1(0, -1, 0);
+		//osg::Vec3 n2(0, 1, 0);
 
-		osg::Vec3 n3(-1, 0, 0);
-		osg::Vec3 n4(1, 0, 0);
+		//osg::Vec3 n3(-1, 0, 0);
+		//osg::Vec3 n4(1, 0, 0);
 
 
 
@@ -594,7 +594,7 @@ namespace osgVegetation
 	osg::Node* BRTShaderInstancing::create(const BillboardVegetationObjectVector &veg_objects, const osg::BoundingBoxd &bb)
 	{
 		osg::Geode* geode = 0;
-		osg::Group* group = 0;
+		//osg::Group* group = 0;
 		if (veg_objects.size() > 0)
 		{
 			osg::ref_ptr<osg::Geometry> templateGeometry;
@@ -605,7 +605,7 @@ namespace osgVegetation
 
 			templateGeometry->setUseVertexBufferObjects(true);
 			templateGeometry->setUseDisplayList(false);
-			osg::Geometry* geometry = (osg::Geometry*)templateGeometry->clone(osg::CopyOp::DEEP_COPY_PRIMITIVES);
+			osg::Geometry* geometry = dynamic_cast<osg::Geometry*>(templateGeometry->clone(osg::CopyOp::DEEP_COPY_PRIMITIVES));
 			geometry->setUseDisplayList(false);
 			osg::DrawArrays* primSet = dynamic_cast<osg::DrawArrays*>(geometry->getPrimitiveSet(0));
 			primSet->setNumInstances(veg_objects.size());
@@ -621,7 +621,7 @@ namespace osgVegetation
 				osg::Vec4f* ptr = (osg::Vec4f*)treeParamsImage->data(3 * i);
 				BillboardObject& tree = **itr;
 				ptr[0] = osg::Vec4f(tree.Position.x(), tree.Position.y(), tree.Position.z(), 1.0);
-				ptr[1] = osg::Vec4f((float)tree.Color.r(), (float)tree.Color.g(), (float)tree.Color.b(), 1.0);
+				ptr[1] = osg::Vec4f(static_cast<float>(tree.Color.r()), static_cast<float>(tree.Color.g()), static_cast<float>(tree.Color.b()), 1.0f);
 				ptr[2] = osg::Vec4f(tree.Width, tree.Height, tree.TextureIndex, 1.0);
 			}
 
