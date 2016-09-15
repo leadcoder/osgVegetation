@@ -76,9 +76,15 @@ namespace osgVegetation
 
 						//std::cout << tex_filename <<"\n";
 						osg::Image* image = _loadImage(tex_filename);
+						if(image)
+						{
+							osg::Vec3 color_tc = tc;
 						if(m_FlipColorCoordinates)
-							tc.set(tc.x(),1.0 - tc.y(),tc.z());
-						texture_color = image->getColor(tc);
+								color_tc.set(color_tc.x(),1.0 - color_tc.y(),color_tc.z());
+							texture_color = image->getColor(color_tc);
+					}
+					else
+							return false;
 					}
 					else
 						texture_color = texture->getImage(0)->getColor(tc);
@@ -93,19 +99,23 @@ namespace osgVegetation
 							mat_image_filename = osgDB::getNameLessExtension(osgDB::getSimpleFileName(tex_filename)) + m_CoverageTextureSuffix;
 
 						osg::Image* image = _loadImage(mat_image_filename);
-
+						if(image)
+						{
+							osg::Vec3 coverage_tc = tc;
 						if (m_FlipCoverageCoordinates)
-							tc.set(tc.x(), 1.0 - tc.y(), tc.z());
+								coverage_tc.set(coverage_tc.x(), 1.0 - coverage_tc.y(), coverage_tc.z());
 
 						//tc2 = osg::clampTo(tc2, osg::Vec3(0,0,0),osg::Vec3(1,1,1));
 						tc.set(osg::clampTo(static_cast<double>(tc.x()), 0.0, 1.0),
 							osg::clampTo(static_cast<double>(tc.y()), 0.0, 1.0), static_cast<double>(tc.z()));
-						coverage_color = image->getColor(tc);
+							coverage_color = image->getColor(coverage_tc);
 						coverage_name = m_CoverageData.getCoverageMaterialName(coverage_color);
 					}
 					else
+							return false;
+					}
+					else
 					{
-						
 						coverage_name = m_CoverageData.getCoverageMaterialName(texture_color);
 						//coverage_name = "WOODS";
 					}
@@ -139,8 +149,10 @@ namespace osgVegetation
 			image = m_ImageCache[filename].get();
 		}
 		if(!image)
-			OSGV_EXCEPT(std::string("TerrainQuery::_loadImage - Failed to load file:" + filename).c_str());
+		{
 
+			std::cout << "TerrainQuery::_loadImage - Failed to load file:" << filename << "\n";
+		}
 		return image;
 	}
 
