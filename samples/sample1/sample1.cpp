@@ -168,9 +168,10 @@ int main( int argc, char **argv )
 	grass_data.ReceiveShadows = true;
 
 	osg::ComputeBoundsVisitor  cbv;
-	osg::BoundingBox &bb(cbv.getBoundingBox());
+	
 	terrain->accept(cbv);
 
+	osg::BoundingBoxd bb(cbv.getBoundingBox()._min, cbv.getBoundingBox()._max);
 	//down size bb for faster generation...useful for testing purpose
 	const float tree_bb_scale = 0.7;
 	osg::BoundingBoxd tree_bb = bb;

@@ -112,7 +112,8 @@ int main( int argc, char **argv )
 	osg::ComputeBoundsVisitor  cbv;
 	
 	terrain->accept(cbv);
-	osg::BoundingBoxd bb(cbv.getBoundingBox());
+	
+	osg::BoundingBoxd bb(cbv.getBoundingBox()._min, cbv.getBoundingBox()._max);
 
 	//osg::Vec3d bb_size = bb._max - bb._min;
 
