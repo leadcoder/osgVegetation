@@ -1,3 +1,5 @@
+https://travis-ci.org/leadcoder/osgVegetation.svg?branch=master
+
 # osgVegetation
 osgVegetation is a C++ library used for vegetation generation. 
 osgVegetation is using OSG [www.openscenegraph.org] and is also 
