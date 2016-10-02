@@ -629,7 +629,7 @@ namespace osgVegetation
 			tbo->setImage(treeParamsImage.get());
 			tbo->setInternalFormat(GL_RGBA32F_ARB);
 			geometry->getOrCreateStateSet()->setTextureAttribute(1, tbo.get(), osg::StateAttribute::ON);
-			geometry->setInitialBound(bb);
+			geometry->setInitialBound(osg::BoundingBox(bb._min, bb._max));
 			osg::Uniform* dataBufferSampler = new osg::Uniform("DataBufferTexture", 1);
 			geometry->getOrCreateStateSet()->addUniform(dataBufferSampler);
 
