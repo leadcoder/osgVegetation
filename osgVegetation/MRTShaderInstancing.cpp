@@ -286,9 +286,7 @@ namespace osgVegetation
 			tbo->setInternalFormat(GL_RGBA32F_ARB);
 			geode->getOrCreateStateSet()->setTextureAttribute(1, tbo.get(),osg::StateAttribute::ON);
 
-			osg::BoundingBox bb_f(bb);
-			
-			geode->setInitialBound(bb_f);
+			geode->setInitialBound(osg::BoundingBox(bb._min, bb._max));
 			osg::Uniform* dataBufferSampler = new osg::Uniform("dataBuffer",1);
 			geode->getOrCreateStateSet()->addUniform(dataBufferSampler);
 		}
