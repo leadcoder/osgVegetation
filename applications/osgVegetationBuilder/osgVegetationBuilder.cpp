@@ -108,7 +108,7 @@ int main( int argc, char **argv )
 
 		osg::ComputeBoundsVisitor  cbv;
 		terrain->accept(cbv);
-		bounding_box = osg::BoundingBoxd(cbv.getBoundingBox());
+		bounding_box = osg::BoundingBoxd(cbv.getBoundingBox()._min, cbv.getBoundingBox()._max);
 		if(useBBox)
 		{
 			bounding_box._min.set(xmin,ymin,bounding_box._min.z());
