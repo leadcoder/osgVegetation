@@ -1,4 +1,4 @@
-![alt tag](https://travis-ci.org/leadcoder/osgVegetation.svg?branch=master)
+Travis Build (master) ![alt tag](https://travis-ci.org/leadcoder/osgVegetation.svg?branch=master)
 
 # osgVegetation
 osgVegetation is a C++ library used for vegetation generation. 
