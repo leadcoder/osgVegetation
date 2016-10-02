@@ -12,7 +12,7 @@ before_install:
 #- sudo apt-get install -y --force-yes openscenegraph=3.4.0
 - sudo apt-get install -y libopenscenegraph-dev
 script:
-
+- cmake -DCMAKE_BUILD_TYPE=Release . && make
 notifications:
   email:
     recipients:
