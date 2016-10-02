@@ -57,7 +57,7 @@ namespace osgVegetation
 
 					//geom->setComputeBoundingBoxCallback(  new StaticBoundingBox(_bb));
 					//geom->setComputeBoundingBoxCallback(NULL);
-					geom->setInitialBound((osg::BoundingBox(_bb._min, _bb._max));
+					geom->setInitialBound(osg::BoundingBox(_bb._min, _bb._max));
 					//geom->dirtyBound();
 
 					// convert to use DrawInstanced
@@ -288,7 +288,7 @@ namespace osgVegetation
 
 			osg::BoundingBox bb_f(bb);
 			
-			geode->setInitialBound(osg::BoundingBox( bb_f._min,  bb_f._max));
+			geode->setInitialBound(bb_f);
 			osg::Uniform* dataBufferSampler = new osg::Uniform("dataBuffer",1);
 			geode->getOrCreateStateSet()->addUniform(dataBufferSampler);
 		}
