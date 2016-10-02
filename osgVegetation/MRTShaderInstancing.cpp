@@ -19,7 +19,7 @@ namespace osgVegetation
 	struct StaticBoundingBox : public osg::Drawable::ComputeBoundingBoxCallback
 	{
 		osg::BoundingBox _bbox;
-		StaticBoundingBox( const osg::BoundingBoxd& bbox ) : _bbox(bbox) { }
+		StaticBoundingBox( const osg::BoundingBoxd& bbox ) : _bbox(osg::BoundingBox(bbox._min, bbox._max)) { }
 		osg::BoundingBox computeBound(const osg::Drawable&) const { return _bbox; }
 	};
 
@@ -57,7 +57,7 @@ namespace osgVegetation
 
 					//geom->setComputeBoundingBoxCallback(  new StaticBoundingBox(_bb));
 					//geom->setComputeBoundingBoxCallback(NULL);
-					geom->setInitialBound(_bb);
+					geom->setInitialBound((osg::BoundingBox(_bb._min, _bb._max));
 					//geom->dirtyBound();
 
 					// convert to use DrawInstanced
@@ -288,7 +288,7 @@ namespace osgVegetation
 
 			osg::BoundingBox bb_f(bb);
 			
-			geode->setInitialBound( bb_f);
+			geode->setInitialBound(osg::BoundingBox( bb_f._min,  bb_f._max));
 			osg::Uniform* dataBufferSampler = new osg::Uniform("dataBuffer",1);
 			geode->getOrCreateStateSet()->addUniform(dataBufferSampler);
 		}
