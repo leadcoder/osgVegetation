@@ -37,14 +37,16 @@ int main( int argc, char **argv )
 	//Global settings
 	//const bool enableShadows = true;
 
-	osgVegetation::OSGShadowMode shadow_type = osgVegetation::SM_LISPSM;
+	osgVegetation::OSGShadowMode shadow_type = osgVegetation::SM_DISABLED;
+
+	//osgVegetation::OSGShadowMode shadow_type = osgVegetation::SM_LISPSM;
 	//osgVegetation::OSGShadowMode shadow_type = osgVegetation::SM_VDSM2;
 	
-	osgVegetation::BillboardType bbtype = osgVegetation::BT_CROSS_QUADS;
-	//osgVegetation::BillboardType bbtype = osgVegetation::BT_ROTATED_QUAD;
+	osgVegetation::BillboardType treetype = osgVegetation::BT_CROSS_QUADS;
+	osgVegetation::BillboardType grasstype = osgVegetation::BT_GRASS;
 	
-	//osgVegetation::BillboardRenderingTechnique tech = osgVegetation::BRT_GEOMETRY_SHADER;
-	osgVegetation::BillboardRenderingTechnique tech = osgVegetation::BRT_SHADER_INSTANCING;
+	osgVegetation::BillboardRenderingTechnique tech = osgVegetation::BRT_GEOMETRY_SHADER;
+	//osgVegetation::BillboardRenderingTechnique tech = osgVegetation::BRT_SHADER_INSTANCING;
 
 	const bool use_fog = true;
 	const osg::Fog::Mode fog_mode = osg::Fog::EXP2;
@@ -132,10 +134,10 @@ int main( int argc, char **argv )
 	tree_data.CastShadows = true;
 	
 	tree_data.TerrainNormal = false;
-	tree_data.Type = bbtype;
+	tree_data.Type = treetype;
 	tree_data.Technique = tech;
 	tree_data.ReceiveShadows = true; //disabled when using BT_ROTATED_QUAD due to self shadowing artifacts
-
+	tree_data.UseMultiSample = true;
 	//grass data
 	osgVegetation::BillboardLayer  grass_l0("billboards/grass0.png", 200);
 
@@ -162,10 +164,11 @@ int main( int argc, char **argv )
 	grass_layers.push_back(grass_l1);
 
 	osgVegetation::BillboardData grass_data(grass_layers, true,0.2,true);
-	grass_data.CastShadows = true;
-	grass_data.Type = bbtype;
+	grass_data.CastShadows = false;
+	grass_data.Type = grasstype;
 	grass_data.Technique = tech;
 	grass_data.ReceiveShadows = true;
+	grass_data.UseMultiSample = true;
 
 	osg::ComputeBoundsVisitor  cbv;
 	
@@ -213,8 +216,8 @@ int main( int argc, char **argv )
 		tree_node = scattering.generate(tree_bb, tree_data);
 		group->addChild(tree_node);
 		std::cout << "Start grass generation" << std::endl;
-		//grass_node = scattering.generate(grass_bb, grass_data);
-		//group->addChild(grass_node);
+		grass_node = scattering.generate(grass_bb, grass_data);
+		group->addChild(grass_node);
 	}
 	catch (std::exception& e)
 	{
@@ -244,7 +247,7 @@ int main( int argc, char **argv )
 	osg::Vec3f lightDir(-lightPos.x(),-lightPos.y(),-lightPos.z());
 	lightDir.normalize();
 	pLight->setDirection(lightDir);
-	pLight->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f) );
+	pLight->setAmbient(osg::Vec4(0.7f, 0.7f, 0.7f, 1.0f) );
 
 	osg::LightSource* pLightSource = new osg::LightSource;
 	pLightSource->setLight( pLight );

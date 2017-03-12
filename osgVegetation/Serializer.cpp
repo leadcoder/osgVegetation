@@ -111,6 +111,8 @@ namespace osgVegetation
 			bb_data.Type = BT_CROSS_QUADS;
 		else if (bb_type == "BT_ROTATED_QUAD")
 			bb_data.Type = BT_ROTATED_QUAD;
+		else if (bb_type == "BT_GRASS")
+			bb_data.Type = BT_GRASS;
 		else
 			OSGV_EXCEPT(std::string("Serializer::loadBillboardData - Unknown billboard type:" + bb_type).c_str());
 

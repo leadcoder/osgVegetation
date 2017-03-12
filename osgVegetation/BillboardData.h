@@ -7,7 +7,8 @@ namespace osgVegetation
 	enum BillboardType
 	{
 		BT_ROTATED_QUAD,
-		BT_CROSS_QUADS
+		BT_CROSS_QUADS,
+		BT_GRASS
 	};
 	
 	/**

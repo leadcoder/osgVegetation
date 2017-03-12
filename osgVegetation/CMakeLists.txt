@@ -42,6 +42,12 @@ SET(H_FILES
 	VegetationUtils.h
 )
 
+SET(SHADERS_FILES
+	shaders/brt_fragment.glsl
+	shaders/brt_geometry.glsl
+	shaders/brt_vertex.glsl
+)
+
 include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})
 
 #Enable class export 
@@ -56,5 +62,9 @@ INSTALL(TARGETS ${LIB_NAME}
   ARCHIVE DESTINATION lib)
 
 INSTALL(FILES ${H_FILES} DESTINATION include)
+INSTALL(FILES ${SHADERS_FILES} DESTINATION bin/shaders)
 
-
+if(WIN32)
+	FILE(COPY ${SHADERS_FILES}  DESTINATION  ${CMAKE_BINARY_DIR}/out/debug/shaders)
+	FILE(COPY ${SHADERS_FILES}  DESTINATION  ${CMAKE_BINARY_DIR}/out/release/shaders)
+endif()

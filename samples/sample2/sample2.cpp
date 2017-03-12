@@ -72,7 +72,7 @@ int main( int argc, char **argv )
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //hack to be able to runt from GCC out dir
 
-	osg::DisplaySettings::instance()->setNumMultiSamples(4);
+	osg::DisplaySettings::instance()->setNumMultiSamples(8);
 
 	//Load terrain
 	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("lz.osg");
