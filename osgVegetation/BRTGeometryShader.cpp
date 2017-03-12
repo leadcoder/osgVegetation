@@ -478,9 +478,10 @@ namespace osgVegetation
 		m_StateSet->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 		m_StateSet->setDataVariance(osg::Object::DYNAMIC);
 
-		osg::StateSet::DefineList& defineList = m_StateSet->getDefineList();
+		
 
 #ifdef TEST_DEFLIST
+		osg::StateSet::DefineList& defineList = m_StateSet->getDefineList();
 		if (data.Type == BT_ROTATED_QUAD)
 			defineList["BT_ROTATED_QUAD"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 		else if (data.Type == BT_GRASS)
