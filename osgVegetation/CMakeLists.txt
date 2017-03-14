@@ -46,6 +46,7 @@ SET(SHADERS_FILES
 	shaders/brt_fragment.glsl
 	shaders/brt_geometry.glsl
 	shaders/brt_vertex.glsl
+	shaders/veg_geometry.glsl
 )
 
 include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})

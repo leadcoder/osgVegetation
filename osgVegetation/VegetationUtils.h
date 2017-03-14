@@ -7,7 +7,7 @@
 namespace osgVegetation
 {
 	struct BillboardData;
-	class Utils
+	class osgvExport Utils
 	{
 	public:
 		static double random(double min,double max) { return min + (max-min)*static_cast<double>(rand())/ static_cast<double>(RAND_MAX); }
@@ -18,5 +18,7 @@ namespace osgVegetation
 			This function will also save texture index into the texture array for each layer (_TextureIndex)
 		*/
 		static osg::ref_ptr<osg::Texture2DArray> loadTextureArray(BillboardData &data);
+		static osg::ref_ptr<osg::Texture2DArray> loadTextureArray(const std::vector<std::string> &data);
+
 	};
 }
