@@ -3,7 +3,7 @@
 #include <osgTerrain/Terrain>
 #include <osgTerrain/TerrainTile>
 #include <osgTerrain/GeometryTechnique>
-#include <osgTerrain/DisplacementMappingTechnique>
+//#include <osgTerrain/DisplacementMappingTechnique>
 #include <osgTerrain/Layer>
 #include <osgFX/MultiTextureControl>
 #include <osg/PositionAttitudeTransform>

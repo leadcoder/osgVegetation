@@ -12,6 +12,10 @@ float oe_landcover_rangeRand(float minValue, float maxValue, vec2 co)
 {
     float t = fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
     return minValue + t*(maxValue-minValue);
+
+	}
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
 
@@ -73,7 +77,10 @@ void main(void)
 	 // Distance culling:
     if ( scale == 0.0 )
         return;
-	scale = scale*scale*scale;
+	
+	float rand_scale = oe_landcover_rangeRand(0.5, 1.5, pos.xy);
+	scale = scale*scale*scale*rand_scale;
+	
 	vec3 up = vec3(0.0, 0.0, scale*1.0);//Up direction in OSG
 	vec3 left = vec3(-dir.y, dir.x, 0);
 	left = normalize(left);
