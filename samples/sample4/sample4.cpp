@@ -163,7 +163,12 @@ int main(int argc, char** argv)
 	//osgTerrain::TerrainTile::setTileLoadedCallback(cb);
 
 	// load the nodes from the commandline arguments.
+	
+#if OSG_VERSION_GREATER_OR_EQUAL(3,5,1)
 	osg::ref_ptr<osg::Node> rootnode = osgDB::readRefNodeFiles(arguments);
+#else
+	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFiles(arguments);
+#endif
 
 	if (!rootnode)
 	{
