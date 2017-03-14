@@ -33,7 +33,10 @@
 #include <osgTerrain/Terrain>
 #include <osgTerrain/TerrainTile>
 #include <osgTerrain/GeometryTechnique>
-#include <osgTerrain/DisplacementMappingTechnique>
+#include <osg/Version>
+
+
+
 #include <osgTerrain/Layer>
 
 #include <osgFX/MultiTextureControl>
@@ -43,6 +46,16 @@
 #include <iostream>
 #include "VegGeometryTechnique.h"
 #include "VegetationUtils.h"
+
+#ifndef OSG_VERSION_GREATER_OR_EQUAL
+#define OSG_VERSION_GREATER_OR_EQUAL(MAJOR, MINOR, PATCH) ((OPENSCENEGRAPH_MAJOR_VERSION>MAJOR) || (OPENSCENEGRAPH_MAJOR_VERSION==MAJOR && (OPENSCENEGRAPH_MINOR_VERSION>MINOR || (OPENSCENEGRAPH_MINOR_VERSION==MINOR && OPENSCENEGRAPH_PATCH_VERSION>=PATCH))))
+#endif
+
+
+#if OSG_VERSION_GREATER_OR_EQUAL( 3, 5, 1 )
+	#include <osgTerrain/DisplacementMappingTechnique>
+#endif
+
 
 template<class T>
 class FindTopMostNodeOfTypeVisitor : public osg::NodeVisitor
@@ -192,12 +205,12 @@ int main(int argc, char** argv)
 	terrain->setTerrainTechniquePrototype(new VegGeometryTechnique());
 	terrain->setSampleRatio(sampleRatio);
 	terrain->setVerticalScale(verticalScale);
-
+#if OSG_VERSION_GREATER_OR_EQUAL( 3, 5, 1 )
 	if (useDisplacementMappingTechnique)
 	{
 		terrain->setTerrainTechniquePrototype(new osgTerrain::DisplacementMappingTechnique());
 	}
-
+#endif
 	// register our custom handler for adjust Terrain settings
 	//viewer.addEventHandler(new TerrainHandler(terrain.get(), findTopMostNodeOfType<osgFX::MultiTextureControl>(rootnode.get())));
 
