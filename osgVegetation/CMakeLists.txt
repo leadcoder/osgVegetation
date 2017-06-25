@@ -40,13 +40,22 @@ SET(H_FILES
 	ITerrainQuery.h
 	TerrainQuery.h
 	VegetationUtils.h
+	Tessellation.h
 )
 
 SET(SHADERS_FILES
 	shaders/brt_fragment.glsl
 	shaders/brt_geometry.glsl
 	shaders/brt_vertex.glsl
+	shaders/veg_vertex.glsl
+	shaders/veg_tess_ctrl.glsl
+	shaders/veg_tess_eval.glsl
 	shaders/veg_geometry.glsl
+	shaders/veg_fragment.glsl
+	shaders/terrain_vertex.glsl
+	shaders/terrain_tess_ctrl.glsl
+	shaders/terrain_tess_eval.glsl
+	shaders/terrain_fragment.glsl
 )
 
 include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})

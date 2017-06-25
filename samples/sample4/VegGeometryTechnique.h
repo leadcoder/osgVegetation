@@ -76,6 +76,7 @@ public:
 	{
 		std::vector<std::string> tex_names;
 		tex_names.push_back("billboards/grass0.png");
+		tex_names.push_back("billboards/fir01_bb.png");
 		m_TexArray = osgVegetation::Utils::loadTextureArray(tex_names);
 	}
 
@@ -90,6 +91,7 @@ class VegGeometryTechnique : public osgTerrain::GeometryTechnique
 {
 private:
 	osg::Geode *_vegGeode;
+
 	VegetationData* _vegData;
 public:
 
@@ -115,47 +117,8 @@ public:
 
 	void applyColorLayers(BufferData& buffer)
 	{
-		if (!_vegData)
-			_vegData = new VegetationData();
-		osgTerrain::GeometryTechnique::applyColorLayers(buffer);
 
-		osg::StateSet* stateset = _vegGeode->getOrCreateStateSet();
-		//osgTerrain::Layer* colorLayer = _terrainTile->getColorLayer(0);
-		osg::Texture* texture = dynamic_cast<osg::Texture*>(buffer._geode->getOrCreateStateSet()->getTextureAttribute(0, osg::StateAttribute::TEXTURE));
-		stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
-		stateset->setTextureAttributeAndModes(1, _vegData->m_TexArray, osg::StateAttribute::ON);
-
-		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
-		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.9);
-		stateset->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
-
-		//if (data.UseAlphaBlend)
-		{
-			stateset->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
-			stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
-		}
-
-		//if (data.UseMultiSample)
-		{
-		//	stateset->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
-		//	stateset->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
-		//	stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
-		}
-
-		stateset->setMode(GL_LIGHTING, osg::StateAttribute::ON);
 		
-
-		osg::Program* program = new osg::Program;
-		stateset->setAttribute(program);
-
-		osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture", 0);
-		stateset->addUniform(baseTextureSampler);
-
-		osg::Uniform* vegTextureSampler = new osg::Uniform("vegTexture", 1);
-		stateset->addUniform(vegTextureSampler);
-
-		// use inline shaders
-
 		///////////////////////////////////////////////////////////////////
 		// vertex shader using just Vec4 coefficients
 		char vertexShaderSource2[] =
@@ -182,7 +145,7 @@ public:
 			"}\n";
 
 
-		char vertexShaderSource[] =
+		char _vertexShaderSource[] =
 			//"#version 140\n"
 			//"in vec4 osg_Vertex;\n"
 			//	"in vec4 osg_MultiTexCoord0;\n"
@@ -215,7 +178,7 @@ public:
 		//////////////////////////////////////////////////////////////////
 		// fragment shader
 		//
-		char fragmentShaderSource[] =
+		char _fragmentShaderSource[] =
 			"#version 120\n"
 			"#extension GL_EXT_gpu_shader4 : enable\n"
 			"#extension GL_EXT_texture_array : enable\n"
@@ -229,7 +192,7 @@ public:
 			//"    gl_FragColor = texture2D( vegTexture, otexcoord); \n"
 			"}\n";
 
-		char geomShaderSource[] =
+		char _geomShaderSource[] =
 			"#version 120 \n"
 			"#extension GL_ARB_geometry_shader4 : enable\n"
 			"\n"
@@ -269,7 +232,7 @@ public:
 		"   EndPrimitive();\n"
 		"}\n";*/
 
-		static const char* tessControlSource = {
+		static const char* _tessControlSource = {
 			"#version 400\n"
 			"layout(vertices = 4) out;\n"
 			"in vec4 vPosition[];\n"
@@ -301,7 +264,7 @@ public:
 			"}\n"
 		};
 
-		static const char* tessEvalSource = {
+		static const char* _tessEvalSource = {
 			"#version 400\n"
 			"layout(quads, equal_spacing, ccw) in;\n"
 			"in vec4 tcPosition[];\n"
@@ -326,7 +289,7 @@ public:
 			"vec2 b2 = mix(tcTexcoord[2], tcTexcoord[3], u);\n"
 			//"texcoord = position.xy;\n"
 			"texcoord = mix(a2, b2, v);\n"
-			
+
 			//"position.z = texture2D(terrainTexture, texcoord).r;\n"
 			//"    tePatchDistance = gl_TessCoord;\n"
 			//"    tePosition = normalize(p0 + p1 + p2);\n"
@@ -335,22 +298,71 @@ public:
 			"}\n"
 		};
 
-		std::string  vertexSource, fragmentSource, geometrySource;
-		//readFile("c:/temp/shaders/geom.glsl", geometrySource);
-		//readFile("shaders/brt_vertex.glsl", vertexSource);
-		//readFile("shaders/brt_fragment.glsl", fragmentSource);
+		if (!_vegData)
+			_vegData = new VegetationData();
+		osgTerrain::GeometryTechnique::applyColorLayers(buffer);
+
+		osg::StateSet* stateset = _vegGeode->getOrCreateStateSet();
+		//osgTerrain::Layer* colorLayer = _terrainTile->getColorLayer(0);
+		osg::Texture* texture = dynamic_cast<osg::Texture*>(buffer._geode->getOrCreateStateSet()->getTextureAttribute(0, osg::StateAttribute::TEXTURE));
+		stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+		stateset->setTextureAttributeAndModes(1, _vegData->m_TexArray, osg::StateAttribute::ON);
+
+		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
+		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.9);
+		stateset->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
+
+		//if (data.UseAlphaBlend)
+		{
+			stateset->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
+			stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+		}
+
+		//if (data.UseMultiSample)
+		{
+		//	stateset->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+		//	stateset->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+		//	stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+		}
+
+		stateset->setMode(GL_LIGHTING, osg::StateAttribute::ON);
+		
+
+		osg::Program* program = new osg::Program;
+		stateset->setAttribute(program);
+
+		osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture", 0);
+		stateset->addUniform(baseTextureSampler);
+
+		osg::Uniform* vegTextureSampler = new osg::Uniform("vegTexture", 1);
+		stateset->addUniform(vegTextureSampler);
+
+
+		std::string  vertexSource, tessCtrlSource, tessEvalSource, geometrySource, fragmentSource;
+		/*readFile("shaders/veg_vertex.glsl", vertexSource);
+		readFile("shaders/veg_tess_ctrl.glsl", tessCtrlSource);
+		readFile("shaders/veg_tess_eval.glsl", tessEvalSource);
 		readFile("shaders/veg_geometry.glsl", geometrySource);
+		readFile("shaders/veg_fragment.glsl", fragmentSource);
 
-		program->addShader(new osg::Shader(osg::Shader::VERTEX, vertexShaderSource));
-		program->addShader(new osg::Shader(osg::Shader::FRAGMENT, fragmentShaderSource));
-		program->addShader(new osg::Shader(osg::Shader::TESSCONTROL, tessControlSource));
-		program->addShader(new osg::Shader(osg::Shader::TESSEVALUATION, tessEvalSource));
 		program->addShader(new osg::Shader(osg::Shader::GEOMETRY, geometrySource));
-
 		program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 4);
+		program->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
+		*/
+		readFile("shaders/terrain_vertex.glsl", vertexSource);
+		readFile("shaders/terrain_tess_ctrl.glsl", tessCtrlSource);
+		readFile("shaders/terrain_tess_eval.glsl", tessEvalSource);
+		readFile("shaders/terrain_fragment.glsl", fragmentSource);
+
+		program->addShader(new osg::Shader(osg::Shader::VERTEX, vertexSource));
+		program->addShader(new osg::Shader(osg::Shader::TESSCONTROL, tessCtrlSource));
+		program->addShader(new osg::Shader(osg::Shader::TESSEVALUATION, tessEvalSource));
+		program->addShader(new osg::Shader(osg::Shader::FRAGMENT, fragmentSource));
+
+		
 
 		//program->setParameter(GL_GEOMETRY_INPUT_TYPE_EXT, GL_PATCHES);
-		program->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
+		
 	}
 
 	void generateGeometry(BufferData& buffer, osgTerrain::Locator* masterLocator, const osg::Vec3d& centerModel)
@@ -363,9 +375,11 @@ public:
 		osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(_terrainTile->getElevationLayer());
 		if (layer)
 		{
+			//_terrainTile->setNodeMask(0);
 			osg::HeightField* hf = layer->getHeightField();
 			if (hf)
 			{
+				
 				unsigned int numColumns = hf->getNumColumns();
 				unsigned int  numRows = hf->getNumRows();
 				float columnCoordDelta = hf->getXInterval();
@@ -411,7 +425,7 @@ public:
 				geometry->setTexCoordArray(0, &t);
 				geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
 
-				osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 4 * (numColumns*numRows)));
+				osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
 				geometry->addPrimitiveSet(&drawElements);
 				int ei = 0;
 				for (int r = 0; r < numRows - 1; ++r)
@@ -422,10 +436,23 @@ public:
 					//int ei = 0;
 					for (int c = 0; c < numColumns - 1; ++c)
 					{
-						drawElements[ei++] = (r + 1)*numColumns + c;
+						/*drawElements[ei++] = (r + 1)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c + 1;
+
+						drawElements[ei++] = (r)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;*/
+					
+						
+						
 						drawElements[ei++] = (r)*numColumns + c;
 						drawElements[ei++] = (r)*numColumns + c + 1;
 						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c;
 					}
 				}
 
@@ -440,17 +467,35 @@ public:
 				osg::Vec3 size(numColumns*columnCoordDelta, numRows*rowCoordDelta, 100);
 				//geometry->setInitialBound(osg::BoundingBox(origin, origin + size));
 				_vegGeode = new osg::Geode();
+
+				osg::StateSet* stateset = _vegGeode->getOrCreateStateSet();
+				stateset->setAttribute(new osg::PatchParameter(3));
+
 				_vegGeode->addDrawable(geometry);
-				buffer._transform->addChild(_vegGeode);
+				//buffer._transform->addChild(_vegGeode);
+
+				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(_terrainTile->getParent(0));
+
+				osg::ref_ptr<osg::MatrixTransform> trans = dynamic_cast<osg::MatrixTransform*>(buffer._transform->clone(osg::CopyOp::SHALLOW_COPY));
+
+				int nf = plod->getNumFileNames();
+				if( nf > 0)
+					std::cout << plod->getFileName(0);
+
+				osg::Group* plod_group = dynamic_cast<osg::Group*>(plod->getParent(0));
+				if(plod_group)
+				plod_group->addChild(_vegGeode);
+
+				//Add geode to top object
 
 				//osg::StateSet* stateset = buffer._geode->getOrCreateStateSet();
 				//stateset = dynamic_cast<osg::StateSet*>(stateset->clone(osg::CopyOp::sDEEP_COPY_ALL));
-				osg::StateSet* stateset = _vegGeode->getOrCreateStateSet();
+				
 				//osgTerrain::Layer* colorLayer = _terrainTile->getColorLayer(0);
 				//osg::Texture* texure = dynamic_cast<osg::Texture*>(buffer._geode->getOrCreateStateSet()->getTextureAttribute(0, osg::StateAttribute::TEXTURE));
 				//stateset->setTextureAttributeAndModes(0, texure, osg::StateAttribute::ON);
 				//geode->setStateSet(stateset);
-				stateset->setAttribute(new osg::PatchParameter(4));
+				
 			}
 		}
 	}

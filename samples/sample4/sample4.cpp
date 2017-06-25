@@ -44,8 +44,9 @@
 #include <osg/PatchParameter>
 
 #include <iostream>
-#include "VegGeometryTechnique.h"
+//#include "VegGeometryTechnique.h"
 #include "VegetationUtils.h"
+#include "Tessellation.h"
 
 #ifndef OSG_VERSION_GREATER_OR_EQUAL
 #define OSG_VERSION_GREATER_OR_EQUAL(MAJOR, MINOR, PATCH) ((OPENSCENEGRAPH_MAJOR_VERSION>MAJOR) || (OPENSCENEGRAPH_MAJOR_VERSION==MAJOR && (OPENSCENEGRAPH_MINOR_VERSION>MINOR || (OPENSCENEGRAPH_MINOR_VERSION==MINOR && OPENSCENEGRAPH_PATCH_VERSION>=PATCH))))
@@ -92,6 +93,324 @@ T* findTopMostNodeOfType(osg::Node* node)
 
 	return fnotv._foundNode;
 }
+
+/*
+class MyTileLoadedCallback : public osgTerrain::TerrainTile::TileLoadedCallback
+{
+public:
+	MyTileLoadedCallback() {}
+	virtual bool deferExternalLayerLoading() const { return false; }
+	virtual void loaded(osgTerrain::TerrainTile* tile, const osgDB::ReaderWriter::Options* options) const
+	{
+		osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(tile->getElevationLayer());
+		if (layer)
+		{
+			osg::HeightField* hf = layer->getHeightField();
+			if (hf)
+			{
+				unsigned int numRows = hf->getNumColumns();
+				unsigned int numColumns = hf->getNumRows();
+				float columnCoordDelta = hf->getXInterval();
+				float rowCoordDelta = hf->getYInterval();
+
+				osg::Geometry* geometry = new osg::Geometry;
+
+				osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
+				osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
+
+				color[0].set(255, 255, 255, 255);
+
+
+				float rowTexDelta = 1.0f / (float)(numRows - 1);
+				float columnTexDelta = 1.0f / (float)(numColumns - 1);
+				osg::Vec3 origin = hf->getOrigin();
+				origin.z() += 10;
+				osg::Vec3 pos(0, 0, origin.z());
+				osg::Vec2 tex(0.0f, 0.0f);
+				int vi = 0;
+				for (int r = 0; r < numRows; ++r)
+				{
+					pos.x() = 0.0;// origin.x();
+					tex.x() = 0.0f;
+					for (int c = 0; c < numColumns; ++c)
+					{
+						float h = hf->getHeight(c, r);
+						v[vi].set(pos.x(), pos.y(), h + 10);
+						pos.x() += columnCoordDelta;
+						tex.x() += columnTexDelta;
+						++vi;
+					}
+					pos.y() += rowCoordDelta;
+					tex.y() += rowTexDelta;
+				}
+
+				geometry->setVertexArray(&v);
+				geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
+
+			
+
+				osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
+				geometry->addPrimitiveSet(&drawElements);
+				int ei = 0;
+				for (int r = 0; r < numRows - 1; ++r)
+				{
+					for (int c = 0; c < numColumns - 1; ++c)
+					{
+			
+						drawElements[ei++] = (r)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c;
+					}
+				}
+
+
+				//osg::Vec3 size(numColumns*columnCoordDelta, numRows*rowCoordDelta, 100);
+				osg::Vec3 size(FLT_MAX, FLT_MAX, FLT_MAX);
+				//geometry->setInitialBound(osg::BoundingBox(origin, origin + size));
+				geometry->setInitialBound(osg::BoundingBox(-size, size));
+				geometry->setUseDisplayList(false);
+
+				osg::Geode* geode = new osg::Geode();
+				geode->addDrawable(geometry);
+				geode->getOrCreateStateSet()->setDataVariance(osg::Object::DYNAMIC);
+				osg::PositionAttitudeTransform* pat = new osg::PositionAttitudeTransform();
+				pat->setPosition(origin);
+				pat->addChild(geode);
+
+				if (tile && tile->getNumParents() > 0)
+				{
+					osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(tile->getParent(0));
+					//osg::ref_ptr<osg::MatrixTransform> trans = dynamic_cast<osg::MatrixTransform*>(buffer._transform->clone(osg::CopyOp::SHALLOW_COPY));
+
+					if (plod)
+					{
+						osg::Group* plod_group = dynamic_cast<osg::Group*>(plod->getParent(0));
+						if (plod_group)
+							plod_group->addChild(pat);
+					}
+				}
+				
+				//tile->addChild(geode);
+				//geode->setName("-----------hejsan");
+			}
+		}
+	}
+protected:
+	virtual ~MyTileLoadedCallback() {};
+};
+*/
+
+class CleanTechniqueReadFileCallback : public osgDB::ReadFileCallback
+{
+
+public:
+	CleanTechniqueReadFileCallback(const std::vector<osgVegetation::VegetationData> &data) : m_VegData(data)
+	{
+
+	}
+	
+
+	class TerrainTileVisitor : public osg::NodeVisitor
+	{
+	public:
+		std::vector<osgTerrain::TerrainTile*> Tiles;
+		osg::Group* MainGroup;
+		TerrainTileVisitor() :
+			osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN){
+		}
+
+		void apply(osg::Node& node)
+		{
+			osgTerrain::TerrainTile* tile = dynamic_cast<osgTerrain::TerrainTile*>(&node);
+			if (tile)
+			{
+				Tiles.push_back(tile);
+				//osgTerrain::TileID id = tile->getTileID();
+				/*
+				osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(tile->getElevationLayer());
+				if (layer)
+				{
+					osg::HeightField* hf = layer->getHeightField();
+					if (hf)
+					{
+						unsigned int numColumns = hf->getNumColumns();
+						unsigned int numRows = hf->getNumRows();
+						float columnCoordDelta = hf->getXInterval();
+						float rowCoordDelta = hf->getYInterval();
+
+						osg::Geometry* geometry = new osg::Geometry;
+
+						osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
+						osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
+						osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
+
+						color[0].set(255, 255, 255, 255);
+
+
+						float rowTexDelta = 1.0f / (float)(numRows - 1);
+						float columnTexDelta = 1.0f / (float)(numColumns - 1);
+
+						osg::Vec3 local_origin(0, 0, 0);
+						//local_origin.x() = -(columnCoordDelta*(numColumns - 1)) / 2.0;
+						//local_origin.y() = -(rowCoordDelta*(numRows - 1)) / 2.0;
+						//origin.z() += 1;
+
+						osg::Vec3 pos(local_origin.x(), local_origin.y(), local_origin.z());
+						osg::Vec2 tex(0.0f, 0.0f);
+						int vi = 0;
+						for (int r = 0; r < numRows; ++r)
+						{
+							pos.x() = local_origin.x();
+							tex.x() = 0.0f;
+							for (int c = 0; c < numColumns; ++c)
+							{
+								float h = hf->getHeight(c, r);
+								v[vi].set(pos.x(), pos.y(), h);
+								t[vi].set(tex.x(), tex.y());
+								pos.x() += columnCoordDelta;
+								tex.x() += columnTexDelta;
+								++vi;
+							}
+							pos.y() += rowCoordDelta;
+							tex.y() += rowTexDelta;
+						}
+
+				
+						geometry->setVertexArray(&v);
+						geometry->setTexCoordArray(0, &t);
+						geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
+
+					
+						osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
+						geometry->addPrimitiveSet(&drawElements);
+						int ei = 0;
+						for (int r = 0; r < numRows - 1; ++r)
+						{
+							for (int c = 0; c < numColumns - 1; ++c)
+							{
+
+								drawElements[ei++] = (r)*numColumns + c;
+								drawElements[ei++] = (r)*numColumns + c + 1;
+								drawElements[ei++] = (r + 1)*numColumns + c + 1;
+
+								drawElements[ei++] = (r + 1)*numColumns + c + 1;
+								drawElements[ei++] = (r + 1)*numColumns + c;
+								drawElements[ei++] = (r)*numColumns + c;
+							}
+						}
+
+						//osg::Vec3 size(numColumns*columnCoordDelta, numRows*rowCoordDelta, 100);
+						osg::Vec3 size(FLT_MAX, FLT_MAX, FLT_MAX);
+						//geometry->setInitialBound(osg::BoundingBox(origin, origin + size));
+						//geometry->setInitialBound(osg::BoundingBox(-size, size));
+						geometry->setUseDisplayList(false);
+
+						osg::Geode* geode = new osg::Geode();
+						geode->addDrawable(geometry);
+						geode->getOrCreateStateSet()->setDataVariance(osg::Object::DYNAMIC);
+						*/
+						
+					/*	osg::Geode* hf_geom = osgVegetation::GeomConvert::HeightFieldToTriPatches(hf);
+						osgVegetation::VegetationData::PrepareVegLayer(hf_geom->getOrCreateStateSet(), VegData);
+
+						//Add color texture
+						osgTerrain::Layer* colorLayer = tile->getColorLayer(0);
+						if (colorLayer)
+						{
+							osg::Image* image = colorLayer->getImage();
+							osg::Texture2D* texture = new osg::Texture2D(image);
+							hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+						}
+						osg::PositionAttitudeTransform* pat = new osg::PositionAttitudeTransform();
+						pat->setPosition(hf->getOrigin());
+						pat->addChild(hf_geom);
+						Tiles.push_back(pat);
+						*/
+						/*if (tile && tile->getNumParents() > 0)
+						{
+							osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(tile->getParent(0));
+							//osg::ref_ptr<osg::MatrixTransform> trans = dynamic_cast<osg::MatrixTransform*>(buffer._transform->clone(osg::CopyOp::SHALLOW_COPY));
+
+							if (plod && plod->getNumParents() > 0)
+							{
+								RetGroup = dynamic_cast<osg::Group*>(plod->getParent(0));
+							}
+						}*/
+					//}
+				//}
+			}
+			else
+			{
+				traverse(node);
+			}
+		}
+	};
+
+	static int extractLODLevelFromFileName(const std::string& filename)
+	{
+		std::string clean_filename = filename;
+		std::size_t found = clean_filename.find_last_of("/\\");
+		if (found != std::string::npos)
+			clean_filename = clean_filename.substr(found + 1);
+
+		found = clean_filename.find("_L");
+
+		int lod_level = -1;
+		if (found != std::string::npos)
+		{
+			std::string level = clean_filename.substr(found + 2);
+			found = level.find("_X");
+			if (found != std::string::npos)
+			{
+				level = level.substr(0, found);
+				lod_level = atoi(level.c_str());
+			}
+		}
+		return lod_level;
+	}
+
+
+	virtual osgDB::ReaderWriter::ReadResult readNode(const std::string& filename, const osgDB::Options* options)
+	{
+		osgDB::ReaderWriter::ReadResult rr = ReadFileCallback::readNode(filename, options);
+		
+		int lod_level = extractLODLevelFromFileName(filename);
+		
+		for (size_t i = 0; i < m_VegData.size(); i++)
+		{
+			if (lod_level == m_VegData[i].LODLevel && rr.validNode())
+			{
+				TerrainTileVisitor ttv;
+				rr.getNode()->accept(ttv);
+
+				osg::Group* group = dynamic_cast<osg::Group*>(rr.getNode());
+				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(rr.getNode());
+				if (group && plod == 0)
+				{
+					osg::Group* veg_layer = new osg::Group();
+					group->addChild(veg_layer);
+					osgVegetation::VegetationData::PrepareVegLayer(veg_layer->getOrCreateStateSet(), m_VegData[i]);
+					for (size_t j = 0; j < ttv.Tiles.size(); j++)
+					{
+						osg::Node* veg_geometry_node = osgVegetation::GeomConvert::ToTriPatchGeometry(ttv.Tiles[j]);
+						veg_layer->addChild(veg_geometry_node);
+					}
+				}
+			
+			}
+		}
+		return rr;
+	}
+
+protected:
+	virtual ~CleanTechniqueReadFileCallback() {}
+
+	std::vector<osgVegetation::VegetationData> m_VegData;
+};
 
 
 //#include "vegTerrainTech.h"
@@ -162,6 +481,18 @@ int main(int argc, char** argv)
 	//MyTileLoadedCallback* cb = new MyTileLoadedCallback();
 	//osgTerrain::TerrainTile::setTileLoadedCallback(cb);
 
+
+	osgVegetation::VegetationData grass_data(100, 16, 4);
+	grass_data.Billboards.push_back(osgVegetation::Billboard("billboards/grass0.png", osg::Vec2f(1, 1)));
+
+	std::vector<osgVegetation::VegetationData> data;
+	data.push_back(grass_data);
+
+	osgVegetation::VegetationData tree_data(1740, 2, 2);
+	tree_data.Billboards.push_back(osgVegetation::Billboard("billboards/fir01_bb.png", osg::Vec2f(4, 8)));
+//	data.push_back(tree_data);
+
+	osgDB::Registry::instance()->setReadFileCallback(new CleanTechniqueReadFileCallback(data));
 	// load the nodes from the commandline arguments.
 	
 #if OSG_VERSION_GREATER_OR_EQUAL(3,5,1)
@@ -203,11 +534,10 @@ int main(int argc, char** argv)
 	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 
-	std::vector<std::string> tex_names;
-	tex_names.push_back("billboards/grass0.png");
 	//osg::ref_ptr<osg::Texture2DArray> textures = osgVegetation::Utils::loadTextureArray(tex_names);
 
-	terrain->setTerrainTechniquePrototype(new VegGeometryTechnique());
+	//terrain->setTerrainTechniquePrototype(new VegGeometryTechnique());
+
 	terrain->setSampleRatio(sampleRatio);
 	terrain->setVerticalScale(verticalScale);
 #if OSG_VERSION_GREATER_OR_EQUAL( 3, 5, 1 )
