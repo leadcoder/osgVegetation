@@ -53,17 +53,21 @@ namespace osgVegetation
 		int LODLevel;
 		std::vector<Billboard> Billboards;
 
-		osg::ref_ptr<osg::Texture2DArray> GetTexArray() const
+		osg::ref_ptr<osg::Texture2DArray> _BillboardTextures;
+		osg::ref_ptr<osg::Texture2DArray> GetOrCreateTexArray()
 		{
+			if (_BillboardTextures.valid())
+				return _BillboardTextures;
 			std::vector<std::string> tex_names;
 			for (size_t i = 0; i < Billboards.size(); i++)
 			{
 				tex_names.push_back(Billboards[i].TextureName);
 			}
-			return osgVegetation::Utils::loadTextureArray(tex_names);
+			_BillboardTextures = osgVegetation::Utils::loadTextureArray(tex_names);
+			return _BillboardTextures;
 		}
 
-		static void PrepareVegLayer(osg::StateSet* stateset, const VegetationData& data)
+		static void PrepareVegLayer(osg::StateSet* stateset, VegetationData& data)
 		{
 			osg::Program* program = new osg::Program;
 			stateset->setAttribute(program);
@@ -105,7 +109,7 @@ namespace osgVegetation
 				stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 			}
 
-			stateset->setTextureAttributeAndModes(1, data.GetTexArray(), osg::StateAttribute::ON);
+			stateset->setTextureAttributeAndModes(1, data.GetOrCreateTexArray(), osg::StateAttribute::ON);
 #if 0 //debug
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("shaders/terrain_vertex.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("shaders/terrain_tess_ctrl.glsl")));

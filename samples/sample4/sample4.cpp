@@ -490,7 +490,7 @@ int main(int argc, char** argv)
 
 	osgVegetation::VegetationData tree_data(1740, 2, 2);
 	tree_data.Billboards.push_back(osgVegetation::Billboard("billboards/fir01_bb.png", osg::Vec2f(4, 8)));
-//	data.push_back(tree_data);
+	data.push_back(tree_data);
 
 	osgDB::Registry::instance()->setReadFileCallback(new CleanTechniqueReadFileCallback(data));
 	// load the nodes from the commandline arguments.
