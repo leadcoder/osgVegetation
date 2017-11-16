@@ -40,7 +40,6 @@ SET(H_FILES
 	ITerrainQuery.h
 	TerrainQuery.h
 	VegetationUtils.h
-	Tessellation.h
 )
 
 SET(SHADERS_FILES
