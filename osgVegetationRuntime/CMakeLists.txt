@@ -4,7 +4,7 @@ set(LIB_NAME "osgVegetationRuntime")
 include(OSGDep)
 
 SET(CPP_FILES 
-	ov_Dummy.cpp
+	ov_Runtime.cpp
 )
 
 SET(H_FILES
