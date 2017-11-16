@@ -235,7 +235,7 @@ main(int argc, char** argv)
 
 	osgDB::Registry::instance()->setReadFileCallback(new VegetationReadFileCallback(data));
 
-	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/us-terrain.osgb");
+	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/us-terrain.zip/us-terrain.osg");
 	PrepareTerrain(rootnode);
 	//osg::ref_ptr<osgTerrain::Terrain> terrain = findTopMostNodeOfType<osgTerrain::Terrain>(rootnode.get());
 	viewer.setSceneData(rootnode);
