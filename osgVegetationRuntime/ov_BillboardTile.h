@@ -1,0 +1,202 @@
+#pragma once
+
+#include "ov_BillboardLayer.h"
+#include <osg/PositionAttitudeTransform>
+#include <osg/PatchParameter>
+#include <osg/Program>
+#include <osg/AlphaFunc>
+#include <osg/BlendFunc>
+#include <osg/Texture2D>
+#include <osgDB/ReadFile>
+#include <osgDB/FileUtils>
+#include <osgTerrain/TerrainTile>
+#include <iostream>
+
+namespace osgVegetation
+{
+	class BillboardTile : public osg::PositionAttitudeTransform
+	{
+	public:
+	
+		BillboardTile(BillboardLayer &layer, osgTerrain::TerrainTile* tile)
+		{
+			_PrepareVegLayer(getOrCreateStateSet(), layer);
+			_CreateGeode(tile);
+		}
+
+		~BillboardTile()
+		{
+
+		}
+	private:
+		void _PrepareVegLayer(osg::StateSet* stateset, BillboardLayer& data)
+		{
+			osg::Program* program = new osg::Program;
+			stateset->setAttribute(program);
+			stateset->addUniform(new osg::Uniform("ov_color_texture", 0));
+			stateset->addUniform(new osg::Uniform("ov_billboard_texture", 1));
+
+			stateset->addUniform(new osg::Uniform("ov_billboard_max_distance", data.MaxDistance));
+			stateset->addUniform(new osg::Uniform("ov_billboard_density", data.Density));
+
+			int num_billboards = static_cast<int>(data.Billboards.size());
+			osg::Uniform* numBillboards = new osg::Uniform("ov_num_billboards", num_billboards);
+			stateset->addUniform(numBillboards);
+
+			const int MAX_BILLBOARDS = 10;
+			osg::Uniform *billboardUniform = new osg::Uniform(osg::Uniform::FLOAT_VEC4, "ov_billboard_data", MAX_BILLBOARDS);
+			for (unsigned int i = 0; i < MAX_BILLBOARDS; ++i)
+			{
+				//Setdefault values
+				billboardUniform->setElement(i, osg::Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
+			}
+
+			for (unsigned int i = 0; i < data.Billboards.size(); ++i)
+			{
+				osg::Vec2 size = data.Billboards[i].Size;
+				billboardUniform->setElement(i, osg::Vec4f(size.x(), size.y(), 1.0f, 1.0f));
+			}
+
+			stateset->addUniform(billboardUniform);
+			osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
+			alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.9);
+			stateset->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
+
+			//if (data.UseAlphaBlend)
+			{
+				stateset->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
+				stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+			}
+
+			stateset->setTextureAttributeAndModes(1, data.GetOrCreateTexArray(), osg::StateAttribute::ON);
+#if 0 //debug
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("shaders/terrain_vertex.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("shaders/terrain_tess_ctrl.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("shaders/terrain_tess_eval.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("shaders/terrain_fragment.glsl")));
+#else			
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_billboard_vertex.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("ov_billboard_tess_ctrl.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_billboard_tess_eval.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_billboard_geometry.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_billboard_fragment.glsl")));
+			program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 4);
+			program->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
+#endif			
+			stateset->setAttribute(new osg::PatchParameter(3));
+		}
+
+		void _CreateGeode(osgTerrain::TerrainTile* tile)
+		{
+			osg::Node* node = NULL;
+			osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(tile->getElevationLayer());
+			if (layer)
+			{
+				osg::HeightField* hf = layer->getHeightField();
+				if (hf)
+				{
+					osg::Geometry* hf_geom = _CreateGeometry(hf);
+
+					//Add color texture
+					osgTerrain::Layer* colorLayer = tile->getColorLayer(0);
+					if (colorLayer)
+					{
+						osg::Image* image = colorLayer->getImage();
+						osg::Texture2D* texture = new osg::Texture2D(image);
+						hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+					}
+					osg::Geode* geode = new osg::Geode();
+					geode->addDrawable(hf_geom);
+					setPosition(hf->getOrigin());
+					addChild(geode);
+				}
+			}
+		}
+
+		static osg::Geometry* _CreateGeometry(osg::HeightField* hf)
+		{
+			unsigned int numColumns = hf->getNumColumns();
+			unsigned int numRows = hf->getNumRows();
+			float columnCoordDelta = hf->getXInterval();
+			float rowCoordDelta = hf->getYInterval();
+
+			osg::Geometry* geometry = new osg::Geometry;
+
+			osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
+			osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
+			osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
+			color[0].set(255, 255, 255, 255);
+			float rowTexDelta = 1.0f / (float)(numRows - 1);
+			float columnTexDelta = 1.0f / (float)(numColumns - 1);
+			osg::Vec3 local_origin(0, 0, 0);
+
+			osg::Vec3 pos(local_origin.x(), local_origin.y(), local_origin.z());
+			osg::Vec2 tex(0.0f, 0.0f);
+			int vi = 0;
+			for (unsigned int r = 0; r < numRows; ++r)
+			{
+				pos.x() = local_origin.x();
+				tex.x() = 0.0f;
+				for (unsigned int c = 0; c < numColumns; ++c)
+				{
+					float h = hf->getHeight(c, r);
+					v[vi].set(pos.x(), pos.y(), h);
+					t[vi].set(tex.x(), tex.y());
+					pos.x() += columnCoordDelta;
+					tex.x() += columnTexDelta;
+					++vi;
+				}
+				pos.y() += rowCoordDelta;
+				tex.y() += rowTexDelta;
+			}
+
+			geometry->setVertexArray(&v);
+			geometry->setTexCoordArray(0, &t);
+			geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
+
+			osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
+			geometry->addPrimitiveSet(&drawElements);
+			int ei = 0;
+			for (unsigned int r = 0; r < numRows - 1; ++r)
+			{
+				for (unsigned int c = 0; c < numColumns - 1; ++c)
+				{
+					// Try to imitate how GeometryTechnique::generateGeometry optimize 
+					// which way to put the diagonal by choosing to
+					// place it between the two corners that have the least curvature
+					// relative to each other.
+					// Due to how normals are calculated we don't get exact match...fix this by using same normal calulations
+
+					osg::Vec3 n00 = hf->getNormal(c, r);
+					osg::Vec3 n01 = hf->getNormal(c, r + 1);
+					osg::Vec3 n10 = hf->getNormal(c + 1, r);
+					osg::Vec3 n11 = hf->getNormal(c + 1, r + 1);
+					float dot_00_11 = n00 * n11;
+					float dot_01_10 = n01 * n10;
+					if (dot_00_11 > dot_01_10)
+					{
+						drawElements[ei++] = (r)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c;
+					}
+					else
+					{
+						drawElements[ei++] = (r)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;
+
+						drawElements[ei++] = (r)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;
+					}
+				}
+			}
+			geometry->setUseDisplayList(false);
+			return geometry;
+		}
+	};
+}
