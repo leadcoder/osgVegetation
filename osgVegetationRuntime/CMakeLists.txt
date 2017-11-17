@@ -11,6 +11,7 @@ SET(H_FILES
 	ov_BillboardLayer.h
 	ov_BillboardTile.h
 	ov_Common.h
+	ov_Utils.h
 )
 
 SET(SHADERS_FILES
@@ -19,6 +20,7 @@ SET(SHADERS_FILES
 	ov_billboard_tess_eval.glsl
 	ov_billboard_geometry.glsl
 	ov_billboard_fragment.glsl
+	ov_terrain_detail_fragment.glsl
 	#terrain_vertex.glsl
 	#terrain_tess_ctrl.glsl
 	#terrain_tess_eval.glsl

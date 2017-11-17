@@ -17,6 +17,7 @@
 */
 
 #include "ov_BillboardTile.h"
+#include "ov_Utils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
 
@@ -93,13 +94,11 @@ T* findTopMostNodeOfType(osg::Node* node)
 
 class VegetationReadFileCallback : public osgDB::ReadFileCallback
 {
-
 public:
 	VegetationReadFileCallback(const std::vector<osgVegetation::BillboardLayer> &data) : m_VegData(data)
 	{
 
 	}
-
 
 	class TerrainTileVisitor : public osg::NodeVisitor
 	{
@@ -146,20 +145,23 @@ public:
 		}
 		return lod_level;
 	}
-
+#define OV_USE_TILE_ID_LOD_LEVEL
 	virtual osgDB::ReaderWriter::ReadResult readNode(const std::string& filename, const osgDB::Options* options)
 	{
 		osgDB::ReaderWriter::ReadResult rr = ReadFileCallback::readNode(filename, options);
 
-		int lod_level = extractLODLevelFromFileName(filename);
+		TerrainTileVisitor ttv;
+		rr.getNode()->accept(ttv);
 
+#ifdef OV_USE_TILE_ID_LOD_LEVEL
+		const int lod_level = ttv.Tiles.size() > 0 ? ttv.Tiles[0]->getTileID().level - 1 : 0;
+#else
+		const int lod_level = extractLODLevelFromFileName(filename);
+#endif
 		for (size_t i = 0; i < m_VegData.size(); i++)
 		{
 			if (lod_level == m_VegData[i].LODLevel && rr.validNode())
 			{
-				TerrainTileVisitor ttv;
-				rr.getNode()->accept(ttv);
-
 				osg::Group* group = dynamic_cast<osg::Group*>(rr.getNode());
 				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(rr.getNode());
 				if (group && plod == 0)
@@ -245,14 +247,14 @@ int main(int argc, char** argv)
 	unsigned int cpuNum = 0;
 	while (arguments.read("--db-affinity", cpuNum)) { setDatabaseThreadAffinity = true; }
 
-	osgVegetation::BillboardLayer grass_data(100, 16, 4);
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1)));
+	osgVegetation::BillboardLayer grass_data(100, 16, 1.0,1.0, 0.1, 5);
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1),0.9));
 
 	std::vector<osgVegetation::BillboardLayer> data;
 	data.push_back(grass_data);
 
-	osgVegetation::BillboardLayer tree_data(1740, 2, 2);
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(4, 8)));
+	osgVegetation::BillboardLayer tree_data(1740, 3, 0.5, 0.7, 0.1, 2);
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(4, 8),1.4));
 	data.push_back(tree_data);
 
 	osgDB::Registry::instance()->setReadFileCallback(new VegetationReadFileCallback(data));
@@ -264,6 +266,7 @@ int main(int argc, char** argv)
 	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFiles(arguments);
 #endif
 
+	
 	if (!rootnode)
 	{
 		osg::notify(osg::NOTICE) << "Warning: no valid data loaded, please specify a database on the command line." << std::endl;
@@ -296,6 +299,8 @@ int main(int argc, char** argv)
 
 	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
+
+	osgVegetation::PrepareTerrainForDetailMapping(terrain);
 
 	terrain->setSampleRatio(sampleRatio);
 	terrain->setVerticalScale(verticalScale);

@@ -10,8 +10,9 @@ namespace osgVegetation
 		class Billboard
 		{
 		public:
-			Billboard(const std::string &texture, const osg::Vec2f &size) : TextureName(texture),
-				Size(size)
+			Billboard(const std::string &texture, const osg::Vec2f &size, float intensity) : TextureName(texture),
+				Size(size),
+				Intensity(intensity)
 			{
 
 			}
@@ -20,13 +21,18 @@ namespace osgVegetation
 			{
 
 			}
-			osg::Vec2f Size;
 			std::string TextureName;
+			osg::Vec2f Size;
+			float Intensity;
 		private:
 		};
 
-		BillboardLayer(float max_dist = 150, float density = 8, int lod_level = -1) : MaxDistance(max_dist),
-			Density(density), LODLevel(lod_level)
+		BillboardLayer(float max_dist = 150, float density = 8, float color_threshold = 0.2, float color_impact = 1.0, float lc_id = -1, int lod_level = -1) : MaxDistance(max_dist),
+			Density(density), 
+			ColorThreshold(color_threshold),
+			ColorImpact(color_impact),
+			LandCoverID(lc_id),
+			LODLevel(lod_level)
 		{
 
 			//m_TexArray = osgVegetation::Utils::loadTextureArray(tex_names);
@@ -37,8 +43,11 @@ namespace osgVegetation
 
 		}
 
-		float Density;
 		float MaxDistance;
+		float Density;
+		float ColorThreshold;
+		float ColorImpact;
+		float LandCoverID;
 		int LODLevel;
 		std::vector<Billboard> Billboards;
 

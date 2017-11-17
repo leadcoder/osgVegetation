@@ -34,11 +34,17 @@ namespace osgVegetation
 			osg::Program* program = new osg::Program;
 			stateset->setAttribute(program);
 			stateset->addUniform(new osg::Uniform("ov_color_texture", 0));
-			stateset->addUniform(new osg::Uniform("ov_billboard_texture", 1));
+			stateset->addUniform(new osg::Uniform("ov_land_cover_texture", 1));
+			
+			stateset->addUniform(new osg::Uniform("ov_billboard_texture", 2));
 
 			stateset->addUniform(new osg::Uniform("ov_billboard_max_distance", data.MaxDistance));
 			stateset->addUniform(new osg::Uniform("ov_billboard_density", data.Density));
-
+			stateset->addUniform(new osg::Uniform("ov_billboard_color_threshold", data.ColorThreshold));
+			stateset->addUniform(new osg::Uniform("ov_billboard_color_impact", data.ColorImpact));
+			stateset->addUniform(new osg::Uniform("ov_billboard_land_cover_id", data.LandCoverID));
+			
+		
 			int num_billboards = static_cast<int>(data.Billboards.size());
 			osg::Uniform* numBillboards = new osg::Uniform("ov_num_billboards", num_billboards);
 			stateset->addUniform(numBillboards);
@@ -54,7 +60,7 @@ namespace osgVegetation
 			for (unsigned int i = 0; i < data.Billboards.size(); ++i)
 			{
 				osg::Vec2 size = data.Billboards[i].Size;
-				billboardUniform->setElement(i, osg::Vec4f(size.x(), size.y(), 1.0f, 1.0f));
+				billboardUniform->setElement(i, osg::Vec4f(size.x(), size.y(), data.Billboards[i].Intensity, 1.0f));
 			}
 
 			stateset->addUniform(billboardUniform);
@@ -68,7 +74,7 @@ namespace osgVegetation
 				stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 			}
 
-			stateset->setTextureAttributeAndModes(1, data.GetOrCreateTexArray(), osg::StateAttribute::ON);
+			stateset->setTextureAttributeAndModes(2, data.GetOrCreateTexArray(), osg::StateAttribute::ON);
 #if 0 //debug
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("shaders/terrain_vertex.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("shaders/terrain_tess_ctrl.glsl")));
@@ -105,6 +111,16 @@ namespace osgVegetation
 						osg::Texture2D* texture = new osg::Texture2D(image);
 						hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
 					}
+
+					//Add land cover texture
+					osgTerrain::Layer* landCoverLayer = tile->getColorLayer(1);
+					if (landCoverLayer)
+					{
+						osg::Image* image = landCoverLayer->getImage();
+						osg::Texture2D* texture = new osg::Texture2D(image);
+						hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(1, texture, osg::StateAttribute::ON);
+					}
+
 					osg::Geode* geode = new osg::Geode();
 					geode->addDrawable(hf_geom);
 					setPosition(hf->getOrigin());
