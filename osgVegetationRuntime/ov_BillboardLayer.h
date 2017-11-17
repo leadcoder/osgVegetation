@@ -1,4 +1,5 @@
 #pragma once
+#include "ov_Common.h"
 #include <osg/Texture2DArray>
 #include <osgDB/ReadFile>
 namespace osgVegetation
@@ -62,7 +63,7 @@ namespace osgVegetation
 				const std::string texture_name = Billboards[i].TextureName;
 				osg::Image* image = osgDB::readImageFile(texture_name, options);
 				if (image == NULL)
-					throw std::runtime_error(std::string("BillboardLayer::CreateTextureArray - Failed to load texture:" + texture_name).c_str());
+					OSGV_EXCEPT(std::string("BillboardLayer::CreateTextureArray - Failed to load texture:" + texture_name).c_str());
 				if (i == 0) // first image decide array size
 				{
 					tex->setTextureSize(image->s(), image->t(), Billboards.size());

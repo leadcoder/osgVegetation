@@ -10,6 +10,7 @@ SET(CPP_FILES
 SET(H_FILES
 	ov_BillboardLayer.h
 	ov_BillboardTile.h
+	ov_Common.h
 )
 
 SET(SHADERS_FILES
