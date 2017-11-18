@@ -7,6 +7,7 @@
 #include <osg/AlphaFunc>
 #include <osg/BlendFunc>
 #include <osg/Texture2D>
+#include <osg/Multisample>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osgTerrain/TerrainTile>
@@ -65,15 +66,19 @@ namespace osgVegetation
 
 			stateset->addUniform(billboardUniform);
 			osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
-			alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.9);
+			alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, data.AlphaRejectValue);
 			stateset->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
 
-			//if (data.UseAlphaBlend)
+			if (false)
 			{
 				stateset->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
-				stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 			}
-
+			else
+			{ 
+				stateset->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+				stateset->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+			}
+			stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 			stateset->setTextureAttributeAndModes(2, data.GetOrCreateTexArray(), osg::StateAttribute::ON);
 #if 0 //debug
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("shaders/terrain_vertex.glsl")));

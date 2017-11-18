@@ -41,6 +41,7 @@
 #include <osgFX/MultiTextureControl>
 #include <osg/PositionAttitudeTransform>
 #include <osg/PatchParameter>
+#include <osg/Fog>
 
 #include <iostream>
 
@@ -247,25 +248,33 @@ int main(int argc, char** argv)
 	unsigned int cpuNum = 0;
 	while (arguments.read("--db-affinity", cpuNum)) { setDatabaseThreadAffinity = true; }
 
-	osgVegetation::BillboardLayer grass_data(100, 16, 1.0,1.0, 0.1, 5);
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1),0.9));
+	osg::DisplaySettings::instance()->setNumMultiSamples(4);
 
+	//Add sample data path
+	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
+
+
+	osgVegetation::BillboardLayer grass_data(140, 16, 1.0,1.0, 0.1, 5);
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1),0.9));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1), 0.9));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1), 0.9));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.dds", osg::Vec2f(2, 2), 0.9));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1), 0.9));
+
+	
 	std::vector<osgVegetation::BillboardLayer> data;
 	data.push_back(grass_data);
 
-	osgVegetation::BillboardLayer tree_data(1740, 3, 0.5, 0.7, 0.1, 2);
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(4, 8),1.4));
+	osgVegetation::BillboardLayer tree_data(2740, 2, 0.5, 0.7, 0.1, 2);
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(6, 16),1.2));
+	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
+	
 	data.push_back(tree_data);
 
 	osgDB::Registry::instance()->setReadFileCallback(new VegetationReadFileCallback(data));
-	// load the nodes from the commandline arguments.
+	
 
-#if OSG_VERSION_GREATER_OR_EQUAL(3,5,1)
-	osg::ref_ptr<osg::Node> rootnode = osgDB::readRefNodeFiles(arguments);
-#else
-	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFiles(arguments);
-#endif
-
+	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
 	
 	if (!rootnode)
 	{
@@ -297,8 +306,6 @@ int main(int argc, char** argv)
 		rootnode = terrain.get();
 	}
 
-	//Add sample data path
-	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 
 	osgVegetation::PrepareTerrainForDetailMapping(terrain);
 
@@ -325,10 +332,28 @@ int main(int argc, char** argv)
 		}
 	}
 
-	// following are tests of the #pragma(tic) shader composition
-	//terrain->getOrCreateStateSet()->setDefine("NUM_LIGHTS", "1");
-	//terrain->getOrCreateStateSet()->setDefine("LIGHTING"); // , osg::StateAttribute::OFF|osg::StateAttribute::OVERRIDE);
-	//terrain->getOrCreateStateSet()->setDefine("COMPUTE_DIAGONALS"); // , osg::StateAttribute::OFF|osg::StateAttribute::OVERRIDE);
+	bool use_fog = true;
+	if (use_fog)
+	{
+		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
+		//Add fog
+		osg::StateSet* state = terrain->getOrCreateStateSet();
+		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
+		state->setMode(GL_FOG, osg::StateAttribute::ON);
+		state->setAttributeAndModes(fog.get());
+		fog->setMode(osg::Fog::EXP2);
+		fog->setDensity(0.0005);
+		//fog->setEnd(800);
+		//fog->setStart(30);
+		fog->setColor(fog_color);
+		viewer.getCamera()->setClearColor(fog_color);
+		osg::StateSet::DefineList& defineList = state->getDefineList();
+		defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+	}
+	viewer.setUpViewInWindow(100, 100, 800, 600);
+	
+	
+
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
 	//viewer.getCamera()->getGraphicsContext()->getState()->resetVertexAttributeAlias(false, 8);
 	//viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);

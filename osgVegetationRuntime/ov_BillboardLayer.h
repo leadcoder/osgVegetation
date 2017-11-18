@@ -32,10 +32,9 @@ namespace osgVegetation
 			ColorThreshold(color_threshold),
 			ColorImpact(color_impact),
 			LandCoverID(lc_id),
+			AlphaRejectValue(0.1),
 			LODLevel(lod_level)
 		{
-
-			//m_TexArray = osgVegetation::Utils::loadTextureArray(tex_names);
 		}
 
 		~BillboardLayer()
@@ -48,6 +47,7 @@ namespace osgVegetation
 		float ColorThreshold;
 		float ColorImpact;
 		float LandCoverID;
+		float AlphaRejectValue;
 		int LODLevel;
 		std::vector<Billboard> Billboards;
 
@@ -70,6 +70,8 @@ namespace osgVegetation
 			for (size_t i = 0; i < Billboards.size(); i++)
 			{
 				const std::string texture_name = Billboards[i].TextureName;
+				//const osg::ref_ptr<osgDB::ReaderWriter::Options> new_options = new osgDB::ReaderWriter::Options();
+				options->setOptionString("dds_flip");
 				osg::Image* image = osgDB::readImageFile(texture_name, options);
 				if (image == NULL)
 					OSGV_EXCEPT(std::string("BillboardLayer::CreateTextureArray - Failed to load texture:" + texture_name).c_str());
