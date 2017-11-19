@@ -10,9 +10,10 @@ namespace osgVegetation
 		class Billboard
 		{
 		public:
-			Billboard(const std::string &texture, const osg::Vec2f &size, float intensity) : TextureName(texture),
+			Billboard(const std::string &texture, const osg::Vec2f &size, float intensity, float probability) : TextureName(texture),
 				Size(size),
-				Intensity(intensity)
+				Intensity(intensity),
+				Probability(probability)
 			{
 
 			}
@@ -24,6 +25,7 @@ namespace osgVegetation
 			std::string TextureName;
 			osg::Vec2f Size;
 			float Intensity;
+			float Probability;
 		private:
 		};
 

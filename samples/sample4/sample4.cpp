@@ -254,19 +254,17 @@ int main(int argc, char** argv)
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 
 
-	osgVegetation::BillboardLayer grass_data(140, 16, 1.0,1.0, 0.1, 5);
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1),0.9));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1), 0.9));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1), 0.9));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.dds", osg::Vec2f(2, 2), 0.9));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass0.png", osg::Vec2f(1, 1), 0.9));
+	osgVegetation::BillboardLayer grass_data(240, 16, 1.0,0.8, 0.1, 5);
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(6, 6), 0.9, 0.008));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(3, 6), 0.9, 0.002));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(1, 1), 1.0, 1.0));
 
 	
 	std::vector<osgVegetation::BillboardLayer> data;
 	data.push_back(grass_data);
 
 	osgVegetation::BillboardLayer tree_data(2740, 2, 0.5, 0.7, 0.1, 2);
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(6, 16),1.2));
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(6, 16),1.2,1.0));
 	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
 	
 	data.push_back(tree_data);

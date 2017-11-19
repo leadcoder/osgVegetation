@@ -61,7 +61,7 @@ namespace osgVegetation
 			for (unsigned int i = 0; i < data.Billboards.size(); ++i)
 			{
 				osg::Vec2 size = data.Billboards[i].Size;
-				billboardUniform->setElement(i, osg::Vec4f(size.x(), size.y(), data.Billboards[i].Intensity, 1.0f));
+				billboardUniform->setElement(i, osg::Vec4f(size.x(), size.y(), data.Billboards[i].Intensity, data.Billboards[i].Probability));
 			}
 
 			stateset->addUniform(billboardUniform);

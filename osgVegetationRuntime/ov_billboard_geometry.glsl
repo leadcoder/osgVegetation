@@ -99,8 +99,21 @@ void main(void)
 	bb_scale = bb_scale*bb_scale*bb_scale*rand_scale;
 	
 	//get random billboard
-	ov_geometry_tex_index = int( floor( float(ov_num_billboards) * ov_range_rand(0, 1.0, random_pos.xy)));
-	ov_geometry_tex_index = min(ov_geometry_tex_index, ov_num_billboards - 1);
+	float rand_val = ov_range_rand(0, 1.0, random_pos.xy);
+	ov_geometry_tex_index = 0;
+	float acc_probablity = 0;
+	for (int i = 0; i < ov_num_billboards; i++)
+	{
+		float bb_probablity = ov_billboard_data[i].w;
+		if (rand_val > acc_probablity && rand_val < acc_probablity + bb_probablity)
+		{
+			ov_geometry_tex_index = i;
+			break;
+		}
+		acc_probablity += bb_probablity;
+	}
+	//ov_geometry_tex_index = int( floor( float(ov_num_billboards) * ov_range_rand(0, 1.0, random_pos.xy)));
+	//ov_geometry_tex_index = min(ov_geometry_tex_index, ov_num_billboards - 1);
 	vec4 billboard_data = ov_billboard_data[ov_geometry_tex_index];
 	vec2 bb_size = billboard_data.xy;
 	float bb_intensity = billboard_data.z;
