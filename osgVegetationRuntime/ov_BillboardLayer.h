@@ -7,6 +7,14 @@ namespace osgVegetation
 	class BillboardLayer
 	{
 	public:
+
+		enum BillboardLayerType
+		{
+			BLT_ROTATED_QUAD,
+			BLT_CROSS_QUADS,
+			BLT_GRASS
+		};
+
 		class Billboard
 		{
 		public:
@@ -26,6 +34,7 @@ namespace osgVegetation
 			osg::Vec2f Size;
 			float Intensity;
 			float Probability;
+
 		private:
 		};
 
@@ -35,7 +44,8 @@ namespace osgVegetation
 			ColorImpact(color_impact),
 			LandCoverID(lc_id),
 			AlphaRejectValue(0.1),
-			LODLevel(lod_level)
+			LODLevel(lod_level),
+			Type(BLT_ROTATED_QUAD)
 		{
 		}
 
@@ -51,6 +61,7 @@ namespace osgVegetation
 		float LandCoverID;
 		float AlphaRejectValue;
 		int LODLevel;
+		BillboardLayerType Type;
 		std::vector<Billboard> Billboards;
 
 		osg::ref_ptr<osg::Texture2DArray> _BillboardTextures;

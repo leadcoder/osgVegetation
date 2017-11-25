@@ -230,24 +230,6 @@ int main(int argc, char** argv)
 	// add the window size toggle handler
 	viewer.addEventHandler(new osgViewer::WindowSizeHandler);
 
-	// obtain the vertical scale
-	float verticalScale = 1.0f;
-	while (arguments.read("-v", verticalScale)) {}
-
-	// obtain the sample ratio
-	float sampleRatio = 1.0f;
-	while (arguments.read("-r", sampleRatio)) {}
-
-	bool useDisplacementMappingTechnique = false;// arguments.read("--dm");
-	if (useDisplacementMappingTechnique)
-	{
-		//osgDB::Registry::instance()->setReadFileCallback(new VegetationReadFileCallback());
-	}
-
-	bool setDatabaseThreadAffinity = false;
-	unsigned int cpuNum = 0;
-	while (arguments.read("--db-affinity", cpuNum)) { setDatabaseThreadAffinity = true; }
-
 	osg::DisplaySettings::instance()->setNumMultiSamples(4);
 
 	//Add sample data path
@@ -255,6 +237,7 @@ int main(int argc, char** argv)
 
 
 	osgVegetation::BillboardLayer grass_data(240, 16, 1.0,0.8, 0.1, 5);
+	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(6, 6), 0.9, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(3, 6), 0.9, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(1, 1), 1.0, 1.0));
@@ -280,77 +263,28 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	osg::ref_ptr<osgTerrain::Terrain> terrain = findTopMostNodeOfType<osgTerrain::Terrain>(rootnode.get());
-	if (!terrain)
-	{
-		// no Terrain node present insert one above the loaded model.
-		terrain = new osgTerrain::Terrain;
 
-		// if CoordinateSystemNode is present copy it's contents into the Terrain, and discard it.
-		osg::CoordinateSystemNode* csn = findTopMostNodeOfType<osg::CoordinateSystemNode>(rootnode.get());
-		if (csn)
-		{
-			terrain->set(*csn);
-			for (unsigned int i = 0; i < csn->getNumChildren(); ++i)
-			{
-				terrain->addChild(csn->getChild(i));
-			}
-		}
-		else
-		{
-			terrain->addChild(rootnode.get());
-		}
-
-		rootnode = terrain.get();
-	}
-
-
-	osgVegetation::PrepareTerrainForDetailMapping(terrain);
-
-	terrain->setSampleRatio(sampleRatio);
-	terrain->setVerticalScale(verticalScale);
-#if OSG_VERSION_GREATER_OR_EQUAL( 3, 5, 1 )
-	if (useDisplacementMappingTechnique)
-	{
-		terrain->setTerrainTechniquePrototype(new osgTerrain::DisplacementMappingTechnique());
-	}
-#endif
+	osgVegetation::PrepareTerrainForDetailMapping(rootnode);
 
 	// add a viewport to the viewer and attach the scene graph.
 	viewer.setSceneData(rootnode.get());
-
-	// if required set the DatabaseThread affinity, note must call after viewer.setSceneData() so that the osgViewer::Scene object is constructed with it's DatabasePager.
-	if (setDatabaseThreadAffinity)
-	{
-		for (unsigned int i = 0; i < viewer.getDatabasePager()->getNumDatabaseThreads(); ++i)
-		{
-			osgDB::DatabasePager::DatabaseThread* thread = viewer.getDatabasePager()->getDatabaseThread(i);
-			thread->setProcessorAffinity(cpuNum);
-			OSG_NOTICE << "Settings affinity of DatabaseThread=" << thread << " isRunning()=" << thread->isRunning() << " cpuNum=" << cpuNum << std::endl;
-		}
-	}
-
 	bool use_fog = true;
 	if (use_fog)
 	{
 		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
 		//Add fog
-		osg::StateSet* state = terrain->getOrCreateStateSet();
+		osg::StateSet* state = rootnode->getOrCreateStateSet();
 		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
 		state->setMode(GL_FOG, osg::StateAttribute::ON);
 		state->setAttributeAndModes(fog.get());
 		fog->setMode(osg::Fog::EXP2);
 		fog->setDensity(0.0005);
-		//fog->setEnd(800);
-		//fog->setStart(30);
 		fog->setColor(fog_color);
 		viewer.getCamera()->setClearColor(fog_color);
 		osg::StateSet::DefineList& defineList = state->getDefineList();
 		defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 	}
 	viewer.setUpViewInWindow(100, 100, 800, 600);
-	
-	
 
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
 	//viewer.getCamera()->getGraphicsContext()->getState()->resetVertexAttributeAlias(false, 8);

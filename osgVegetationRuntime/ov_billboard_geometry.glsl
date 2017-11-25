@@ -1,6 +1,6 @@
 #version 120
 #extension GL_ARB_geometry_shader4 : enable
-
+#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS,BLT_GRASS)
 in vec2 ov_te_texcoord[];
 varying vec2 ov_geometry_texcoord;
 varying vec4 ov_geometry_color;
@@ -8,6 +8,7 @@ flat varying int ov_geometry_tex_index;
 
 uniform mat4 osg_ModelViewProjectionMatrix;
 uniform mat4 osg_ProjectionMatrix;
+uniform float osg_SimulationTime;
 uniform sampler2D ov_color_texture;
 uniform sampler2D ov_land_cover_texture;
 uniform int ov_num_billboards;
@@ -118,19 +119,82 @@ void main(void)
 	vec2 bb_size = billboard_data.xy;
 	float bb_intensity = billboard_data.z;
 	ov_geometry_color.xyz = ov_geometry_color.xyz*bb_intensity;
+
+#ifdef BLT_ROTATED_QUAD
 	vec3 bb_left = vec3(bb_scale * bb_size.x, 0, 0);
 	vec3 bb_up = (gl_ModelViewMatrix*vec4(0.0, 0, bb_scale * bb_size.y,0)).xyz;
-	//vec3 up = up_vec.xyz;//vec3(0.0, scale*billboard.y,0.0);//Up direction in OSG
-	//vec3 up = vec3(0.0, 0.0, scale*1.0);//Up direction in OSG
-	//vec3 left = vec3(-dir.y, dir.x, 0);
-	//left = normalize(left);
-	//left.x *= 0.5*scale;
-	//left.y *= 0.5*scale;
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
 	bb_vertex.xyz = mv_pos.xyz + bb_left;   gl_Position = osg_ProjectionMatrix* bb_vertex; ov_geometry_texcoord = vec2(0.0, 0.0);  EmitVertex();
 	bb_vertex.xyz = mv_pos.xyz - bb_left;   gl_Position = osg_ProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0);  EmitVertex();
 	bb_vertex.xyz = mv_pos.xyz + bb_left + bb_up;  gl_Position = osg_ProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0);  EmitVertex();
 	bb_vertex.xyz = mv_pos.xyz - bb_left + bb_up;  gl_Position = osg_ProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0);  EmitVertex();
+	//EndPrimitive();
+#endif
+#ifdef BLT_GRASS
+	//get fake random rotation in radians
+	float rand_rad = mod(random_pos.x, 2 * 3.14);
+	
+	//calc sin and cos for random rotation
+	float sin_rot = sin(rand_rad);
+	float cos_rot = cos(rand_rad);
+
+	//calc sin and cos part for billboard width
+	float width_sin = bb_scale*bb_size.x*sin_rot;
+	float width_cos = bb_scale*bb_size.x*cos_rot;
+	float wind = (1 + sin(osg_SimulationTime * rand_rad))*0.1;
+	float sin_wind = sin_rot*wind;
+	float cos_wind = cos_rot*wind;
+	
+	//calc billboard height
+	float height = bb_scale*bb_size.y;
+	
+	//set billboard up vector
+	vec3 up = vec3(0, 0, height);
+
+	//First quad, left vector used to offset in xy-space from anchor point 
+	vec3 bb_left = vec3(-width_sin, -width_cos, 0.0);
+
+	//Calc a adhoc offset vector used to offset top verticies (perpendicular to left vec)
+	//Here we just offset by the perpendicular left vector that will give us a 45-deg tilt
+	//if bb height and width are the same. On top of that we add the wind effect.
+	vec3 offset = vec3(width_cos, -width_sin, 0) + vec3(sin_wind, cos_wind, 0);
+	
+	vec4 bb_vertex;
+	bb_vertex.w = random_pos.w;
+	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
+
+
+	//Second quad, just flip offset
+	offset = -offset;
+
+	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	EndPrimitive();
+
+	//Third quad, calc new left vector (perpendicular to prev left vec)
+	bb_left = vec3(-width_cos, width_sin, 0.0);
+	//also recalc offset to reflect that we have a 90-deg rotatation
+	offset = vec3(-width_sin, -width_cos, 0) + vec3(sin_wind, cos_wind, 0);
+
+	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	EndPrimitive();
+
+	//Last quad, just flip offset as before
+	offset = -offset;
+	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	EndPrimitive();
+#endif
 }

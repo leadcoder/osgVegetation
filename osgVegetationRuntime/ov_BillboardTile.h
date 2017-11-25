@@ -91,9 +91,30 @@ namespace osgVegetation
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_billboard_tess_eval.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_billboard_geometry.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_billboard_fragment.glsl")));
-			program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 4);
+			
 			program->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
-#endif			
+
+			std::string blt_type;
+			if (data.Type == BillboardLayer::BLT_ROTATED_QUAD)
+			{
+				program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 4);
+				blt_type = "BLT_ROTATED_QUAD";
+			}
+			else if (data.Type == BillboardLayer::BLT_CROSS_QUADS)
+			{
+				program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 8);
+				blt_type = "BLT_CROSS_QUADS";
+			}
+			else if (data.Type == BillboardLayer::BLT_GRASS)
+			{
+				program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 16);
+				blt_type = "BLT_GRASS";
+			}
+
+			osg::StateSet::DefineList& defineList = stateset->getDefineList();
+			defineList[blt_type].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+#endif
+
 			stateset->setAttribute(new osg::PatchParameter(3));
 		}
 
