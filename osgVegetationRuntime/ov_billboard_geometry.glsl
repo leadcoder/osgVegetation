@@ -44,7 +44,6 @@ vec3 ov_get_random_barycentric_point(vec2 seed)
     return b;
 }
 
-
 void main(void)
 {
 	vec4 random_pos = vec4(0,0,0,1);
@@ -130,6 +129,52 @@ void main(void)
 	bb_vertex.xyz = mv_pos.xyz + bb_left + bb_up;  gl_Position = osg_ProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0);  EmitVertex();
 	bb_vertex.xyz = mv_pos.xyz - bb_left + bb_up;  gl_Position = osg_ProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0);  EmitVertex();
 	//EndPrimitive();
+#endif
+#ifdef BLT_CROSS_QUADS
+	//get fake random rotation in radians
+	float rand_rad = mod(random_pos.x, 2 * 3.14);
+
+	//calc sin and cos for random rotation
+	float sin_rot = sin(rand_rad);
+	float cos_rot = cos(rand_rad);
+
+	//calc sin and cos part for billboard width
+	float width_sin = bb_scale*bb_size.x*sin_rot;
+	float width_cos = bb_scale*bb_size.x*cos_rot;
+	float wind = (1 + sin(osg_SimulationTime * rand_rad))*0.1;
+	float sin_wind = sin_rot*wind;
+	float cos_wind = cos_rot*wind;
+
+	//calc billboard height
+	float height = bb_scale*bb_size.y;
+
+	//set billboard up vector
+	vec3 up = vec3(0, 0, height);
+
+	//First quad, left vector used to offset in xy-space from anchor point 
+	vec3 bb_left = vec3(-width_sin, -width_cos, 0.0);
+
+	//Calc a offset vector to add wind effect
+	vec3 offset = vec3(sin_wind, cos_wind, 0);
+
+	vec4 bb_vertex;
+	bb_vertex.w = random_pos.w;
+	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	EndPrimitive();
+	
+	//Second quad, calc new left vector (perpendicular to prev left vec)
+	bb_left = vec3(-width_cos, width_sin, 0.0);
+	//also recalc offset to reflect that we have a 90-deg rotatation
+	offset = vec3(sin_wind, cos_wind, 0);
+
+	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	EndPrimitive();
 #endif
 #ifdef BLT_GRASS
 	//get fake random rotation in radians
