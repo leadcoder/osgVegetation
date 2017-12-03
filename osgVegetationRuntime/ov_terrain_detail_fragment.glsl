@@ -1,19 +1,20 @@
 #version 120
-#extension GL_EXT_gpu_shader4 : enable
-#extension GL_EXT_texture_array : enable
+//#extension GL_EXT_gpu_shader4 : enable
+//#extension GL_EXT_texture_array : enable
 #pragma import_defines (FM_LINEAR,FM_EXP,FM_EXP2)
 
 uniform sampler2D ov_color_texture;
 uniform sampler2D ov_land_cover_texture;
 uniform sampler2D ov_detail_texture0;
 uniform sampler2D ov_detail_texture1;
-
+varying vec3 ov_normal;
+varying vec2 ov_tex_coord0;
 void main(void) 
 {
-	vec4 base_color = texture2D(ov_color_texture, gl_TexCoord[0].xy);
-	vec4 lc = texture2D(ov_land_cover_texture, gl_TexCoord[0].xy);
-	vec4 d0 = texture2D(ov_detail_texture0, gl_TexCoord[0].xy*22);
-	vec4 d1 = texture2D(ov_detail_texture1, gl_TexCoord[0].xy*9);
+	vec4 base_color = texture2D(ov_color_texture, ov_tex_coord0.xy);
+	vec4 lc = texture2D(ov_land_cover_texture, ov_tex_coord0.xy);
+	vec4 d0 = texture2D(ov_detail_texture0, ov_tex_coord0.xy*22);
+	vec4 d1 = texture2D(ov_detail_texture1, ov_tex_coord0.xy*9);
 	d0.w = (d0.x + d0.y + d0.z)/3.0;
 	d1.w = (d1.x + d1.y + d1.z)/3.0;
 	vec4 out_color = 2.2*base_color*d0.w*(1.0 - lc.x) + 2*base_color*d1.w*lc.x;
@@ -26,6 +27,13 @@ void main(void)
 	float fade = clamp(depth / 500.0, 0.5, 1);
 	out_color = mix(detail_color, out_color, fade);
 	out_color.a = 1;
+
+	//apply lighting 
+	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
+	vec3 normal = normalize(ov_normal);
+	float NdotL = max(dot(normal, light_dir), 0);
+	out_color.xyz *= min(NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz, 2.0);
+
 
 #if defined(FM_LINEAR) || defined(FM_EXP) || defined(FM_EXP2)
 	

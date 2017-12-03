@@ -110,9 +110,12 @@ namespace osgVegetation
 				program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 16);
 				blt_type = "BLT_GRASS";
 			}
-
+#if OSG_VERSION_GREATER_OR_EQUAL( 3, 4, 0 ) 
 			osg::StateSet::DefineList& defineList = stateset->getDefineList();
 			defineList[blt_type].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+#else
+			//TODO: add compiler warning 
+#endif
 #endif
 
 			stateset->setAttribute(new osg::PatchParameter(3));

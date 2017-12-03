@@ -27,6 +27,7 @@ namespace osgVegetation
 		d1_tex->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::REPEAT);
 		d1_tex->setImage(osgDB::readRefImageFile("terrain/detail/detail_dirt.dds"));
 		terrain->getOrCreateStateSet()->setTextureAttributeAndModes(3, d1_tex, osg::StateAttribute::ON);
+		program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_terrain_detail_vertex.glsl")));
 		program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_terrain_detail_fragment.glsl")));
 	}
 }

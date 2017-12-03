@@ -241,12 +241,12 @@ int main(int argc, char** argv)
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(6, 6), 0.9, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(3, 6), 0.9, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(1, 1), 1.0, 1.0));
-
 	
 	std::vector<osgVegetation::BillboardLayer> data;
 	data.push_back(grass_data);
 
 	osgVegetation::BillboardLayer tree_data(2740, 2, 0.5, 0.7, 0.1, 2);
+	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(6, 16),1.2,1.0));
 	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
 	
@@ -266,6 +266,21 @@ int main(int argc, char** argv)
 
 	osgVegetation::PrepareTerrainForDetailMapping(rootnode);
 
+
+	//Add light and shadows
+	osg::Light* pLight = new osg::Light;
+	pLight->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	osg::Vec4 lightPos(1, 1.0, 1, 0);
+	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
+	osg::Vec3f lightDir(-lightPos.x(), -lightPos.y(), -lightPos.z());
+	lightDir.normalize();
+	pLight->setDirection(lightDir);
+	pLight->setAmbient(osg::Vec4(0.5f, 0.5f, 0.5f, 1.0f));
+
+	osg::LightSource* pLightSource = new osg::LightSource;
+	pLightSource->setLight(pLight);
+	rootnode->asGroup()->addChild(pLightSource);
+
 	// add a viewport to the viewer and attach the scene graph.
 	viewer.setSceneData(rootnode.get());
 	bool use_fog = true;
@@ -284,12 +299,32 @@ int main(int argc, char** argv)
 		osg::StateSet::DefineList& defineList = state->getDefineList();
 		defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 	}
+
+	
 	viewer.setUpViewInWindow(100, 100, 800, 600);
 
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
 	//viewer.getCamera()->getGraphicsContext()->getState()->resetVertexAttributeAlias(false, 8);
 	//viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
 	// run the viewers main loop
-	return viewer.run();
+
+	while (!viewer.done())
+	{
+		//animate light if shadows enabled
+		//if(shadow_type != osgVegetation::SM_DISABLED)
+		{
+			float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
+		    lightPos.set(sinf(t), cosf(t), 0.5 + 0.45*cosf(t), 0.0f);
+		   //lightPos.set(1.0, 0, 0.5 + 0.45*cosf(t), 0.0f);
+			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
+			pLight->setPosition(lightPos);
+			lightDir.set(-lightPos.x(), -lightPos.y(), -lightPos.z());
+			lightDir.normalize();
+			pLight->setDirection(lightDir);
+		}
+		viewer.frame();
+	}
+	return 0;
+	//return viewer.run();
 
 }

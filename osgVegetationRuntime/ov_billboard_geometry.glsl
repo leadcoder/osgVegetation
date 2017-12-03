@@ -1,10 +1,11 @@
 #version 120
 #extension GL_ARB_geometry_shader4 : enable
-#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS,BLT_GRASS)
+#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS)
 in vec2 ov_te_texcoord[];
 varying vec2 ov_geometry_texcoord;
 varying vec4 ov_geometry_color;
 flat varying int ov_geometry_tex_index;
+varying vec3 ov_geometry_normal;
 
 uniform mat4 osg_ModelViewProjectionMatrix;
 uniform mat4 osg_ProjectionMatrix;
@@ -119,6 +120,8 @@ void main(void)
 	float bb_intensity = billboard_data.z;
 	ov_geometry_color.xyz = ov_geometry_color.xyz*bb_intensity;
 
+	ov_geometry_normal = gl_NormalMatrix * vec3(0, 0, 1);
+
 #ifdef BLT_ROTATED_QUAD
 	vec3 bb_left = vec3(bb_scale * bb_size.x, 0, 0);
 	vec3 bb_up = (gl_ModelViewMatrix*vec4(0.0, 0, bb_scale * bb_size.y,0)).xyz;
@@ -204,7 +207,7 @@ void main(void)
 	//Here we just offset by the perpendicular left vector that will give us a 45-deg tilt
 	//if bb height and width are the same. On top of that we add the wind effect.
 	vec3 offset = vec3(width_cos, -width_sin, 0) + vec3(sin_wind, cos_wind, 0);
-	
+
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
 	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
