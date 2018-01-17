@@ -32,11 +32,11 @@ public:
 					XBFInstance* instance = new XBFInstance(maxNumInstances, XFB_SLOT, instancedModel, bbox);
 					instances.push_back(instance);
 					addChild(instance);
-					instance->getOrCreateStateSet()->addUniform(new osg::Uniform("vegFadeDistance", data.FadeDistance));
+					instance->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_FadeDistance", data.FadeDistance));
 					float min_dist = (i > 0) ? data.MeshLODs[i - 1].MaxDist : 0;
-					instance->getOrCreateStateSet()->addUniform(new osg::Uniform("vegStartDistance", min_dist));
+					instance->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_StartDistance", min_dist));
 					float max_dist = (data.MeshLODs[i].MaxDist >  0) ? data.MeshLODs[i].MaxDist : data.MaxDistance;
-					instance->getOrCreateStateSet()->addUniform(new osg::Uniform("vegEndDistance", max_dist));
+					instance->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_EndDistance", max_dist));
 
 				}
 				osg::Geometry* geom = new XBFInstanceGenerator(instances, *tile, data);
