@@ -1,9 +1,12 @@
 
 
 #include "XBFVegetationTile.h"
+#include "ov_BillboardTile.h"
+#include "ov_Utils.h"
 
 #include <osg/Version>
 #include <osg/Notify>
+#include <osg/Fog>
 
 #if OSG_VERSION_GREATER_OR_EQUAL(3,4,0)
 
@@ -93,7 +96,8 @@ public:
 class VegetationReadFileCallback : public osgDB::ReadFileCallback
 {
 public:
-	VegetationReadFileCallback(const std::vector<XBFVegetationData> &data) : m_VegData(data)
+	VegetationReadFileCallback(const std::vector<XBFVegetationData> &data, std::vector<osgVegetation::BillboardLayer>& bb_layers) : m_VegData(data),
+		m_BBLayers(bb_layers)
 	{
 
 	}
@@ -148,15 +152,18 @@ public:
 	{
 		osgDB::ReaderWriter::ReadResult rr = ReadFileCallback::readNode(filename, options);
 
-		int lod_level = extractLODLevelFromFileName(filename);
+#ifdef OV_USE_TILE_ID_LOD_LEVEL
+		const int lod_level = ttv.Tiles.size() > 0 ? ttv.Tiles[0]->getTileID().level - 1 : 0;
+#else
+		const int lod_level = extractLODLevelFromFileName(filename);
+#endif
+		TerrainTileVisitor ttv;
+		rr.getNode()->accept(ttv);
 
 		for (size_t i = 0; i < m_VegData.size(); i++)
 		{
 			if (lod_level == m_VegData[i].TargetLODLevel && rr.validNode())
 			{
-				TerrainTileVisitor ttv;
-				rr.getNode()->accept(ttv);
-
 				osg::Group* group = dynamic_cast<osg::Group*>(rr.getNode());
 				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(rr.getNode());
 				if (group && plod == 0)
@@ -171,13 +178,34 @@ public:
 				}
 			}
 		}
+
+		for (size_t i = 0; i < m_BBLayers.size(); i++)
+		{
+			if (lod_level == m_BBLayers[i].LODLevel && rr.validNode())
+			{
+				osg::Group* group = dynamic_cast<osg::Group*>(rr.getNode());
+				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(rr.getNode());
+				if (group && plod == 0)
+				{
+					osg::Group* veg_layer = new osg::Group();
+					group->addChild(veg_layer);
+					for (size_t j = 0; j < ttv.Tiles.size(); j++)
+					{
+						osgVegetation::BillboardTile* bb_tile = new osgVegetation::BillboardTile(m_BBLayers[i], ttv.Tiles[j]);
+						veg_layer->addChild(bb_tile);
+					}
+				}
+			}
+		}
+
 		return rr;
 	}
 protected:
 	virtual ~VegetationReadFileCallback() {}
 	std::vector<XBFVegetationData> m_VegData;
+	std::vector<osgVegetation::BillboardLayer> m_BBLayers;
 };
-
+/*
 void PrepareTerrain(osg::Node* terrain)
 {
 	osg::Program* program = new osg::Program;
@@ -200,7 +228,7 @@ void PrepareTerrain(osg::Node* terrain)
 	terrain->getOrCreateStateSet()->setTextureAttributeAndModes(3, d1_tex, osg::StateAttribute::ON);
 	program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("sample_terrain_fragment.glsl")));
 }
-
+*/
 int
 main(int argc, char** argv)
 {
@@ -218,7 +246,8 @@ main(int argc, char** argv)
 	viewer.addEventHandler(new osgViewer::StatsHandler());
 	viewer.addEventHandler(new osgGA::StateSetManipulator(viewer.getCamera()->getOrCreateStateSet()));
 
-	viewer.getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
+	osg::DisplaySettings::instance()->setNumMultiSamples(8);
+	//viewer.getCamera()->setSmallFeatureCullingPixelSize(-1.0f);
 
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
 
@@ -228,18 +257,89 @@ main(int argc, char** argv)
 
 	std::vector<XBFVegetationData> data;
 	
-	XBFVegetationData tree_data(1000.0f, 2, 2);
-	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l0.osg", 400));
-	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l1.osg"));
+	XBFVegetationData tree_data(500.0f, 2, 2,10.0);
+	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l0.osg", 100));
+	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l1_bb.osg"));
 	data.push_back(tree_data);
 
-	osgDB::Registry::instance()->setReadFileCallback(new VegetationReadFileCallback(data));
+	osgVegetation::BillboardLayer grass_data1(240, 8, 1.0, 0.8, 0.1, 5);
+	grass_data1.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	grass_data1.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(6, 6), 0.9, 0.02));
+	grass_data1.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(3, 6), 0.9, 0.02));
+	grass_data1.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(1, 1), 1.0, 1.0));
 
-	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/us-terrain.zip/us-terrain.osg");
-	PrepareTerrain(rootnode);
-	//osg::ref_ptr<osgTerrain::Terrain> terrain = findTopMostNodeOfType<osgTerrain::Terrain>(rootnode.get());
+
+	osgVegetation::BillboardLayer grass_data2(100, 16, 1.0, 0.8, 0.1, 5);
+	grass_data2.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	grass_data2.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(1, 1), 1.0, 1.0));
+
+
+	std::vector<osgVegetation::BillboardLayer> bb_layers;
+	bb_layers.push_back(grass_data1);
+	bb_layers.push_back(grass_data2);
+
+	osgDB::Registry::instance()->setReadFileCallback(new VegetationReadFileCallback(data, bb_layers));
+
+	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
+	//osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/us-terrain.zip/us-terrain.osg");
+	osgVegetation::PrepareTerrainForDetailMapping(rootnode);
+	
+
+	//Add light and shadows
+	osg::Light* pLight = new osg::Light;
+	pLight->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	osg::Vec4 lightPos(1, 1.0, 1, 0);
+	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
+	osg::Vec3f lightDir(-lightPos.x(), -lightPos.y(), -lightPos.z());
+	lightDir.normalize();
+	pLight->setDirection(lightDir);
+	pLight->setAmbient(osg::Vec4(0.5f, 0.5f, 0.5f, 1.0f));
+
+	osg::LightSource* pLightSource = new osg::LightSource;
+	pLightSource->setLight(pLight);
+
+	rootnode->asGroup()->addChild(pLightSource);
+
+	bool use_fog = true;
+	if (use_fog)
+	{
+		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
+		//Add fog
+		osg::StateSet* state = rootnode->getOrCreateStateSet();
+		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
+		state->setMode(GL_FOG, osg::StateAttribute::ON);
+		state->setAttributeAndModes(fog.get());
+		fog->setMode(osg::Fog::EXP2);
+		fog->setDensity(0.0005);
+		fog->setColor(fog_color);
+		viewer.getCamera()->setClearColor(fog_color);
+		osg::StateSet::DefineList& defineList = state->getDefineList();
+		defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+	}
+
+
+	viewer.setUpViewInWindow(100, 100, 800, 600);
+
+	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
+
 	viewer.setSceneData(rootnode);
-	viewer.run();
+	while (!viewer.done())
+	{
+		//animate light if shadows enabled
+		//if(shadow_type != osgVegetation::SM_DISABLED)
+		{
+			float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
+			//lightPos.set(sinf(t), cosf(t), 0.5 + 0.45*cosf(t), 0.0f);
+			//lightPos.set(1.0, 0, 0.5 + 0.45*cosf(t), 0.0f);
+			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
+			pLight->setPosition(lightPos);
+			lightDir.set(-lightPos.x(), -lightPos.y(), -lightPos.z());
+			lightDir.normalize();
+			pLight->setDirection(lightDir);
+		}
+		viewer.frame();
+	}
+	return 0;
 }
 
 #else

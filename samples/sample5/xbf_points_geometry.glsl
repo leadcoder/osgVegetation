@@ -2,8 +2,9 @@
 #extension GL_ARB_geometry_shader4 : enable
 #extension GL_ARB_enhanced_layouts : enable
 layout(triangles) in; 
-layout(points, max_vertices=1) out; 
-uniform float vegDistanceLOD0; 
+layout(points, max_vertices=2) out; 
+uniform float vegDistanceLOD0;
+uniform float vegFadeDistance; 
 uniform mat4 osg_ModelViewProjectionMatrix;
 uniform mat4 osg_ModelViewMatrix;
 uniform sampler2D baseTexture;
@@ -72,7 +73,7 @@ void main(void) {
 	
 	
 	
-	vec4 mvm_pos = osg_ModelViewMatrix * tePosition[0];
+	vec4 mvm_pos = osg_ModelViewMatrix * pos;
 	float distance = length(mvm_pos.xyz);
 	//float distance = -mvm_pos.z;//length(mvm_pos);
 	
@@ -81,7 +82,16 @@ void main(void) {
 		xfb_output_lod0 = pos;
 		EmitStreamVertex(0);
 	}
-	else
+	else if ( distance < (vegDistanceLOD0 + vegFadeDistance*4) && distance > 0 ) {
+
+    	xfb_output_lod0 = pos;
+		EmitStreamVertex(0);
+		EndStreamPrimitive(0);
+		xfb_output_lod1 = pos;
+		EmitStreamVertex(1);
+		EndStreamPrimitive(1);
+	}
+	else if(distance > 0)
 	{
 		xfb_output_lod1 = pos;
 		EmitStreamVertex(1);

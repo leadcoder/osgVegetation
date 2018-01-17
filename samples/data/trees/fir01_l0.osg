@@ -68,7 +68,7 @@ Group {
                   }
                   AlphaFunc {
                     comparisonFunc GEQUAL
-                    referenceValue 0.4
+                    referenceValue 0.1
                   }
                   CullFace {
                     mode BACK

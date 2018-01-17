@@ -7,6 +7,9 @@
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osgUtil/Optimizer>
+#include <osg/AlphaFunc>
+#include <osg/BlendFunc>
+#include <osg/Multisample>
 
 class XBFInstance : public osg::Group
 {
@@ -78,6 +81,8 @@ public:
 					g->setDrawCallback(_ig->_drawCallback.get());
 					// disable frustum culling because the instance doesn't have a real location
 					g->setCullingActive(false);
+
+					
 				}
 			}
 		}
@@ -95,18 +100,43 @@ public:
 		_drawCallback(new InstanceDrawCallback())
 	{
 		_xfb->resizeArray(maxNumInstances);
-
-		_shaderProgram = makeRenderProgram();
+		osg::StateSet* model_ss = model->getOrCreateStateSet();
+		osg::Program* prog = dynamic_cast<osg::Program*>(model_ss->getAttribute(osg::StateAttribute::PROGRAM));
 		osg::StateSet* ss = getOrCreateStateSet();
-		ss->setAttribute(_shaderProgram);
-
-		osg::Uniform* baseTextureSampler = new osg::Uniform("baseTexture", 0);
-		ss->addUniform(baseTextureSampler);
+		if (prog == NULL)
+		{
+			_shaderProgram = makeRenderProgram(prog == NULL);
+			ss->setAttribute(_shaderProgram, osg::StateAttribute::OVERRIDE);
+			osg::Uniform* baseTextureSampler = new osg::Uniform("ov_color_texture", 0);
+			ss->addUniform(baseTextureSampler);
+		}
+		else
+			_shaderProgram = prog;
 		
 		_shaderProgram->removeBindAttribLocation("xfb_position");
 		_shaderProgram->addBindAttribLocation("xfb_position", _slot);
 
+		
+		
+
 		ss->setAttribute(new osg::VertexAttribDivisor(_slot, 1));
+
+		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
+		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.1);
+		//ss->setAttributeAndModes(alphaFunc, osg::StateAttribute::OVERRIDE);
+		//ss->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+
+		if (false)
+		{
+			//ss->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
+		}
+		else
+		{
+			ss->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+			ss->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+		}
+		
+
 
 		// In practice, we will pre-set a bounding sphere/box for a tile
 		this->setCullingActive(false);
@@ -128,11 +158,12 @@ public:
 	}
 
 private:
-	osg::Program* makeRenderProgram()
+	osg::Program* makeRenderProgram(bool add_fragment_program)
 	{
 		osg::Program* program = new osg::Program;
 		program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("xbf_render_vertex.glsl")));
-		program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("xbf_render_fragment.glsl")));
+		if(add_fragment_program)
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("xbf_render_fragment.glsl")));
 		return program;
 	}
 

@@ -39,6 +39,7 @@ public:
 		// into the the XF buffer. (Must add this callbacks AFTER setting up the geometry)
 		getOrCreateStateSet()->setAttribute(makeGeneratorProgram());
 	
+		getOrCreateStateSet()->setRenderBinDetails(-1,"RenderBin");
 		for (size_t l = 0; l < instances.size(); l++)
 		{
 			LODData data;
@@ -86,6 +87,8 @@ public:
 
 		getOrCreateStateSet()->addUniform(new osg::Uniform("vegMaxDistance", data.MaxDistance));
 		getOrCreateStateSet()->addUniform(new osg::Uniform("vegDensity", data.Density));
+		getOrCreateStateSet()->addUniform(new osg::Uniform("vegFadeDistance", data.FadeDistance));
+		
 		for (size_t i = 0; i < data.MeshLODs.size() - 1; i++)
 		{
 			std::stringstream ss;
@@ -97,6 +100,7 @@ public:
 private:
 	void drawImplementation(osg::RenderInfo& renderInfo) const
 	{
+		bool const sync_this_frame = true;
 		osg::GLExtensions* ext = renderInfo.getState()->get<osg::GLExtensions>();
 		unsigned contextID = renderInfo.getState()->getContextID();
 		for (size_t l = 0; l < _LODLevels.size(); l++)
@@ -115,10 +119,9 @@ private:
 			{
 				ext->glGenQueries(1, query);
 			}
-			else
+			else if(!sync_this_frame)
 			{
 				ext->glGetQueryObjectuiv(*query, GL_QUERY_RESULT, &numPrims);
-				//std::cout << "LOD" << l << " Trees:" << numPrims << "\n";
 				ld._instance->setNumInstancesToDraw(numPrims);
 			}
 			ext->glBindBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, l, objID, ld._offset, ld._size);
@@ -157,10 +160,11 @@ private:
 			GLuint numPrims = 0;
 			GLuint* query = &ld._queries[contextID];
 
-			
-		//	ext->glGetQueryObjectuiv(*query, GL_QUERY_RESULT, &numPrims);
-				//std::cout << "LOD" << l << " Trees:" << numPrims << "\n";
-		//	ld._IG->setNumInstancesToDraw(numPrims);
+			if(sync_this_frame)
+			{ 
+				ext->glGetQueryObjectuiv(*query, GL_QUERY_RESULT, &numPrims);
+				ld._instance->setNumInstancesToDraw(numPrims);
+			}
 		}
 		//if ( renderInfo.getState()->checkGLErrors("POST:glBindBufferBase") ) exit(0);
 	}
