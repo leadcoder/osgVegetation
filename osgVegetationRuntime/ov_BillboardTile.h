@@ -8,6 +8,7 @@
 #include <osg/BlendFunc>
 #include <osg/Texture2D>
 #include <osg/Multisample>
+#include <osg/CullFace>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osgTerrain/TerrainTile>
@@ -15,28 +16,42 @@
 
 namespace osgVegetation
 {
-	class BillboardTile : public osg::PositionAttitudeTransform
+
+	class BillboardLayerHelper
 	{
 	public:
-	
-		BillboardTile(BillboardLayer &layer, osgTerrain::TerrainTile* tile)
+		class ConvertToPatchesVisitor : public osg::NodeVisitor
 		{
-			_PrepareVegLayer(getOrCreateStateSet(), layer);
-			_CreateGeode(tile);
-		}
+		public:
 
-		~BillboardTile()
-		{
+			ConvertToPatchesVisitor() :
+				osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
+			}
 
-		}
-	private:
-		void _PrepareVegLayer(osg::StateSet* stateset, BillboardLayer& data)
+			void apply(osg::Node& node)
+			{
+				osg::Geometry* geom = dynamic_cast<osg::Geometry*>(&node);
+				if (geom)
+				{
+					geom->setUseDisplayList(false);
+					geom->getPrimitiveSet(0)->setMode(GL_PATCHES);
+				}
+				else
+				{
+					traverse(node);
+				}
+			}
+		};
+
+
+		static void PrepareVegLayer(osg::StateSet* stateset, BillboardLayer& data)
 		{
 			osg::Program* program = new osg::Program;
-			stateset->setAttribute(program);
+			//stateset->setAttribute(program);
+			stateset->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 			stateset->addUniform(new osg::Uniform("ov_color_texture", 0));
 			stateset->addUniform(new osg::Uniform("ov_land_cover_texture", 1));
-			
+
 			stateset->addUniform(new osg::Uniform("ov_billboard_texture", 2));
 
 			stateset->addUniform(new osg::Uniform("ov_billboard_max_distance", data.MaxDistance));
@@ -44,8 +59,8 @@ namespace osgVegetation
 			stateset->addUniform(new osg::Uniform("ov_billboard_color_threshold", data.ColorThreshold));
 			stateset->addUniform(new osg::Uniform("ov_billboard_color_impact", data.ColorImpact));
 			stateset->addUniform(new osg::Uniform("ov_billboard_land_cover_id", data.LandCoverID));
-			
-		
+
+
 			int num_billboards = static_cast<int>(data.Billboards.size());
 			osg::Uniform* numBillboards = new osg::Uniform("ov_num_billboards", num_billboards);
 			stateset->addUniform(numBillboards);
@@ -74,7 +89,7 @@ namespace osgVegetation
 				stateset->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
 			}
 			else
-			{ 
+			{
 				stateset->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
 				stateset->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
 			}
@@ -91,7 +106,7 @@ namespace osgVegetation
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_billboard_tess_eval.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_billboard_geometry.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_billboard_fragment.glsl")));
-			
+
 			program->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
 
 			std::string blt_type;
@@ -119,7 +134,43 @@ namespace osgVegetation
 #endif
 
 			stateset->setAttribute(new osg::PatchParameter(3));
+
+			stateset->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
 		}
+
+		static void PrepareVegGeode(osg::Geode &veg_geode, BillboardLayer& data)
+		{
+			ConvertToPatchesVisitor cv;
+			veg_geode.accept(cv);
+			if(data.Type == BillboardLayer::BLT_GRASS)
+				veg_geode.setNodeMask(0x1);
+			PrepareVegLayer(veg_geode.getOrCreateStateSet(), data);
+		}
+
+		static osg::Geode* CreateVegGeode(osg::Geode &template_geode, BillboardLayer& data)
+		{
+			osg::Geode* veg_geode = dynamic_cast<osg::Geode*>(template_geode.clone(osg::CopyOp::DEEP_COPY_ALL));
+			PrepareVegGeode(*veg_geode, data);
+			return veg_geode;
+		}
+	};
+
+
+	class BillboardTile : public osg::PositionAttitudeTransform
+	{
+	public:
+		BillboardTile(BillboardLayer &layer, osgTerrain::TerrainTile* tile)
+		{
+			BillboardLayerHelper::PrepareVegLayer(getOrCreateStateSet(), layer);
+			_CreateGeode(tile);
+		}
+
+		~BillboardTile()
+		{
+
+		}
+	
+		private:
 
 		void _CreateGeode(osgTerrain::TerrainTile* tile)
 		{
@@ -244,4 +295,118 @@ namespace osgVegetation
 			return geometry;
 		}
 	};
+
+
+	
+
+
+
+	/*class BillboardTile2 : public osg::PositionAttitudeTransform
+	{
+	public:
+
+		BillboardTile2(BillboardLayer &layer, osg::Geode* tile)
+		{
+			_PrepareVegLayer(getOrCreateStateSet(), layer);
+			addChild(tile);
+		}
+
+		~BillboardTile2()
+		{
+
+		}
+	//private:
+		static void _PrepareVegLayer(osg::StateSet* stateset, BillboardLayer& data)
+		{
+			osg::Program* program = new osg::Program;
+			stateset->setAttribute(program);
+			stateset->addUniform(new osg::Uniform("ov_color_texture", 0));
+			stateset->addUniform(new osg::Uniform("ov_land_cover_texture", 1));
+
+			stateset->addUniform(new osg::Uniform("ov_billboard_texture", 2));
+
+			stateset->addUniform(new osg::Uniform("ov_billboard_max_distance", data.MaxDistance));
+			stateset->addUniform(new osg::Uniform("ov_billboard_density", data.Density));
+			stateset->addUniform(new osg::Uniform("ov_billboard_color_threshold", data.ColorThreshold));
+			stateset->addUniform(new osg::Uniform("ov_billboard_color_impact", data.ColorImpact));
+			stateset->addUniform(new osg::Uniform("ov_billboard_land_cover_id", data.LandCoverID));
+
+
+			int num_billboards = static_cast<int>(data.Billboards.size());
+			osg::Uniform* numBillboards = new osg::Uniform("ov_num_billboards", num_billboards);
+			stateset->addUniform(numBillboards);
+
+			const int MAX_BILLBOARDS = 10;
+			osg::Uniform *billboardUniform = new osg::Uniform(osg::Uniform::FLOAT_VEC4, "ov_billboard_data", MAX_BILLBOARDS);
+			for (unsigned int i = 0; i < MAX_BILLBOARDS; ++i)
+			{
+				//Setdefault values
+				billboardUniform->setElement(i, osg::Vec4f(1.0f, 1.0f, 1.0f, 1.0f));
+			}
+
+			for (unsigned int i = 0; i < data.Billboards.size(); ++i)
+			{
+				osg::Vec2 size = data.Billboards[i].Size;
+				billboardUniform->setElement(i, osg::Vec4f(size.x(), size.y(), data.Billboards[i].Intensity, data.Billboards[i].Probability));
+			}
+
+			stateset->addUniform(billboardUniform);
+			osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
+			alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, data.AlphaRejectValue);
+			stateset->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
+
+			if (false)
+			{
+				stateset->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
+			}
+			else
+			{
+				stateset->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
+				stateset->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+			}
+			stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+			stateset->setTextureAttributeAndModes(2, data.GetOrCreateTexArray(), osg::StateAttribute::ON);
+#if 0 //debug
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("shaders/terrain_vertex.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("shaders/terrain_tess_ctrl.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("shaders/terrain_tess_eval.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("shaders/terrain_fragment.glsl")));
+#else			
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_billboard_vertex.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("ov_billboard_tess_ctrl.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_billboard_tess_eval.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_billboard_geometry.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_billboard_fragment.glsl")));
+
+			program->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
+
+			std::string blt_type;
+			if (data.Type == BillboardLayer::BLT_ROTATED_QUAD)
+			{
+				program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 4);
+				blt_type = "BLT_ROTATED_QUAD";
+			}
+			else if (data.Type == BillboardLayer::BLT_CROSS_QUADS)
+			{
+				program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 8);
+				blt_type = "BLT_CROSS_QUADS";
+			}
+			else if (data.Type == BillboardLayer::BLT_GRASS)
+			{
+				program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 16);
+				blt_type = "BLT_GRASS";
+			}
+#if OSG_VERSION_GREATER_OR_EQUAL( 3, 4, 0 ) 
+			osg::StateSet::DefineList& defineList = stateset->getDefineList();
+			defineList[blt_type].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+#else
+			//TODO: add compiler warning 
+#endif
+#endif
+
+			stateset->setAttribute(new osg::PatchParameter(3));
+			stateset->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
+
+		}
+	};*/
 }

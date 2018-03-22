@@ -1,15 +1,35 @@
 #version 120
 #extension GL_ARB_geometry_shader4 : enable
-#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS)
+#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, SM_LISPSM, SM_VDSM1, SM_VDSM2)
+
+#if defined(SM_LISPSM) || defined(SM_VDSM1) || defined(SM_VDSM2)
+ #define HAS_SHADOW
+#endif
+
+#ifdef SM_LISPSM
+uniform int shadowTextureUnit;
+#endif
+
+#ifdef SM_VDSM1
+uniform int shadowTextureUnit0;
+#endif
+
+#ifdef SM_VDSM2
+uniform int shadowTextureUnit0;
+uniform int shadowTextureUnit1;
+#endif	
+
 in vec2 ov_te_texcoord[];
 varying vec2 ov_geometry_texcoord;
 varying vec4 ov_geometry_color;
 flat varying int ov_geometry_tex_index;
 varying vec3 ov_geometry_normal;
+varying float ov_depth;
 
 uniform mat4 osg_ModelViewProjectionMatrix;
 uniform mat4 osg_ProjectionMatrix;
 uniform float osg_SimulationTime;
+
 uniform sampler2D ov_color_texture;
 uniform sampler2D ov_land_cover_texture;
 uniform int ov_num_billboards;
@@ -18,6 +38,29 @@ uniform float ov_billboard_max_distance;
 uniform float ov_billboard_color_threshold;
 uniform float ov_billboard_color_impact;
 uniform float ov_billboard_land_cover_id;
+
+
+
+void ov_shadow(vec4 ecPosition)
+{
+#ifdef HAS_SHADOW
+#ifdef SM_LISPSM
+	int shadowTextureUnit0 = shadowTextureUnit;
+#endif
+	ecPosition = gl_ModelViewMatrix * ecPosition;
+	// generate coords for shadow mapping                              
+	gl_TexCoord[shadowTextureUnit0].s = dot(ecPosition, gl_EyePlaneS[shadowTextureUnit0]);
+	gl_TexCoord[shadowTextureUnit0].t = dot(ecPosition, gl_EyePlaneT[shadowTextureUnit0]);
+	gl_TexCoord[shadowTextureUnit0].p = dot(ecPosition, gl_EyePlaneR[shadowTextureUnit0]);
+	gl_TexCoord[shadowTextureUnit0].q = dot(ecPosition, gl_EyePlaneQ[shadowTextureUnit0]);
+#ifdef SM_VDSM2
+	gl_TexCoord[shadowTextureUnit1].s = dot(ecPosition, gl_EyePlaneS[shadowTextureUnit1]);
+	gl_TexCoord[shadowTextureUnit1].t = dot(ecPosition, gl_EyePlaneT[shadowTextureUnit1]);
+	gl_TexCoord[shadowTextureUnit1].p = dot(ecPosition, gl_EyePlaneR[shadowTextureUnit1]);
+	gl_TexCoord[shadowTextureUnit1].q = dot(ecPosition, gl_EyePlaneQ[shadowTextureUnit1]);
+#endif
+#endif	
+}
 
 float ov_range_rand(float minValue, float maxValue, vec2 co)
 {
@@ -64,8 +107,15 @@ void main(void)
 	
 	
 	vec4 lc_color = texture2D(ov_land_cover_texture, terrain_texcoord);
-	if (lc_color.x > ov_billboard_land_cover_id)
+	//if (lc_color.y < ov_billboard_land_cover_id)
+	//	return;
+
+	if (lc_color.x > 0 || lc_color.z > 0)
 		return;
+	
+	if (ov_billboard_land_cover_id > 0.5 && lc_color.y < 0.5)
+		return;
+	
 
 	ov_geometry_color = texture2D(ov_color_texture, terrain_texcoord);
 
@@ -85,22 +135,27 @@ void main(void)
 	camera_to_bb_dir.z = 0;
 	camera_to_bb_dir = normalize(camera_to_bb_dir);
 	vec4 mv_pos = gl_ModelViewMatrix * random_pos;
+	ov_depth = mv_pos.z;
 
 
+	float adjusted_max_dist = 10000;
+	if (osg_ProjectionMatrix[3][3] == 0)
+		adjusted_max_dist = ov_billboard_max_distance*max(osg_ProjectionMatrix[0][0], 1);
+	
 	//just pick some fade distance
-	float bb_fade_dist = ov_billboard_max_distance /3.0;
-	float bb_fade_start_dist = ov_billboard_max_distance - bb_fade_dist;
-	float bb_scale = 1 - clamp((-mv_pos.z - bb_fade_start_dist) / bb_fade_dist, 0.0, 1.0);
+	float bb_fade_dist = adjusted_max_dist /3.0;
+	float bb_fade_start_dist = adjusted_max_dist - bb_fade_dist;
+	float bb_scale = 1 -clamp((-mv_pos.z - bb_fade_start_dist) / bb_fade_dist, 0.0, 1.0);
 
 	//culling
     if (bb_scale == 0.0 )
         return;
 	
-	float rand_scale = ov_range_rand(0.5, 1.5, random_pos.xy /* * 50*/);
+	float rand_scale = ov_range_rand(0.5, 1.5, random_pos.xy + vec2(10.5,111.3));
 	bb_scale = bb_scale*bb_scale*bb_scale*rand_scale;
 	
 	//get random billboard
-	float rand_val = ov_range_rand(0, 1.0, random_pos.xy);
+	float rand_val = ov_range_rand(0, 1.0, random_pos.xy + vec2(1.5,1.3));
 	ov_geometry_tex_index = 0;
 	float acc_probablity = 0;
 	for (int i = 0; i < ov_num_billboards; i++)
@@ -113,8 +168,7 @@ void main(void)
 		}
 		acc_probablity += bb_probablity;
 	}
-	//ov_geometry_tex_index = int( floor( float(ov_num_billboards) * ov_range_rand(0, 1.0, random_pos.xy)));
-	//ov_geometry_tex_index = min(ov_geometry_tex_index, ov_num_billboards - 1);
+
 	vec4 billboard_data = ov_billboard_data[ov_geometry_tex_index];
 	vec2 bb_size = billboard_data.xy;
 	float bb_intensity = billboard_data.z;
@@ -127,10 +181,10 @@ void main(void)
 	vec3 bb_up = (gl_ModelViewMatrix*vec4(0.0, 0, bb_scale * bb_size.y,0)).xyz;
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
-	bb_vertex.xyz = mv_pos.xyz + bb_left;   gl_Position = osg_ProjectionMatrix* bb_vertex; ov_geometry_texcoord = vec2(0.0, 0.0);  EmitVertex();
-	bb_vertex.xyz = mv_pos.xyz - bb_left;   gl_Position = osg_ProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0);  EmitVertex();
-	bb_vertex.xyz = mv_pos.xyz + bb_left + bb_up;  gl_Position = osg_ProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0);  EmitVertex();
-	bb_vertex.xyz = mv_pos.xyz - bb_left + bb_up;  gl_Position = osg_ProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0);  EmitVertex();
+	bb_vertex.xyz = mv_pos.xyz - bb_left;         gl_Position = osg_ProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0);  EmitVertex();
+	bb_vertex.xyz = mv_pos.xyz + bb_left;         gl_Position = osg_ProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0);  EmitVertex();
+	bb_vertex.xyz = mv_pos.xyz - bb_left + bb_up; gl_Position = osg_ProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0);  EmitVertex();
+	bb_vertex.xyz = mv_pos.xyz + bb_left + bb_up; gl_Position = osg_ProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0);  EmitVertex();
 	//EndPrimitive();
 #endif
 #ifdef BLT_CROSS_QUADS
@@ -162,10 +216,10 @@ void main(void)
 
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
-	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 	
 	//Second quad, calc new left vector (perpendicular to prev left vec)
@@ -173,10 +227,10 @@ void main(void)
 	//also recalc offset to reflect that we have a 90-deg rotatation
 	offset = vec3(sin_wind, cos_wind, 0);
 
-	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 #endif
 #ifdef BLT_GRASS
@@ -210,20 +264,20 @@ void main(void)
 
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
-	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 
 
 	//Second quad, just flip offset
 	offset = -offset;
 
-	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 
 	//Third quad, calc new left vector (perpendicular to prev left vec)
@@ -231,18 +285,18 @@ void main(void)
 	//also recalc offset to reflect that we have a 90-deg rotatation
 	offset = vec3(-width_sin, -width_cos, 0) + vec3(sin_wind, cos_wind, 0);
 
-	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 
 	//Last quad, just flip offset as before
 	offset = -offset;
-	bb_vertex.xyz = random_pos.xyz + bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex;  ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset;    gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;               gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 #endif
 }

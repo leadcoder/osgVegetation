@@ -12,6 +12,8 @@ SET(H_FILES
 	ov_BillboardTile.h
 	ov_Common.h
 	ov_Utils.h
+	ov_PLODGeodeInjection.h
+	ov_Terrain.h
 )
 
 SET(SHADERS_FILES
@@ -22,10 +24,6 @@ SET(SHADERS_FILES
 	ov_billboard_fragment.glsl
 	ov_terrain_detail_fragment.glsl
 	ov_terrain_detail_vertex.glsl
-	#terrain_vertex.glsl
-	#terrain_tess_ctrl.glsl
-	#terrain_tess_eval.glsl
-	#terrain_fragment.glsl
 )
 
 include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})
