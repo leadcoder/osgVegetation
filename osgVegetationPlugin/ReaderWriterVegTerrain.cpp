@@ -9,6 +9,7 @@
 #include "ov_BillboardTile.h"
 #include "ov_Utils.h"
 #include "ov_PLODGeodeInjection.h"
+#include "ov_PLODTerrainTileInjection.h"
 
 using namespace osg;
 using namespace osgDB;
@@ -42,7 +43,7 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
         return ReadResult::FILE_NOT_FOUND;
 
 	osgVegetation::Terrain terrain_data;
-	osgVegetation::XMLSerializer::GetTerrainData(fileName, terrain_data);
+	osgVegetation::XMLSerializer::ReadTerrainData(fileName, terrain_data);
 
 	terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
 	terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
@@ -50,7 +51,11 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
 	const std::string file_path = osgDB::getFilePath(fileName);
 	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path);
 
-	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::GeodePLODInjection(terrain_data));// .BillboardLayer));
+	if(terrain_data.Type == osgVegetation::Terrain::TT_PLOD_TERRAIN)
+		osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::PLODTerrainTileInjection(terrain_data));
+	else if (terrain_data.Type == osgVegetation::Terrain::TT_PLOD_GEODE)
+		osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::GeodePLODInjection(terrain_data));
+
 	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(terrain_data.Filename);
 	
 	//Setup shadow defines

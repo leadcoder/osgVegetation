@@ -55,14 +55,17 @@ void main(void)
 #ifdef BLT_ROTATED_QUAD
 	//Create some fake normals
 	float ny = 0;
-	float nx = (1.0 - ov_geometry_texcoord.x) * 2.0 - 1.0;
+	float nx = (ov_geometry_texcoord.x) * 2.0 - 1.0;
 	float nz = sqrt(1.0 - (nx*nx));
-	vec3 normal = normalize(vec3(4*nx, ny, nz) + ov_geometry_normal);
+	vec3 normal = normalize(vec3(4 * nx, ny, nz));// +ov_geometry_normal);
 #else
 	vec3 normal = normalize(ov_geometry_normal);
 #endif
 	float NdotL = max(dot(normal, light_dir), 0);
+
+#ifndef BLT_ROTATED_QUAD //self shadows don't work well for rotated quads
 	NdotL = ov_shadow(NdotL);
+#endif
 
 	out_color.xyz *= min(NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz,2.0);
 	

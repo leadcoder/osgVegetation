@@ -17,6 +17,7 @@
 */
 
 #include "ov_BillboardTile.h"
+#include "ov_PLODTerrainTileInjection.h"
 #include "ov_Utils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
@@ -92,98 +93,6 @@ T* findTopMostNodeOfType(osg::Node* node)
 	return fnotv._foundNode;
 }
 
-
-class VegetationReadFileCallback : public osgDB::ReadFileCallback
-{
-public:
-	VegetationReadFileCallback(const std::vector<osgVegetation::BillboardLayer> &data) : m_VegData(data)
-	{
-
-	}
-
-	class TerrainTileVisitor : public osg::NodeVisitor
-	{
-	public:
-		std::vector<osgTerrain::TerrainTile*> Tiles;
-		osg::Group* MainGroup;
-		TerrainTileVisitor() :
-			osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
-		}
-
-		void apply(osg::Node& node)
-		{
-			osgTerrain::TerrainTile* tile = dynamic_cast<osgTerrain::TerrainTile*>(&node);
-			if (tile)
-			{
-				Tiles.push_back(tile);
-			}
-			else
-			{
-				traverse(node);
-			}
-		}
-	};
-
-	static int extractLODLevelFromFileName(const std::string& filename)
-	{
-		std::string clean_filename = filename;
-		std::size_t found = clean_filename.find_last_of("/\\");
-		if (found != std::string::npos)
-			clean_filename = clean_filename.substr(found + 1);
-
-		found = clean_filename.find("_L");
-
-		int lod_level = -1;
-		if (found != std::string::npos)
-		{
-			std::string level = clean_filename.substr(found + 2);
-			found = level.find("_X");
-			if (found != std::string::npos)
-			{
-				level = level.substr(0, found);
-				lod_level = atoi(level.c_str());
-			}
-		}
-		return lod_level;
-	}
-#define OV_USE_TILE_ID_LOD_LEVEL
-	virtual osgDB::ReaderWriter::ReadResult readNode(const std::string& filename, const osgDB::Options* options)
-	{
-		osgDB::ReaderWriter::ReadResult rr = ReadFileCallback::readNode(filename, options);
-
-		TerrainTileVisitor ttv;
-		rr.getNode()->accept(ttv);
-
-#ifdef OV_USE_TILE_ID_LOD_LEVEL
-		const int lod_level = ttv.Tiles.size() > 0 ? ttv.Tiles[0]->getTileID().level - 1 : 0;
-#else
-		const int lod_level = extractLODLevelFromFileName(filename);
-#endif
-		for (size_t i = 0; i < m_VegData.size(); i++)
-		{
-			if (lod_level == m_VegData[i].LODLevel && rr.validNode())
-			{
-				osg::Group* group = dynamic_cast<osg::Group*>(rr.getNode());
-				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(rr.getNode());
-				if (group && plod == 0)
-				{
-					osg::Group* veg_layer = new osg::Group();
-					group->addChild(veg_layer);
-					for (size_t j = 0; j < ttv.Tiles.size(); j++)
-					{
-						osgVegetation::BillboardTile* bb_tile = new osgVegetation::BillboardTile(m_VegData[i], ttv.Tiles[j]);
-						veg_layer->addChild(bb_tile);
-					}
-				}
-			}
-		}
-		return rr;
-	}
-protected:
-	virtual ~VegetationReadFileCallback() {}
-	std::vector<osgVegetation::BillboardLayer> m_VegData;
-};
-
 int main(int argc, char** argv)
 {
 	osg::ArgumentParser arguments(&argc, argv);
@@ -213,7 +122,6 @@ int main(int argc, char** argv)
 				++keyForAnimationPath;
 			}
 		}
-
 		viewer.setCameraManipulator(keyswitchManipulator.get());
 	}
 
@@ -242,18 +150,17 @@ int main(int argc, char** argv)
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(1, 2), 0.9, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(1, 1), 1.0, 1.0));
 	
-	std::vector<osgVegetation::BillboardLayer> data;
-	data.push_back(grass_data);
+	osgVegetation::Terrain terrain_data;
+	terrain_data.BillboardLayers.push_back(grass_data);
 
 	osgVegetation::BillboardLayer tree_data(2740, 10, 0.5, 0.7, 0.1, 2);
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(6, 16),1.2,1.0));
 	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
 	
-	data.push_back(tree_data);
+	terrain_data.BillboardLayers.push_back(tree_data);
 
-	osgDB::Registry::instance()->setReadFileCallback(new VegetationReadFileCallback(data));
-	
+	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::PLODTerrainTileInjection(terrain_data));
 
 	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
 	
@@ -264,7 +171,7 @@ int main(int argc, char** argv)
 	}
 
 
-	osgVegetation::PrepareTerrainForDetailMapping(rootnode);
+	//osgVegetation::PrepareTerrainForDetailMapping(rootnode);
 
 
 	//Add light and shadows

@@ -36,7 +36,7 @@ namespace osgVegetation
 
 		if (bbl_type == "BLT_CROSS_QUADS")
 			layer.Type = BillboardLayer::BLT_CROSS_QUADS;
-		else if (bbl_type == "BLT_CROSS_QUADS")
+		else if (bbl_type == "BLT_ROTATED_QUAD")
 			layer.Type = BillboardLayer::BLT_ROTATED_QUAD;
 		else if (bbl_type == "BLT_GRASS")
 			layer.Type = BillboardLayer::BLT_GRASS;
@@ -101,32 +101,7 @@ namespace osgVegetation
 		return layers;
 	}
 
-	/*osg::ref_ptr<osg::Node> XMLSerializer::LoadTerain(const std::string &filename)
-	{
-		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
-		if (!xmlDoc->LoadFile())
-		{
-			throw std::runtime_error(std::string("Failed to load file:" + filename).c_str());
-		}
-		TiXmlElement *terrain_elem = xmlDoc->FirstChildElement("Terrain");
-		if (terrain_elem == NULL)
-		{
-			throw std::runtime_error(std::string("Failed to find tag: Terrain").c_str());
-		}
-
-		if (!terrain_elem->Attribute("file"))
-			throw std::runtime_error(std::string("Failed to find attribute: file").c_str());
-		const std::string terrain_file = terrain_elem->Attribute("file");
-
-		xmlDoc->Clear();
-		// Delete our allocated document and return data
-		delete xmlDoc;
-		osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(terrain_file);
-		//osgVegetation::PrepareTerrainForDetailMapping(terrain_node);
-		return terrain_node;
-	}*/
-
-	void XMLSerializer::GetTerrainData(const std::string &filename, Terrain &terrain)
+	void XMLSerializer::ReadTerrainData(const std::string &filename, Terrain &terrain)
 	{
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())
@@ -143,6 +118,14 @@ namespace osgVegetation
 			throw std::runtime_error(std::string("Failed to find attribute: File").c_str());
 		terrain.Filename = terrain_elem->Attribute("File");
 
+		if (terrain_elem->Attribute("Type"))
+		{
+			const std::string tt_str = terrain_elem->Attribute("Type");
+			if (tt_str == "TT_PLOD_TERRAIN")
+				terrain.Type = Terrain::TT_PLOD_TERRAIN;
+			else if (tt_str == "TT_PLOD_GEODE")
+				terrain.Type = Terrain::TT_PLOD_GEODE;
+		}
 
 		terrain.ShadowMode = Terrain::SM_DISABLED;
 		if (terrain_elem->Attribute("ShadowMode"))
@@ -168,7 +151,7 @@ namespace osgVegetation
 
 		TiXmlElement *bblv_elem = terrain_elem->FirstChildElement("BillboardLayers");
 		if(bblv_elem)
-			terrain.BillboardLayer = loadBillboardLayers(bblv_elem);
+			terrain.BillboardLayers = loadBillboardLayers(bblv_elem);
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
 		delete xmlDoc;

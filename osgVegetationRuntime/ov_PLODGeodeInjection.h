@@ -85,13 +85,13 @@ namespace osgVegetation
 			{
 				osgVegetation::PrepareTerrainForDetailMapping(geodes[j], m_Terrain);
 			}
-			
+
 
 			const int lod_level = extractLODLevelFromFileName(filename);
 
-			for (size_t i = 0; i < m_Terrain.BillboardLayer.size(); i++)
+			for (size_t i = 0; i < m_Terrain.BillboardLayers.size(); i++)
 			{
-				if (lod_level == m_Terrain.BillboardLayer[i].LODLevel && rr.validNode())
+				if (lod_level == m_Terrain.BillboardLayers[i].LODLevel && rr.validNode())
 				{
 					osg::Group* group = dynamic_cast<osg::Group*>(rr.getNode());
 					if (group)
@@ -100,7 +100,7 @@ namespace osgVegetation
 						group->addChild(veg_layer);
 						for (size_t j = 0; j < geodes.size(); j++)
 						{
-							osg::Geode* veg_geode = BillboardLayerHelper::CreateVegGeode(*geodes[j], m_Terrain.BillboardLayer[i]);
+							osg::Geode* veg_geode = BillboardLayerHelper::CreateVegGeode(*geodes[j], m_Terrain.BillboardLayers[i]);
 							veg_layer->addChild(veg_geode);
 						}
 					}

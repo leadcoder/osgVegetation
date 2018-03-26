@@ -13,6 +13,7 @@ SET(H_FILES
 	ov_Common.h
 	ov_Utils.h
 	ov_PLODGeodeInjection.h
+	ov_PLODTerrainTileInjection.h
 	ov_Terrain.h
 )
 
