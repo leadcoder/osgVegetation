@@ -43,7 +43,7 @@ public:
 		for (size_t l = 0; l < instances.size(); l++)
 		{
 			LODData data;
-			osg::Array* xfb = instances[l]->getControlPoints();
+			osg::Array* xfb = instances[l]->getPositions();
 			data._vbo = xfb->getVertexBufferObject();
 			int numBufferData = data._vbo->getNumBufferData();
 			data._offset = 0;

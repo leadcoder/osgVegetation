@@ -60,8 +60,8 @@ Group {
                     UniqueID Material_1
                     name "3D-Diggers/fir02"
                     ColorMode OFF
-                    ambientColor 0.5 0.5 0.5 1
-                    diffuseColor 0.6 0.6 0.6 1
+                    ambientColor 1 1 1 1
+                    diffuseColor 1 1 1 1
                     specularColor 0 0 0 1
                     emissionColor 0 0 0 1
                     shininess 0

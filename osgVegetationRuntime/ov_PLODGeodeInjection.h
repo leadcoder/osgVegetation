@@ -86,7 +86,6 @@ namespace osgVegetation
 				osgVegetation::PrepareTerrainForDetailMapping(geodes[j], m_Terrain);
 			}
 
-
 			const int lod_level = extractLODLevelFromFileName(filename);
 
 			for (size_t i = 0; i < m_Terrain.BillboardLayers.size(); i++)
@@ -100,8 +99,8 @@ namespace osgVegetation
 						group->addChild(veg_layer);
 						for (size_t j = 0; j < geodes.size(); j++)
 						{
-							osg::Geode* veg_geode = BillboardLayerHelper::CreateVegGeode(*geodes[j], m_Terrain.BillboardLayers[i]);
-							veg_layer->addChild(veg_geode);
+							osg::Node* veg_node = BillboardLayerHelper::CreateVegNodeFromGeode(*geodes[j], m_Terrain.BillboardLayers[i]);
+							veg_layer->addChild(veg_node);
 						}
 					}
 				}

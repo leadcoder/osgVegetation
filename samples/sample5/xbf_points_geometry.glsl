@@ -62,16 +62,17 @@ void main(void) {
 	
 	
 	vec4 baseColor = texture2D( baseTexture, texc);
-	//we dont have any landcover data, just use color map...
-	if(length(baseColor.xyz) > 0.4)
+	float intensity = length(baseColor.xyz);
+	
+	if(intensity > 0.4)
 		return;
 	
 	vec4 lcColor = texture2D( landCoverTexture, texc);
 	
 	if(length(lcColor.xyz) > 0.2)
 		return;
-	
-	
+
+	intensity =  0.2 + 2 * intensity;
 	
 	vec4 mvm_pos = osg_ModelViewMatrix * pos;
 	float distance = length(mvm_pos.xyz);
@@ -80,20 +81,24 @@ void main(void) {
 	if ( distance < vegDistanceLOD0 && distance > 0 ) {
 	
 		xfb_output_lod0 = pos;
+		xfb_output_lod0.w = intensity;
 		EmitStreamVertex(0);
 	}
 	else if ( distance < (vegDistanceLOD0 + vegFadeDistance*4) && distance > 0 ) {
 
     	xfb_output_lod0 = pos;
+		xfb_output_lod0.w = intensity;
 		EmitStreamVertex(0);
 		EndStreamPrimitive(0);
 		xfb_output_lod1 = pos;
+		xfb_output_lod1.w = intensity;
 		EmitStreamVertex(1);
 		EndStreamPrimitive(1);
 	}
 	else if(distance > 0)
 	{
 		xfb_output_lod1 = pos;
+		xfb_output_lod1.w = intensity;
 		EmitStreamVertex(1);
 	}
 	

@@ -94,8 +94,8 @@ namespace osgVegetation
 						group->addChild(veg_layer);
 						for (size_t j = 0; j < ttv.Tiles.size(); j++)
 						{
-							osgVegetation::BillboardTile* bb_tile = new osgVegetation::BillboardTile(m_Terrain.BillboardLayers[i], ttv.Tiles[j]);
-							veg_layer->addChild(bb_tile);
+							osg::Node* veg_node = BillboardLayerHelper::CreateVegNodeFromTerrainTile(ttv.Tiles[j], m_Terrain.BillboardLayers[i]);
+							veg_layer->addChild(veg_node);
 						}
 					}
 				}

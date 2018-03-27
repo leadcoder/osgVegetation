@@ -71,9 +71,14 @@ public:
 					g->setUseDisplayList(false);
 
 					// Bind our transform feedback buffer to the geometry:
-					g->setVertexAttribArray(_ig->_slot, _ig->_xfb.get());
-					g->setVertexAttribBinding(_ig->_slot, g->BIND_PER_VERTEX);
-					g->setVertexAttribNormalize(_ig->_slot, false);
+					g->setVertexAttribArray(_ig->_positionSlot, _ig->_xfbPosition.get());
+					g->setVertexAttribBinding(_ig->_positionSlot, g->BIND_PER_VERTEX);
+					g->setVertexAttribNormalize(_ig->_positionSlot, false);
+
+					//g->setVertexAttribArray(_ig->_dataSlot, _ig->_xfbData.get());
+					//g->setVertexAttribBinding(_ig->_dataSlot, g->BIND_PER_VERTEX);
+					//g->setVertexAttribNormalize(_ig->_dataSlot, false);
+
 					g->setInitialBound(_ig->_bounds);
 
 					// Set up a draw callback to intecept draw calls so we can vary 
@@ -94,12 +99,15 @@ public:
 		int slot, 
 		osg::Node* model, 
 		const osg::BoundingBox &bbox) : _maxNumInstances(maxNumInstances),
-		_slot(slot),
+		_positionSlot(slot),
+		//_dataSlot(slot+2),
 		_bounds(bbox),
-		_xfb(new osg::Vec4Array()),
+		_xfbPosition(new osg::Vec4Array()),
+		//_xfbData(new osg::Vec4Array()),
 		_drawCallback(new InstanceDrawCallback())
 	{
-		_xfb->resizeArray(maxNumInstances);
+		//_xfbData->resizeArray(maxNumInstances);
+		_xfbPosition->resizeArray(maxNumInstances);
 		osg::StateSet* model_ss = model->getOrCreateStateSet();
 		osg::Program* prog = dynamic_cast<osg::Program*>(model_ss->getAttribute(osg::StateAttribute::PROGRAM));
 		osg::StateSet* ss = getOrCreateStateSet();
@@ -111,15 +119,22 @@ public:
 			ss->addUniform(baseTextureSampler);
 		}
 		else
-			_shaderProgram = prog;
+		{
+			//_shaderProgram = prog;
+			_shaderProgram = makeRenderProgram(true);
+			ss->setAttribute(_shaderProgram, osg::StateAttribute::OVERRIDE);
+			osg::StateSet::DefineList& defineList = ss->getDefineList();
+			defineList["OV_BILLBOARD"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+		}
+			
 		
 		_shaderProgram->removeBindAttribLocation("xfb_position");
-		_shaderProgram->addBindAttribLocation("xfb_position", _slot);
+		_shaderProgram->addBindAttribLocation("xfb_position", _positionSlot);
+		ss->setAttribute(new osg::VertexAttribDivisor(_positionSlot, 1));
 
-		
-		
-
-		ss->setAttribute(new osg::VertexAttribDivisor(_slot, 1));
+		//_shaderProgram->removeBindAttribLocation("xfb_data");
+		//_shaderProgram->addBindAttribLocation("xfb_data", _dataSlot);
+		//ss->setAttribute(new osg::VertexAttribDivisor(_dataSlot, 1));
 
 		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
 		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.1);
@@ -152,11 +167,15 @@ public:
 		_drawCallback->_numInstances = num;
 	}
 
-	osg::Array* getControlPoints() const
+	osg::Array* getPositions() const
 	{
-		return _xfb.get();
+		return _xfbPosition.get();
 	}
 
+	//osg::Array* getData() const
+	//{
+	//	return _xfbData.get();
+	//}
 private:
 	osg::Program* makeRenderProgram(bool add_fragment_program)
 	{
@@ -194,8 +213,10 @@ private:
 	}*/
 
 	unsigned int _maxNumInstances;
-	int _slot;
-	osg::ref_ptr<osg::Array> _xfb;
+	int _positionSlot;
+	//int _dataSlot;
+	osg::ref_ptr<osg::Array> _xfbPosition;
+	//osg::ref_ptr<osg::Array> _xfbData;
 	osg::ref_ptr<InstanceDrawCallback> _drawCallback;
 	osg::BoundingSphere _xbfBounds;
 	osg::BoundingBox _bounds;

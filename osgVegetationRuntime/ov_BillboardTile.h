@@ -19,7 +19,7 @@ namespace osgVegetation
 
 	class BillboardLayerHelper
 	{
-	public:
+	private:
 		class ConvertToPatchesVisitor : public osg::NodeVisitor
 		{
 		public:
@@ -42,9 +42,151 @@ namespace osgVegetation
 				}
 			}
 		};
+	public:
+		static osg::Node* CreateVegNodeFromGeode(osg::Geode &template_geode, BillboardLayer& data)
+		{
+			osg::Geode* veg_geode = dynamic_cast<osg::Geode*>(template_geode.clone(osg::CopyOp::DEEP_COPY_ALL));
+			ConvertToPatchesVisitor cv;
+			veg_geode->accept(cv);
+			if (data.Type == BillboardLayer::BLT_GRASS)
+				veg_geode->setNodeMask(0x1);
+			_PrepareStateSet(veg_geode->getOrCreateStateSet(), data);
+			return veg_geode;
+		}
 
+		static osg::Node* CreateVegNodeFromTerrainTile(osgTerrain::TerrainTile* tile, BillboardLayer& bb_layer)
+		{
+			osg::Node* node = NULL;
+			osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(tile->getElevationLayer());
+			if (layer)
+			{
+				osg::HeightField* hf = layer->getHeightField();
+				if (hf)
+				{
+					osg::Geometry* hf_geom = _CreateGeometryFromHeightField(hf);
 
-		static void PrepareVegLayer(osg::StateSet* stateset, BillboardLayer& data)
+					//Add color texture
+					osgTerrain::Layer* colorLayer = tile->getColorLayer(0);
+					if (colorLayer)
+					{
+						osg::Image* image = colorLayer->getImage();
+						osg::Texture2D* texture = new osg::Texture2D(image);
+						hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+					}
+
+					//Add land cover texture
+					osgTerrain::Layer* landCoverLayer = tile->getColorLayer(1);
+					if (landCoverLayer)
+					{
+						osg::Image* image = landCoverLayer->getImage();
+						osg::Texture2D* texture = new osg::Texture2D(image);
+						hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(1, texture, osg::StateAttribute::ON);
+					}
+
+					osg::Geode* geode = new osg::Geode();
+					geode->addDrawable(hf_geom);
+					osg::PositionAttitudeTransform* pat = new osg::PositionAttitudeTransform();
+					pat->setPosition(hf->getOrigin());
+					pat->addChild(geode);
+					node = pat;
+					
+					_PrepareStateSet(node->getOrCreateStateSet(), bb_layer);
+					if (bb_layer.Type == BillboardLayer::BLT_GRASS)
+						node->setNodeMask(0x1);
+				}
+			}
+			return node;
+		}
+
+		private:
+
+		static osg::Geometry* _CreateGeometryFromHeightField(osg::HeightField* hf)
+		{
+			unsigned int numColumns = hf->getNumColumns();
+			unsigned int numRows = hf->getNumRows();
+			float columnCoordDelta = hf->getXInterval();
+			float rowCoordDelta = hf->getYInterval();
+
+			osg::Geometry* geometry = new osg::Geometry;
+
+			osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
+			osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
+			osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
+			color[0].set(255, 255, 255, 255);
+			float rowTexDelta = 1.0f / (float)(numRows - 1);
+			float columnTexDelta = 1.0f / (float)(numColumns - 1);
+			osg::Vec3 local_origin(0, 0, 0);
+
+			osg::Vec3 pos(local_origin.x(), local_origin.y(), local_origin.z());
+			osg::Vec2 tex(0.0f, 0.0f);
+			int vi = 0;
+			for (unsigned int r = 0; r < numRows; ++r)
+			{
+				pos.x() = local_origin.x();
+				tex.x() = 0.0f;
+				for (unsigned int c = 0; c < numColumns; ++c)
+				{
+					float h = hf->getHeight(c, r);
+					v[vi].set(pos.x(), pos.y(), h);
+					t[vi].set(tex.x(), tex.y());
+					pos.x() += columnCoordDelta;
+					tex.x() += columnTexDelta;
+					++vi;
+				}
+				pos.y() += rowCoordDelta;
+				tex.y() += rowTexDelta;
+			}
+
+			geometry->setVertexArray(&v);
+			geometry->setTexCoordArray(0, &t);
+			geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
+
+			osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
+			geometry->addPrimitiveSet(&drawElements);
+			int ei = 0;
+			for (unsigned int r = 0; r < numRows - 1; ++r)
+			{
+				for (unsigned int c = 0; c < numColumns - 1; ++c)
+				{
+					// Try to imitate how GeometryTechnique::generateGeometry optimize 
+					// which way to put the diagonal by choosing to
+					// place it between the two corners that have the least curvature
+					// relative to each other.
+					// Due to how normals are calculated we don't get exact match...fix this by using same normal calulations
+
+					osg::Vec3 n00 = hf->getNormal(c, r);
+					osg::Vec3 n01 = hf->getNormal(c, r + 1);
+					osg::Vec3 n10 = hf->getNormal(c + 1, r);
+					osg::Vec3 n11 = hf->getNormal(c + 1, r + 1);
+					float dot_00_11 = n00 * n11;
+					float dot_01_10 = n01 * n10;
+					if (dot_00_11 > dot_01_10)
+					{
+						drawElements[ei++] = (r)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c;
+					}
+					else
+					{
+						drawElements[ei++] = (r)*numColumns + c;
+						drawElements[ei++] = (r)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;
+
+						drawElements[ei++] = (r)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1)*numColumns + c;
+					}
+				}
+			}
+			geometry->setUseDisplayList(false);
+			return geometry;
+		}
+
+		static void _PrepareStateSet(osg::StateSet* stateset, BillboardLayer& data)
 		{
 			osg::Program* program = new osg::Program;
 			//stateset->setAttribute(program);
@@ -137,165 +279,149 @@ namespace osgVegetation
 
 			stateset->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
 		}
-
-		static void PrepareVegGeode(osg::Geode &veg_geode, BillboardLayer& data)
-		{
-			ConvertToPatchesVisitor cv;
-			veg_geode.accept(cv);
-			if(data.Type == BillboardLayer::BLT_GRASS)
-				veg_geode.setNodeMask(0x1);
-			PrepareVegLayer(veg_geode.getOrCreateStateSet(), data);
-		}
-
-		static osg::Geode* CreateVegGeode(osg::Geode &template_geode, BillboardLayer& data)
-		{
-			osg::Geode* veg_geode = dynamic_cast<osg::Geode*>(template_geode.clone(osg::CopyOp::DEEP_COPY_ALL));
-			PrepareVegGeode(*veg_geode, data);
-			return veg_geode;
-		}
 	};
 
 
-	class BillboardTile : public osg::PositionAttitudeTransform
-	{
-	public:
-		BillboardTile(BillboardLayer &layer, osgTerrain::TerrainTile* tile)
-		{
-			BillboardLayerHelper::PrepareVegLayer(getOrCreateStateSet(), layer);
-			_CreateGeode(tile);
+	//class BillboardTile : public osg::PositionAttitudeTransform
+	//{
+	//public:
+	//	BillboardTile(BillboardLayer &layer, osgTerrain::TerrainTile* tile)
+	//	{
+	//		BillboardLayerHelper::PrepareVegLayer(getOrCreateStateSet(), layer);
+	//		_CreateGeode(tile);
 
-			if (layer.Type == BillboardLayer::BLT_GRASS)
-				setNodeMask(0x1);
-		}
+	//		if (layer.Type == BillboardLayer::BLT_GRASS)
+	//			setNodeMask(0x1);
+	//	}
 
-		~BillboardTile()
-		{
+	//	~BillboardTile()
+	//	{
 
-		}
-	
-		private:
+	//	}
+	//
+	//	private:
 
-		void _CreateGeode(osgTerrain::TerrainTile* tile)
-		{
-			osg::Node* node = NULL;
-			osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(tile->getElevationLayer());
-			if (layer)
-			{
-				osg::HeightField* hf = layer->getHeightField();
-				if (hf)
-				{
-					osg::Geometry* hf_geom = _CreateGeometry(hf);
+	//	void _CreateGeode(osgTerrain::TerrainTile* tile)
+	//	{
+	//		osg::Node* node = NULL;
+	//		osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(tile->getElevationLayer());
+	//		if (layer)
+	//		{
+	//			osg::HeightField* hf = layer->getHeightField();
+	//			if (hf)
+	//			{
+	//				osg::Geometry* hf_geom = _CreateGeometry(hf);
 
-					//Add color texture
-					osgTerrain::Layer* colorLayer = tile->getColorLayer(0);
-					if (colorLayer)
-					{
-						osg::Image* image = colorLayer->getImage();
-						osg::Texture2D* texture = new osg::Texture2D(image);
-						hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
-					}
+	//				//Add color texture
+	//				osgTerrain::Layer* colorLayer = tile->getColorLayer(0);
+	//				if (colorLayer)
+	//				{
+	//					osg::Image* image = colorLayer->getImage();
+	//					osg::Texture2D* texture = new osg::Texture2D(image);
+	//					hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+	//				}
 
-					//Add land cover texture
-					osgTerrain::Layer* landCoverLayer = tile->getColorLayer(1);
-					if (landCoverLayer)
-					{
-						osg::Image* image = landCoverLayer->getImage();
-						osg::Texture2D* texture = new osg::Texture2D(image);
-						hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(1, texture, osg::StateAttribute::ON);
-					}
+	//				//Add land cover texture
+	//				osgTerrain::Layer* landCoverLayer = tile->getColorLayer(1);
+	//				if (landCoverLayer)
+	//				{
+	//					osg::Image* image = landCoverLayer->getImage();
+	//					osg::Texture2D* texture = new osg::Texture2D(image);
+	//					hf_geom->getOrCreateStateSet()->setTextureAttributeAndModes(1, texture, osg::StateAttribute::ON);
+	//				}
 
-					osg::Geode* geode = new osg::Geode();
-					geode->addDrawable(hf_geom);
-					setPosition(hf->getOrigin());
-					addChild(geode);
-				}
-			}
-		}
+	//				osg::Geode* geode = new osg::Geode();
+	//				geode->addDrawable(hf_geom);
+	//				setPosition(hf->getOrigin());
+	//				addChild(geode);
+	//			}
+	//		}
+	//	}
 
-		static osg::Geometry* _CreateGeometry(osg::HeightField* hf)
-		{
-			unsigned int numColumns = hf->getNumColumns();
-			unsigned int numRows = hf->getNumRows();
-			float columnCoordDelta = hf->getXInterval();
-			float rowCoordDelta = hf->getYInterval();
+	//	static osg::Geometry* _CreateGeometry(osg::HeightField* hf)
+	//	{
+	//		unsigned int numColumns = hf->getNumColumns();
+	//		unsigned int numRows = hf->getNumRows();
+	//		float columnCoordDelta = hf->getXInterval();
+	//		float rowCoordDelta = hf->getYInterval();
 
-			osg::Geometry* geometry = new osg::Geometry;
+	//		osg::Geometry* geometry = new osg::Geometry;
 
-			osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
-			osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
-			osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
-			color[0].set(255, 255, 255, 255);
-			float rowTexDelta = 1.0f / (float)(numRows - 1);
-			float columnTexDelta = 1.0f / (float)(numColumns - 1);
-			osg::Vec3 local_origin(0, 0, 0);
+	//		osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
+	//		osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
+	//		osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
+	//		color[0].set(255, 255, 255, 255);
+	//		float rowTexDelta = 1.0f / (float)(numRows - 1);
+	//		float columnTexDelta = 1.0f / (float)(numColumns - 1);
+	//		osg::Vec3 local_origin(0, 0, 0);
 
-			osg::Vec3 pos(local_origin.x(), local_origin.y(), local_origin.z());
-			osg::Vec2 tex(0.0f, 0.0f);
-			int vi = 0;
-			for (unsigned int r = 0; r < numRows; ++r)
-			{
-				pos.x() = local_origin.x();
-				tex.x() = 0.0f;
-				for (unsigned int c = 0; c < numColumns; ++c)
-				{
-					float h = hf->getHeight(c, r);
-					v[vi].set(pos.x(), pos.y(), h);
-					t[vi].set(tex.x(), tex.y());
-					pos.x() += columnCoordDelta;
-					tex.x() += columnTexDelta;
-					++vi;
-				}
-				pos.y() += rowCoordDelta;
-				tex.y() += rowTexDelta;
-			}
+	//		osg::Vec3 pos(local_origin.x(), local_origin.y(), local_origin.z());
+	//		osg::Vec2 tex(0.0f, 0.0f);
+	//		int vi = 0;
+	//		for (unsigned int r = 0; r < numRows; ++r)
+	//		{
+	//			pos.x() = local_origin.x();
+	//			tex.x() = 0.0f;
+	//			for (unsigned int c = 0; c < numColumns; ++c)
+	//			{
+	//				float h = hf->getHeight(c, r);
+	//				v[vi].set(pos.x(), pos.y(), h);
+	//				t[vi].set(tex.x(), tex.y());
+	//				pos.x() += columnCoordDelta;
+	//				tex.x() += columnTexDelta;
+	//				++vi;
+	//			}
+	//			pos.y() += rowCoordDelta;
+	//			tex.y() += rowTexDelta;
+	//		}
 
-			geometry->setVertexArray(&v);
-			geometry->setTexCoordArray(0, &t);
-			geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
+	//		geometry->setVertexArray(&v);
+	//		geometry->setTexCoordArray(0, &t);
+	//		geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
 
-			osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
-			geometry->addPrimitiveSet(&drawElements);
-			int ei = 0;
-			for (unsigned int r = 0; r < numRows - 1; ++r)
-			{
-				for (unsigned int c = 0; c < numColumns - 1; ++c)
-				{
-					// Try to imitate how GeometryTechnique::generateGeometry optimize 
-					// which way to put the diagonal by choosing to
-					// place it between the two corners that have the least curvature
-					// relative to each other.
-					// Due to how normals are calculated we don't get exact match...fix this by using same normal calulations
+	//		osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
+	//		geometry->addPrimitiveSet(&drawElements);
+	//		int ei = 0;
+	//		for (unsigned int r = 0; r < numRows - 1; ++r)
+	//		{
+	//			for (unsigned int c = 0; c < numColumns - 1; ++c)
+	//			{
+	//				// Try to imitate how GeometryTechnique::generateGeometry optimize 
+	//				// which way to put the diagonal by choosing to
+	//				// place it between the two corners that have the least curvature
+	//				// relative to each other.
+	//				// Due to how normals are calculated we don't get exact match...fix this by using same normal calulations
 
-					osg::Vec3 n00 = hf->getNormal(c, r);
-					osg::Vec3 n01 = hf->getNormal(c, r + 1);
-					osg::Vec3 n10 = hf->getNormal(c + 1, r);
-					osg::Vec3 n11 = hf->getNormal(c + 1, r + 1);
-					float dot_00_11 = n00 * n11;
-					float dot_01_10 = n01 * n10;
-					if (dot_00_11 > dot_01_10)
-					{
-						drawElements[ei++] = (r)*numColumns + c;
-						drawElements[ei++] = (r)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+	//				osg::Vec3 n00 = hf->getNormal(c, r);
+	//				osg::Vec3 n01 = hf->getNormal(c, r + 1);
+	//				osg::Vec3 n10 = hf->getNormal(c + 1, r);
+	//				osg::Vec3 n11 = hf->getNormal(c + 1, r + 1);
+	//				float dot_00_11 = n00 * n11;
+	//				float dot_01_10 = n01 * n10;
+	//				if (dot_00_11 > dot_01_10)
+	//				{
+	//					drawElements[ei++] = (r)*numColumns + c;
+	//					drawElements[ei++] = (r)*numColumns + c + 1;
+	//					drawElements[ei++] = (r + 1)*numColumns + c + 1;
 
-						drawElements[ei++] = (r + 1)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c;
-						drawElements[ei++] = (r)*numColumns + c;
-					}
-					else
-					{
-						drawElements[ei++] = (r)*numColumns + c;
-						drawElements[ei++] = (r)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c;
+	//					drawElements[ei++] = (r + 1)*numColumns + c + 1;
+	//					drawElements[ei++] = (r + 1)*numColumns + c;
+	//					drawElements[ei++] = (r)*numColumns + c;
+	//				}
+	//				else
+	//				{
+	//					drawElements[ei++] = (r)*numColumns + c;
+	//					drawElements[ei++] = (r)*numColumns + c + 1;
+	//					drawElements[ei++] = (r + 1)*numColumns + c;
 
-						drawElements[ei++] = (r)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c;
-					}
-				}
-			}
-			geometry->setUseDisplayList(false);
-			return geometry;
-		}
-	};
+	//					drawElements[ei++] = (r)*numColumns + c + 1;
+	//					drawElements[ei++] = (r + 1)*numColumns + c + 1;
+	//					drawElements[ei++] = (r + 1)*numColumns + c;
+	//				}
+	//			}
+	//		}
+	//		geometry->setUseDisplayList(false);
+	//		return geometry;
+	//	}
+	//};
 }

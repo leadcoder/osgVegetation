@@ -34,6 +34,7 @@ Group {
 		"out vec2 ov_tex_coord0;"
 		"out vec3 ov_normal;"
 		"out float ov_depth;"
+		"out float ov_intensity;"
 		"void main(void) { "
 		"	vec4 position = gl_Vertex; "
 		"	position.xyz += xfb_position.xyz; "
@@ -42,6 +43,7 @@ Group {
 		"	ov_tex_coord0 = gl_MultiTexCoord0.xy;"
 		"   vec4 mvm_pos = gl_ModelViewMatrix * position;"
 		"   ov_depth = length(mvm_pos.xyz);"
+		"   ov_intensity = xfb_position.w;"
 		"}"
         }
       }
@@ -53,6 +55,7 @@ Group {
           "varying vec3 ov_normal;"
           "varying vec2 ov_tex_coord0;"
 		  "varying float ov_depth;"
+		  "varying float ov_intensity;"
 		  "uniform float ov_FadeDistance;"
           "uniform float ov_StartDistance;"
           "uniform float ov_EndDistance;"
@@ -60,6 +63,7 @@ Group {
           "{"
           "    vec3 light_dir = normalize(gl_LightSource[0].position.xyz);"
           "    vec4 base_color = texture2D(ov_color_texture, ov_tex_coord0.xy); "
+		  "    base_color.xyz *= ov_intensity; "
           "    vec4 coded_normal = texture2D(ov_color_texture, ov_tex_coord0.xy - vec2(0.0,0.5)); "
           "    vec3 normal = gl_NormalMatrix * normalize(coded_normal.xyz * 2.0 - 1);"
           "    vec3 pnormal = normalize(ov_normal);"
