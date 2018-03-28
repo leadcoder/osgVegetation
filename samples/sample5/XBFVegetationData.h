@@ -14,7 +14,7 @@ public:
 		float MaxDist;
 	};
 
-	XBFVegetationData(float max_dist = 1000, int density = 2, int lod_level = -1, float fade_dist = 30) : MaxDistance(max_dist),
+	XBFVegetationData(float max_dist = 1000, float density = 2, int lod_level = -1, float fade_dist = 30) : MaxDistance(max_dist),
 		Density(density),
 		TargetLODLevel(lod_level),
 		FadeDistance(fade_dist)
@@ -27,7 +27,7 @@ public:
 
 	}
 
-	int Density;
+	float Density;
 	float MaxDistance;
 	float FadeDistance;
 	int TargetLODLevel;

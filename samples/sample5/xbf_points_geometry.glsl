@@ -64,15 +64,15 @@ void main(void) {
 	vec4 baseColor = texture2D( baseTexture, texc);
 	float intensity = length(baseColor.xyz);
 	
-	if(intensity > 0.4)
-		return;
+	//if(intensity > 0.4)
+	//	return;
 	
 	vec4 lcColor = texture2D( landCoverTexture, texc);
 	
 	if(length(lcColor.xyz) > 0.2)
 		return;
 
-	intensity =  0.2 + 2 * intensity;
+	intensity =  0.4 + intensity;
 	
 	vec4 mvm_pos = osg_ModelViewMatrix * pos;
 	float distance = length(mvm_pos.xyz);

@@ -1,10 +1,9 @@
 //#version 330 compatibility
-//out vec4 position;
-varying vec4 vPosition;
-varying vec2 vTexCoord;
+varying vec4 ov_vertex_position;
+varying vec2 ov_vertex_texcoord;
 void main(void) 
 { 
-	vTexCoord = gl_MultiTexCoord0.xy;
+	ov_vertex_texcoord = gl_MultiTexCoord0.xy;
     gl_Position = gl_Vertex;
-    vPosition = gl_Vertex;
+	ov_vertex_position = gl_Vertex;
 } 

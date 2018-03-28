@@ -86,7 +86,7 @@ public:
 		}
 
 		getOrCreateStateSet()->addUniform(new osg::Uniform("vegMaxDistance", data.MaxDistance));
-		getOrCreateStateSet()->addUniform(new osg::Uniform("vegDensity", data.Density));
+		getOrCreateStateSet()->addUniform(new osg::Uniform("ov_mesh_density", data.Density));
 		getOrCreateStateSet()->addUniform(new osg::Uniform("vegFadeDistance", data.FadeDistance));
 		
 		for (size_t i = 0; i < data.MeshLODs.size() - 1; i++)

@@ -257,7 +257,7 @@ main(int argc, char** argv)
 
 	std::vector<XBFVegetationData> data;
 	
-	XBFVegetationData tree_data(1500.0f, 2, 2,10.0);
+	XBFVegetationData tree_data(1500.0f, 40, 2 , 10.0);
 	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l0.osg", 140));
 	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l1_bb.osg"));
 	data.push_back(tree_data);

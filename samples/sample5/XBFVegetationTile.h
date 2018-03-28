@@ -23,7 +23,7 @@ public:
 				setPosition(hf->getOrigin());
 				const osg::BoundingBox bbox = _GetBounds(hf);
 				std::vector<XBFInstance*> instances;
-				const int maxNumInstances = hf->getNumColumns()*hf->getNumRows() * 2 * (data.Density*data.Density);
+				const int maxNumInstances = hf->getNumColumns()*hf->getNumRows() * 2 * 4;
 				for (size_t i = 0; i < data.MeshLODs.size(); i++)
 				{
 					osg::Node* instancedModel = osgDB::readNodeFile(data.MeshLODs[i].Mesh);

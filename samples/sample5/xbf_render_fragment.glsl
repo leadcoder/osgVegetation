@@ -18,19 +18,14 @@ void main(void) {
 #ifdef OV_BILLBOARD
 	vec4 coded_normal = texture2D(ov_color_texture, ov_tex_coord0.xy - vec2(0.0,0.5));
 	vec3 normal = ov_normal_matrix * normalize(coded_normal.xyz * 2.0 - 1);
-	vec3 pnormal = normalize(ov_normal);
-	pnormal.y = 0;
-	pnormal = normalize(pnormal);
-	//float NdotL = max(dot(normal, light_dir), 0);
-	float NdotC = max(dot(pnormal, vec3(0,0,1)), 0);
+	vec3 quad_normal = ov_normal;
+	quad_normal.y = 0;
+	quad_normal = normalize(quad_normal);
+	float NdotC = max(dot(quad_normal, vec3(0,0,1)), 0);
 	//if(NdotC < 0.9) NdotC = 0.0; else NdotC = 1.0;
-	//fade = fade*mix(0.3, 0.03, (depth - 200)/300);
-	//base_color.xyz *= gl_LightSource[0].diffuse.xyz*NdotL*0.6 + gl_LightSource[0].ambient.xyz*0.5;
 	base_color.a = 1.3 * mix(base_color.a, 0.0, 1 - NdotC);
-	//float depth = 1.0 / gl_FragCoord.w;
 	base_color.a = mix(0, base_color.a, clamp((ov_depth - (ov_StartDistance - ov_FadeDistance/2.0))/ov_FadeDistance, 0, 1));
-	//gl_FragColor = base_color;
-	base_color.xyz *= 1.2;
+	base_color.xyz *= 1.4;
 #else
 	vec3 normal = normalize(ov_normal);
 	base_color.a = mix(base_color.a, 0, clamp((ov_depth - (ov_EndDistance + ov_FadeDistance*0.5)) / ov_FadeDistance, 0, 1));
