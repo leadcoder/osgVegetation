@@ -44,8 +44,8 @@ varying float ov_depth;
 //out vec3 ov_geometry_normal;
 //out float ov_depth;
 
-uniform mat4 osg_ModelViewProjectionMatrix;
-uniform mat4 osg_ProjectionMatrix;
+//uniform mat4 osg_ModelViewProjectionMatrix;
+//uniform mat4 osg_ProjectionMatrix;
 uniform float osg_SimulationTime;
 
 uniform sampler2D ov_color_texture;
@@ -156,12 +156,12 @@ void main(void)
 	ov_depth = mv_pos.z;
 
 	bool shadow_camera = true;
-	if (osg_ProjectionMatrix[3][3] == 0)
+	if (gl_ProjectionMatrix[3][3] == 0)
 		shadow_camera = false;
 
 	float adjusted_max_dist = 10000;
 	if (!shadow_camera)
-		adjusted_max_dist = ov_billboard_max_distance*max(osg_ProjectionMatrix[0][0], 1);
+		adjusted_max_dist = ov_billboard_max_distance*max(gl_ProjectionMatrix[0][0], 1);
 	
 	//just pick some fade distance
 	float bb_fade_dist = adjusted_max_dist /3.0;
