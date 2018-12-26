@@ -257,8 +257,8 @@ main(int argc, char** argv)
 
 	std::vector<XBFVegetationData> data;
 	
-	XBFVegetationData tree_data(1500.0f, 40, 2 , 10.0);
-	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l0.osg", 140));
+	XBFVegetationData tree_data(1500.0f, 40, 1 , 10.0);
+	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l0.osg", 340));
 	tree_data.MeshLODs.push_back(XBFVegetationData::XBFLOD("trees/fir01_l1_bb.osg"));
 	data.push_back(tree_data);
 
@@ -269,7 +269,7 @@ main(int argc, char** argv)
 	grass_data1.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	*/
 
-	osgVegetation::BillboardLayer grass_data1(240, 2, 1.0, 0.3, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data1(240, 3, 1.0, 0.3, 0.1, 5);
 	grass_data1.Type = osgVegetation::BillboardLayer::BLT_GRASS;
 	grass_data1.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
 	grass_data1.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));

@@ -5,8 +5,8 @@ layout(triangles) in;
 layout(points, max_vertices=2) out; 
 uniform float vegDistanceLOD0;
 uniform float vegFadeDistance; 
-uniform mat4 osg_ModelViewProjectionMatrix;
-uniform mat4 osg_ModelViewMatrix;
+//uniform mat4 osg_ModelViewProjectionMatrix;
+//uniform mat4 osg_ModelViewMatrix;
 uniform sampler2D baseTexture;
 uniform sampler2D landCoverTexture;
 in vec4 tePosition[3];
@@ -74,7 +74,7 @@ void main(void) {
 
 	intensity =  0.4 + intensity;
 	
-	vec4 mvm_pos = osg_ModelViewMatrix * pos;
+	vec4 mvm_pos = gl_ModelViewMatrix * pos;
 	float distance = length(mvm_pos.xyz);
 	//float distance = -mvm_pos.z;//length(mvm_pos);
 	

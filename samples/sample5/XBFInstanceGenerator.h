@@ -185,7 +185,6 @@ private:
 		program->addTransformFeedBackVarying("gl_NextBuffer");
 		program->addTransformFeedBackVarying("xfb_output_lod1");
 		program->setTransformFeedBackMode(GL_INTERLEAVED_ATTRIBS);
-		//program->setTransformFeedBackMode(GL_SEPARATE_ATTRIBS);
 		return program;
 	}
 	
@@ -198,8 +197,7 @@ private:
 
 		osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
 		osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
-		//osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
-		//color[0].set(255, 255, 255, 255);
+
 		float rowTexDelta = 1.0f / (float)(numRows - 1);
 		float columnTexDelta = 1.0f / (float)(numColumns - 1);
 		osg::Vec3 local_origin(0, 0, 0);
@@ -226,7 +224,6 @@ private:
 
 		geometry->setVertexArray(&v);
 		geometry->setTexCoordArray(0, &t);
-		//geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
 
 		osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
 		geometry->addPrimitiveSet(&drawElements);

@@ -26,6 +26,7 @@ public:
 		{
 			if (_numInstances == 0)
 				return;
+
 			const osg::Geometry* geom = static_cast<const osg::Geometry*>(drawable);
 			geom->drawVertexArraysImplementation(renderInfo);
 			for (unsigned int i = 0; i < geom->getNumPrimitiveSets(); ++i)
@@ -63,31 +64,25 @@ public:
 		{
 			for (unsigned int i = 0; i < geode.getNumDrawables(); ++i)
 			{
-				osg::Geometry* g = geode.getDrawable(i)->asGeometry();
-				if (g)
+				osg::Geometry* geom = geode.getDrawable(i)->asGeometry();
+				if (geom)
 				{
 					// Must ensure that VBOs are used:
-					g->setUseVertexBufferObjects(true);
-					g->setUseDisplayList(false);
+					geom->setUseVertexBufferObjects(true);
+					geom->setUseDisplayList(false);
 
 					// Bind our transform feedback buffer to the geometry:
-					g->setVertexAttribArray(_ig->_positionSlot, _ig->_xfbPosition.get());
-					g->setVertexAttribBinding(_ig->_positionSlot, g->BIND_PER_VERTEX);
-					g->setVertexAttribNormalize(_ig->_positionSlot, false);
-
-					//g->setVertexAttribArray(_ig->_dataSlot, _ig->_xfbData.get());
-					//g->setVertexAttribBinding(_ig->_dataSlot, g->BIND_PER_VERTEX);
-					//g->setVertexAttribNormalize(_ig->_dataSlot, false);
-
-					g->setInitialBound(_ig->_bounds);
+					geom->setVertexAttribArray(_ig->_positionSlot, _ig->_xfbPosition.get());
+					geom->setVertexAttribBinding(_ig->_positionSlot, geom->BIND_PER_VERTEX);
+					geom->setVertexAttribNormalize(_ig->_positionSlot, false);
+				
+					geom->setInitialBound(_ig->_bounds);
 
 					// Set up a draw callback to intecept draw calls so we can vary 
 					// the instance count per frame.
-					g->setDrawCallback(_ig->_drawCallback.get());
+					geom->setDrawCallback(_ig->_drawCallback.get());
 					// disable frustum culling because the instance doesn't have a real location
-					g->setCullingActive(false);
-
-					
+					geom->setCullingActive(false);
 				}
 			}
 		}
@@ -98,15 +93,13 @@ public:
 	XBFInstance(unsigned int maxNumInstances,
 		int slot, 
 		osg::Node* model, 
-		const osg::BoundingBox &bbox) : _maxNumInstances(maxNumInstances),
+		const osg::BoundingBox &bbox) : 
+		_maxNumInstances(maxNumInstances),
 		_positionSlot(slot),
-		//_dataSlot(slot+2),
 		_bounds(bbox),
 		_xfbPosition(new osg::Vec4Array()),
-		//_xfbData(new osg::Vec4Array()),
 		_drawCallback(new InstanceDrawCallback())
 	{
-		//_xfbData->resizeArray(maxNumInstances);
 		_xfbPosition->resizeArray(maxNumInstances);
 		osg::StateSet* model_ss = model->getOrCreateStateSet();
 		osg::Program* prog = dynamic_cast<osg::Program*>(model_ss->getAttribute(osg::StateAttribute::PROGRAM));
@@ -131,19 +124,15 @@ public:
 		_shaderProgram->removeBindAttribLocation("xfb_position");
 		_shaderProgram->addBindAttribLocation("xfb_position", _positionSlot);
 		ss->setAttribute(new osg::VertexAttribDivisor(_positionSlot, 1));
-
-		//_shaderProgram->removeBindAttribLocation("xfb_data");
-		//_shaderProgram->addBindAttribLocation("xfb_data", _dataSlot);
-		//ss->setAttribute(new osg::VertexAttribDivisor(_dataSlot, 1));
-
-		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
-		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.1);
+		
+		//osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
+		//alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.5);
 		//ss->setAttributeAndModes(alphaFunc, osg::StateAttribute::OVERRIDE);
 		//ss->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
 
 		if (false)
 		{
-			//ss->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
+			ss->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::ON);
 		}
 		else
 		{
@@ -151,12 +140,11 @@ public:
 			ss->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
 		}
 		
-
-
 		// In practice, we will pre-set a bounding sphere/box for a tile
 		this->setCullingActive(false);
 	
 		addChild(model);
+
 		//convert model to use instancing
 		ConvertToInstancing visitor(this);
 		this->accept(visitor);
@@ -172,10 +160,6 @@ public:
 		return _xfbPosition.get();
 	}
 
-	//osg::Array* getData() const
-	//{
-	//	return _xfbData.get();
-	//}
 private:
 	osg::Program* makeRenderProgram(bool add_fragment_program)
 	{
@@ -190,33 +174,11 @@ private:
 	{
 		osg::BoundingSphere bs(_bounds);
 		return bs;
-	
-		/*const osg::Vec4Array* points = static_cast<const osg::Vec4Array*>(_xfb.get());
-		osg::BoundingSphere instanceBS = osg::Group::computeBound();
-		for (int i = 0; i < points->getNumElements(); ++i)
-		{
-			osg::Vec3f center((*points)[i].x(), (*points)[i].y(), (*points)[i].z());
-			bs.expandBy(osg::BoundingSphere(center + instanceBS.center(), instanceBS.radius()));
-		}
-		//OE_WARN << "BS = " << bs.center().x() << ", " << bs.center().y() << ", " << bs.center().z() << ", r=" << bs.radius() << "\n";
-		return bs;*/
 	}
-
-	/*void updateBounds(osg::Vec3Array* verts)
-	{
-		osg::BoundingSphere instanceBS = osg::Group::computeBound();
-		for (int i = 0; i < verts->getNumElements(); ++i)
-		{
-			osg::Vec3f center((*verts)[i].x(), (*verts)[i].y(), (*verts)[i].z());
-			_xbfBounds.expandBy(osg::BoundingSphere(center + instanceBS.center(), instanceBS.radius()));
-		}
-	}*/
 
 	unsigned int _maxNumInstances;
 	int _positionSlot;
-	//int _dataSlot;
 	osg::ref_ptr<osg::Array> _xfbPosition;
-	//osg::ref_ptr<osg::Array> _xfbData;
 	osg::ref_ptr<InstanceDrawCallback> _drawCallback;
 	osg::BoundingSphere _xbfBounds;
 	osg::BoundingBox _bounds;
