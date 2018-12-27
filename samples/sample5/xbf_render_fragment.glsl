@@ -1,10 +1,12 @@
 #version 330 compatibility
-#pragma import_defines (OV_BILLBOARD)
+
+#pragma import_defines (SM_LISPSM,SM_VDSM1,SM_VDSM2,FM_LINEAR,FM_EXP,FM_EXP2, OV_BILLBOARD)
 #extension GL_ARB_gpu_shader5 : enable 
 uniform sampler2D ov_color_texture;
 uniform float ov_FadeDistance;
 uniform float ov_StartDistance;
 uniform float ov_EndDistance;
+
 in vec2 ov_tex_coord0;
 in vec3 ov_normal;
 in float ov_depth;
@@ -32,5 +34,25 @@ void main(void) {
 #endif
 	float NdotL = max(dot(normal, light_dir), 0);
 	base_color.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz * gl_FrontMaterial.diffuse.xyz + gl_LightSource[0].ambient.xyz * gl_FrontMaterial.ambient.xyz);
+
+#if defined(FM_LINEAR) || defined(FM_EXP) || defined(FM_EXP2)
+	float depth = ov_depth;
+
+#ifdef FM_LINEAR
+	float fog_factor = (gl_Fog.end - depth) * gl_Fog.scale;
+#endif
+
+#ifdef FM_EXP
+	float fog_factor = exp(-gl_Fog.density * depth);
+#endif
+
+#ifdef FM_EXP2
+	float fog_factor = exp(-pow((gl_Fog.density * depth), 2.0));
+#endif
+	fog_factor = clamp(fog_factor, 0.0, 1.0);
+	base_color.xyz = mix(gl_Fog.color.xyz, base_color.xyz, fog_factor);
+
+#endif
+
 	gl_FragColor = base_color;
 }
