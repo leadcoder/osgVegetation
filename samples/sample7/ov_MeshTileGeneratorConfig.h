@@ -1,35 +1,41 @@
 #pragma once
 
-class MeshTypeConfig
+#include <string>
+#include <vector>
+
+namespace osgVegetation
 {
-public:
-	
-	class MeshLODConfig
+	class MeshTypeConfig
 	{
 	public:
-		MeshLODConfig(const std::string& mesh, const osg::Vec4 &distance) : Mesh(mesh), Distance(distance) {}
-		std::string Mesh;
-		osg::Vec4 Distance;
+
+		class MeshLODConfig
+		{
+		public:
+			MeshLODConfig(const std::string& mesh, const osg::Vec4 &distance) : Mesh(mesh), Distance(distance) {}
+			std::string Mesh;
+			osg::Vec4 Distance;
+		};
+
+		MeshTypeConfig()
+		{
+
+		}
+		std::vector<MeshLODConfig> MeshLODs;
+	private:
 	};
 
-	MeshTypeConfig()
+	class MeshTileGeneratorConfig
 	{
+	public:
+		MeshTileGeneratorConfig(float density = 2, int lod_level = -1) : Density(density),
+			TargetLODLevel(lod_level)
+		{
 
-	}
-	std::vector<MeshLODConfig> MeshLODs;
-private:
-};
-
-class MeshTileGeneratorConfig
-{
-public:
-	MeshTileGeneratorConfig(float density = 2, int lod_level = -1) : Density(density),
-		TargetLODLevel(lod_level)
-	{
-
-	}
-	float Density;
-	int TargetLODLevel;
-	std::vector<MeshTypeConfig> MeshTypes;
-private:
-};
+		}
+		float Density;
+		int TargetLODLevel;
+		std::vector<MeshTypeConfig> MeshTypes;
+	private:
+	};
+}
