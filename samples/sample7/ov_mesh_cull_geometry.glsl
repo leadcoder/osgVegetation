@@ -7,6 +7,8 @@ layout(points, max_vertices = 1) out;
 in vec4 ov_te_position[3];
 in vec2 ov_te_texcoord[3];
 
+uniform sampler2D ov_landCoverTexture;
+
 uniform mat4 osg_ViewMatrixInverse;
 uniform mat4 osg_ModelViewMatrix;
 uniform int ov_indirectCommandSize; // = sizeof(DrawArraysIndirectCommand) / sizeof(unsigned int) = 4
@@ -125,21 +127,23 @@ vec3 ov_getRandomBarycentricPoint(vec2 seed)
     return b;
 }
 
-vec4 ov_getRandomPointInTriangle(in vec4 tri_vertices[3])
+void ov_getRandomPointInTriangle(in vec4 tri_vertices[3],in vec2 tri_tex_coords[3],  out vec4 point, out vec2 point_tex_coords)
 {
-	vec4 position = vec4(0,0,0,1);
+	point = vec4(0,0,0,1);
+	point_tex_coords = vec2(0,0);
 	vec3 b = ov_getRandomBarycentricPoint(tri_vertices[0].xy);
     for(int i=0; i < 3; ++i)
     {
-		position.x += b[i] * tri_vertices[i].x;
-		position.y += b[i] * tri_vertices[i].y;
-		position.z += b[i] * tri_vertices[i].z;
+		point.x += b[i] * tri_vertices[i].x;
+		point.y += b[i] * tri_vertices[i].y;
+		point.z += b[i] * tri_vertices[i].z;
+
+		point_tex_coords.x += b[i] * tri_tex_coords[i].x;
+        point_tex_coords.y += b[i] * tri_tex_coords[i].y;
     }
-	return position;
 }
 
-
-mat4 ov_getRotationMat4(vec3 axis, float angle)
+mat4 ov_getRotationMatrix(vec3 axis, float angle)
 {
 	axis = normalize(axis);
 	float s = sin(angle);
@@ -152,12 +156,12 @@ mat4 ov_getRotationMat4(vec3 axis, float angle)
 		0.0, 0.0, 0.0, 1.0);
 }
 
-mat4 ov_getTransformationMat4(vec4 position)
+mat4 ov_getTransformationMatrix(vec4 position)
 {
 	float rand_val = ov_rand(position.xy + vec2(10.2,3.5));
 	float rand_angle = rand_val*3.14;
 	float rand_scale = 0.5 + rand_val * (1.5 - 0.5);
-	mat4 rand_rot_mat = ov_getRotationMat4(vec3(0, 0, 1), rand_angle);
+	mat4 rand_rot_mat = ov_getRotationMatrix(vec3(0, 0, 1), rand_angle);
 	mat4 rand_scale_mat = mat4(rand_scale, 0, 0, 0,
 		                  0, rand_scale, 0, 0,
 	                      0, 0, rand_scale, 0,
@@ -170,17 +174,24 @@ mat4 ov_getTransformationMat4(vec4 position)
 void main(void) 
 {
 	//get a random position inside current triangle
-	vec4 instance_position = ov_getRandomPointInTriangle(ov_te_position);
+	vec4 instance_position;
+	vec2 instance_tex_coords;
+	ov_getRandomPointInTriangle(ov_te_position, ov_te_texcoord, instance_position, instance_tex_coords);
+
+	vec4 land_cover_color = texture2D( ov_landCoverTexture, instance_tex_coords);
+	if(length(land_cover_color.xyz) > 0.2)
+		return;
+
 	 
 	//get random mesh
 	int instance_type_id = ov_getRandomMeshType(instance_position.xy);
 	
 	//get transformation with random rotation and scale
-    mat4 instance_matrix = ov_getTransformationMat4(instance_position);
+    mat4 instance_matrix = ov_getTransformationMatrix(instance_position);
     mat4 mvpo_matrix = gl_ModelViewProjectionMatrix * instance_matrix;
 
     // gl_Position is created only for debugging purposes
-    gl_Position = mvpo_matrix * vec4(0.0,0.0,10.0,1.0);
+    //gl_Position = mvpo_matrix * vec4(0.0,0.0,10.0,1.0);
 	//EmitVertex();
 	//EndPrimitive();
 

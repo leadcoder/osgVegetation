@@ -95,7 +95,7 @@ namespace osgVegetation
 			_terrainSS = _CreateTerrainStateSet();
 		}
 
-		osg::Node* CreateNode(osg::Geometry* terrain_geometry)
+		osg::Group* CreateMeshTile(osg::Geometry* terrain_geometry)
 		{
 			osg::Group* group = new osg::Group();
 			group->getOrCreateStateSet()->setRenderBinDetails(1, "TraversalOrderBin", osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);

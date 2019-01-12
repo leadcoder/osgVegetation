@@ -37,7 +37,19 @@ namespace osgVegetation
 				{
 					osg::Geometry* hf_geom = _CreateGeometryFromHeightField(hf);
 					setPosition(hf->getOrigin());
-					addChild(gen.CreateNode(hf_geom));
+					osg::Group* mesh_tile = gen.CreateMeshTile(hf_geom);
+					addChild(mesh_tile);
+
+					//Add landcover texture
+					//Add land cover texture
+					osgTerrain::Layer* landCoverLayer = tile->getColorLayer(1);
+					if (landCoverLayer)
+					{
+						osg::Image* image = landCoverLayer->getImage();
+						osg::Texture2D* texture = new osg::Texture2D(image);
+						mesh_tile->getOrCreateStateSet()->setTextureAttributeAndModes(1, texture, osg::StateAttribute::ON);
+						mesh_tile->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_landCoverTexture", 1));
+					}
 				}
 			}
 		}
