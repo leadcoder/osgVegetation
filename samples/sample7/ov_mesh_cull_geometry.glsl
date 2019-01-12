@@ -7,8 +7,6 @@ layout(points, max_vertices = 1) out;
 in vec4 ov_te_position[3];
 in vec2 ov_te_texcoord[3];
 
-//out vec4 ov_color;
-
 uniform mat4 osg_ViewMatrixInverse;
 uniform mat4 osg_ModelViewMatrix;
 uniform int ov_indirectCommandSize; // = sizeof(DrawArraysIndirectCommand) / sizeof(unsigned int) = 4
@@ -141,6 +139,34 @@ vec4 ov_getRandomPointInTriangle(in vec4 tri_vertices[3])
 }
 
 
+mat4 ov_getRotationMat4(vec3 axis, float angle)
+{
+	axis = normalize(axis);
+	float s = sin(angle);
+	float c = cos(angle);
+	float oc = 1.0 - c;
+
+	return mat4(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
+		oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s, 0.0,
+		oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c, 0.0,
+		0.0, 0.0, 0.0, 1.0);
+}
+
+mat4 ov_getTransformationMat4(vec4 position)
+{
+	float rand_val = ov_rand(position.xy + vec2(10.2,3.5));
+	float rand_angle = rand_val*3.14;
+	float rand_scale = 0.5 + rand_val * (1.5 - 0.5);
+	mat4 rand_rot_mat = ov_getRotationMat4(vec3(0, 0, 1), rand_angle);
+	mat4 rand_scale_mat = mat4(rand_scale, 0, 0, 0,
+		                  0, rand_scale, 0, 0,
+	                      0, 0, rand_scale, 0,
+	                      0, 0, 0, 1);
+	mat4 final_trans = rand_rot_mat*rand_scale_mat;
+	final_trans[3] = position;
+	return final_trans;
+}
+
 void main(void) 
 {
 	//get a random position inside current triangle
@@ -148,9 +174,9 @@ void main(void)
 	 
 	//get random mesh
 	int instance_type_id = ov_getRandomMeshType(instance_position.xy);
-  
-    vec4 TM0 = vec4(1,0,0,0); vec4 TM1 = vec4(0,1,0,0); vec4 TM2 = vec4(0,0,1,0); vec4 TM3 = instance_position;
-    mat4 instance_matrix = mat4(TM0,TM1,TM2,TM3);
+	
+	//get transformation with random rotation and scale
+    mat4 instance_matrix = ov_getTransformationMat4(instance_position);
     mat4 mvpo_matrix = gl_ModelViewProjectionMatrix * instance_matrix;
 
     // gl_Position is created only for debugging purposes
@@ -178,10 +204,10 @@ void main(void)
                 int indirect_command_address = instanceTypes[instance_type_id].lods[i].indirectTargetParams.y;
                 int object_index             = imageAtomicAdd( ov_getIndirectCommand( indirect_command_index ), indirect_command_address * ov_indirectCommandSize + 1, 1 );
                 int indirect_target_address  = 6*(instanceTypes[instance_type_id].lods[i].indirectTargetParams.z + object_index);
-                imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 0, TM0 );
-                imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 1, TM1 );
-                imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 2, TM2 );
-                imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 3, TM3 );
+                imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 0, instance_matrix[0] );
+                imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 1, instance_matrix[1] );
+                imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 2, instance_matrix[2] );
+                imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 3, instance_matrix[3] );
 				vec4 _ExtraParams = vec4(1,0,0,0);
                 imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 4, _ExtraParams );
 				 vec4 _IdParams = vec4(instance_type_id,0,0,0);
