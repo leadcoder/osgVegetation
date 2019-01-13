@@ -201,10 +201,22 @@ void main(void)
         //ov_color = vec4(1.0,0.0,0.0,1.0);
 		vec4 mv_pos = osg_ModelViewMatrix * instance_position;
 		float distance_to_object = length(mv_pos.xyz);
-        for(int i=0 ; i < instanceTypes[instance_type_id].params.x; ++i)
-        {
+
+		bool shadow_camera = true;
+		if (gl_ProjectionMatrix[3][3] == 0)
+			shadow_camera = false;
+
+		int start_lod = 0;
+		if (shadow_camera)
+		{
+			start_lod = max(0, instanceTypes[instance_type_id].params.x - 1);
+			distance_to_object = instanceTypes[instance_type_id].lods[start_lod].distances.y + 1;
+		}
+
+		for(int i = start_lod ; i < instanceTypes[instance_type_id].params.x; ++i)
+	    {
             if(ov_boundingBoxInViewFrustum( mvpo_matrix, instanceTypes[instance_type_id].lods[i].bbMin.xyz, instanceTypes[instance_type_id].lods[i].bbMax.xyz ) &&
-                ( distance_to_object >= instanceTypes[instance_type_id].lods[i].distances.x ) && ( distance_to_object < instanceTypes[instance_type_id].lods[i].distances.w ) )
+                (distance_to_object >= instanceTypes[instance_type_id].lods[i].distances.x ) && ( distance_to_object < instanceTypes[instance_type_id].lods[i].distances.w ))
             {
                 //ov_color = vec4(1.0,1.0,0.0,1.0);
                 vec4 lod_dist = instanceTypes[instance_type_id].lods[i].distances;

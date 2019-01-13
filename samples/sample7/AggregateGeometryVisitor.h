@@ -299,13 +299,19 @@ public:
 			_images[i]->scaleImage(tex_size, tex_size, 1);
 			tex->setImage(i, _images[i]);
 		}
-		int tex_unit = 0;
+		int tex_unit = 3;
 		_aggregatedGeometry->getOrCreateStateSet()->setTextureAttributeAndModes(tex_unit, tex, osg::StateAttribute::ON);
 		osg::Uniform* baseTextureSampler = new osg::Uniform("ov_color_texture", tex_unit);
 		_aggregatedGeometry->getOrCreateStateSet()->addUniform(baseTextureSampler);
 
 		_aggregatedGeometry->getOrCreateStateSet()->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
 		_aggregatedGeometry->getOrCreateStateSet()->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+
+		//need this for shadows to work
+		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
+		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.5);
+		_aggregatedGeometry->getOrCreateStateSet()->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
+
 		return tex;
 	}
 protected:

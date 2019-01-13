@@ -189,7 +189,7 @@ namespace osgVegetation
 				terrain_ss->setMode(GL_RASTERIZER_DISCARD, osg::StateAttribute::ON);
 #endif
 				cullProgram->addBindUniformBlock("ov_instanceTypesData", 1);
-				terrain_ss->setAttributeAndModes(cullProgram.get(), osg::StateAttribute::ON);
+				terrain_ss->setAttributeAndModes(cullProgram.get(), osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 				terrain_ss->setAttributeAndModes(m_GpuData.instanceTypesUBB.get());
 
 				std::map<unsigned int, IndirectTarget>::iterator it, eit;

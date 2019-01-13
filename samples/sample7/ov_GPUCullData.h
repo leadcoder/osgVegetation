@@ -234,7 +234,7 @@ namespace osgVegetation
 		void addDrawProgram(const std::string& uniformBlockName, osg::StateSet* stateset)
 		{
 			drawProgram->addBindUniformBlock(uniformBlockName, 1);
-			stateset->setAttributeAndModes(drawProgram.get(), osg::StateAttribute::ON);
+			stateset->setAttributeAndModes(drawProgram.get(), osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 		}
 
 		osg::ref_ptr< osg::DefaultIndirectCommandDrawArrays >        indirectCommands;
