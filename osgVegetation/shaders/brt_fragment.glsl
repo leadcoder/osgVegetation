@@ -51,7 +51,7 @@ void main(void)
 #ifdef SM_VDSM2
 	float shadow0 = shadow2DProj( shadowTexture0, gl_TexCoord[shadowTextureUnit0] ).r;
 	float shadow1 = shadow2DProj( shadowTexture1, gl_TexCoord[shadowTextureUnit1] ).r;
-	NdotL *= shadow0*shadow1; \n";
+	NdotL *= shadow0*shadow1;
 #endif
    outColor.xyz *= (NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz);
    //outColor.w = outColor.w * clamp(1.0 - ((depth-TileRadius)/(TileRadius*0.1)), 0.0, 1.0);
