@@ -15,7 +15,6 @@
 #include <osgGA/SphericalManipulator>
 #include <osgGA/Device>
 #include <osgShadow/ShadowedScene>
-#include <osgShadow/ShadowVolume>
 #include <osgShadow/ShadowMap>
 #include <osgShadow/LightSpacePerspectiveShadowMap>
 #include <osgShadow/StandardShadowMap>

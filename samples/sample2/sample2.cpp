@@ -13,7 +13,6 @@
 #include <osgGA/TerrainManipulator>
 #include <osgGA/SphericalManipulator>
 #include <osgShadow/ShadowedScene>
-#include <osgShadow/ShadowVolume>
 #include <osgShadow/ShadowMap>
 #include <osgShadow/ParallelSplitShadowMap>
 #include <osgShadow/ViewDependentShadowMap>
