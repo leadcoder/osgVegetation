@@ -202,15 +202,17 @@ void main(void)
 		vec4 mv_pos = osg_ModelViewMatrix * instance_position;
 		float distance_to_object = length(mv_pos.xyz);
 
-		bool shadow_camera = true;
-		if (gl_ProjectionMatrix[3][3] == 0)
-			shadow_camera = false;
+		bool shadow_camera = false;
+		if (gl_ProjectionMatrix[3][3] != 0)
+			shadow_camera = true;
 
 		int start_lod = 0;
 		if (shadow_camera)
 		{
+			//select last lod
 			start_lod = max(0, instanceTypes[instance_type_id].params.x - 1);
-			distance_to_object = instanceTypes[instance_type_id].lods[start_lod].distances.y + 1;
+			//and override object distance to be inside lod-range
+			distance_to_object = instanceTypes[instance_type_id].lods[start_lod].distances.y + 0.1; //note that we add 0.1m to avoid problems with zero values
 		}
 
 		for(int i = start_lod ; i < instanceTypes[instance_type_id].params.x; ++i)

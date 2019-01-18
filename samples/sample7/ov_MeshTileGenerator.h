@@ -144,7 +144,7 @@ namespace osgVegetation
 			for (it = m_GpuData.targets.begin(), eit = m_GpuData.targets.end(); it != eit; ++it)
 			{
 				//it->second.geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InvokeMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
-				it->second.geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InstanceGeometryDrawCB(m_GpuData.targets.at(0).indirectCommandTextureBuffer, m_GpuData.targets.at(0).indirectCommandImageBinding));
+				it->second.geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InstanceGeometryDrawCB(it->second.indirectCommandTextureBuffer, it->second.indirectCommandImageBinding));
 				it->second.geometryAggregator->getAggregatedGeometry()->setComputeBoundingBoxCallback(new BoundingBoxCB());
 				it->second.geometryAggregator->getAggregatedGeometry()->setCullingActive(false);
 			}
