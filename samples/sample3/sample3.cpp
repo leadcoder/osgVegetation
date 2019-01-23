@@ -1,35 +1,29 @@
-#include <osg/AlphaFunc>
-#include <osg/Billboard>
-#include <osg/BlendFunc>
-#include <osg/Depth>
-#include <osg/Geode>
-#include <osg/Geometry>
-#include <osg/Material>
-#include <osg/Math>
-#include <osg/MatrixTransform>
-#include <osg/PolygonOffset>
-#include <osg/Projection>
-#include <osg/ShapeDrawable>
-#include <osg/StateSet>
-#include <osg/Switch>
-#include <osg/Texture2D>
-#include <osg/TextureBuffer>
-#include <osg/Image>
-#include <osg/TexEnv>
-#include <osg/VertexProgram>
-#include <osg/FragmentProgram>
-#include <osg/ComputeBoundsVisitor>
-#include <osgDB/WriteFile>
+/* OpenSceneGraph example, osgterrain.
+*
+*  Permission is hereby granted, free of charge, to any person obtaining a copy
+*  of this software and associated documentation files (the "Software"), to deal
+*  in the Software without restriction, including without limitation the rights
+*  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+*  copies of the Software, and to permit persons to whom the Software is
+*  furnished to do so, subject to the following conditions:
+*
+*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+*  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+*  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+*  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+*  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+*  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+*  THE SOFTWARE.
+*/
+
+#include "ov_PLODTerrainTileInjection.h"
+#include "ov_Utils.h"
+#include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
-#include <osgDB/FileUtils>
-#include <osg/Texture2DArray>
-#include <osgUtil/LineSegmentIntersector>
-#include <osgUtil/IntersectionVisitor>
-#include <osgUtil/SmoothingVisitor>
-#include <osgText/Text>
+
 #include <osgViewer/Viewer>
 #include <osgViewer/ViewerEventHandlers>
-#include <osgGA/StateSetManipulator>
+
 #include <osgGA/TrackballManipulator>
 #include <osgGA/FlightManipulator>
 #include <osgGA/DriveManipulator>
@@ -37,159 +31,173 @@
 #include <osgGA/StateSetManipulator>
 #include <osgGA/AnimationPathManipulator>
 #include <osgGA/TerrainManipulator>
-#include <osgGA/SphericalManipulator>
+
+#include <osgTerrain/Terrain>
+#include <osgTerrain/TerrainTile>
+#include <osgTerrain/GeometryTechnique>
+#include <osg/Version>
+#include <osgTerrain/Layer>
+
+#include <osgFX/MultiTextureControl>
+#include <osg/PositionAttitudeTransform>
+#include <osg/PatchParameter>
+#include <osg/Fog>
 
 #include <iostream>
-#include <sstream>
-#include "BRTShaderInstancing2.h"
-#include "TerrainQuery.h"
 
-int main( int argc, char **argv )
+
+int main(int argc, char** argv)
 {
-	// use an ArgumentParser object to manage the program arguments.
-	osg::ArgumentParser arguments(&argc,argv);
+	osg::ArgumentParser arguments(&argc, argv);
 
 	// construct the viewer.
 	osgViewer::Viewer viewer(arguments);
-	
+
+	// set up the camera manipulators.
+	{
+		osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> keyswitchManipulator = new osgGA::KeySwitchMatrixManipulator;
+
+		keyswitchManipulator->addMatrixManipulator('1', "Trackball", new osgGA::TrackballManipulator());
+		keyswitchManipulator->addMatrixManipulator('2', "Flight", new osgGA::FlightManipulator());
+		keyswitchManipulator->addMatrixManipulator('3', "Drive", new osgGA::DriveManipulator());
+		keyswitchManipulator->addMatrixManipulator('4', "Terrain", new osgGA::TerrainManipulator());
+
+		std::string pathfile;
+		char keyForAnimationPath = '5';
+		while (arguments.read("-p", pathfile))
+		{
+			osgGA::AnimationPathManipulator* apm = new osgGA::AnimationPathManipulator(pathfile);
+			if (apm || !apm->valid())
+			{
+				unsigned int num = keyswitchManipulator->getNumMatrixManipulators();
+				keyswitchManipulator->addMatrixManipulator(keyForAnimationPath, "Path", apm);
+				keyswitchManipulator->selectMatrixManipulator(num);
+				++keyForAnimationPath;
+			}
+		}
+		viewer.setCameraManipulator(keyswitchManipulator.get());
+	}
+
+	// add the state manipulator
+	viewer.addEventHandler(new osgGA::StateSetManipulator(viewer.getCamera()->getOrCreateStateSet()));
+
 	// add the stats handler
 	viewer.addEventHandler(new osgViewer::StatsHandler);
 
-	//viewer.addEventHandler(new TechniqueEventHandler(ttm.get()));
-	viewer.addEventHandler(new osgGA::StateSetManipulator(viewer.getCamera()->getOrCreateStateSet()));
+	// add the record camera path handler
+	viewer.addEventHandler(new osgViewer::RecordCameraPathHandler);
 
-	osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> keyswitchManipulator = new osgGA::KeySwitchMatrixManipulator;
+	// add the window size toggle handler
+	viewer.addEventHandler(new osgViewer::WindowSizeHandler);
 
-	keyswitchManipulator->addMatrixManipulator( '1', "Trackball", new osgGA::TrackballManipulator() );
-	keyswitchManipulator->addMatrixManipulator( '2', "Flight", new osgGA::FlightManipulator() );
-	keyswitchManipulator->addMatrixManipulator( '3', "Drive", new osgGA::DriveManipulator() );
-	keyswitchManipulator->addMatrixManipulator( '4', "Terrain", new osgGA::TerrainManipulator() );
-	keyswitchManipulator->addMatrixManipulator( '5', "Orbit", new osgGA::OrbitManipulator() );
-	keyswitchManipulator->addMatrixManipulator( '6', "FirstPerson", new osgGA::FirstPersonManipulator() );
-	keyswitchManipulator->addMatrixManipulator( '7', "Spherical", new osgGA::SphericalManipulator() );
-	viewer.setCameraManipulator( keyswitchManipulator.get() );
-	
+	osg::DisplaySettings::instance()->setNumMultiSamples(4);
+
+	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
-	osgDB::Registry::instance()->getDataFilePathList().push_back("./data"); //hack to be able to runt from GCC out dir
-
-	//setup optimization variables
-	std::string opt_env= "OSG_OPTIMIZER=COMBINE_ADJACENT_LODS SHARE_DUPLICATE_STATE MERGE_GEOMETRY MAKE_FAST_GEOMETRY CHECK_GEOMETRY OPTIMIZE_TEXTURE_SETTINGS STATIC_OBJECT_DETECTION";
-#ifdef WIN32
-	_putenv(opt_env.c_str());
-#else
-	char * writable = new char[opt_env.size() + 1];
-	std::copy(opt_env.begin(), opt_env.end(), writable);
-	writable[opt_env.size()] = '\0'; // don't forget the terminating 0
-	putenv(writable);
-	delete[] writable;
-#endif
-
-	//grass data
-	osgVegetation::BillboardLayer  grass_l0("billboards/grass0.png", 40);
-
-	grass_l0.Density = 0.1;
-	grass_l0.Height.set(0.8,0.8);
-	grass_l0.Width.set(1.0,1.0);
-	grass_l0.Scale.set(0.8,0.9);
-	grass_l0.ColorIntensity.set(3.0,3.0);
-	grass_l0.TerrainColorRatio = 1.0;
-	grass_l0.UseTerrainIntensity = false;
-
-	osgVegetation::BillboardLayerVector grass_layers;
-
-	grass_layers.push_back(grass_l0);
-
-	osgVegetation::BillboardData grass_data(grass_layers, true,0.2,true);
-	grass_data.CastShadows = false;
-	//grass_data.UseFog = false;
-	grass_data.Type = osgVegetation::BT_ROTATED_QUAD;
-	grass_data.ReceiveShadows = false;
-
-	osg::BoundingBox bb;
-   bb._min.set(-50,-50,0);
-   bb._max.set(50,50,3);
-
-   //osg::Image* image = osgDB::readImageFile("C:/dev/OSGLab/osgVegetation/repo/samples/data/SP27GTIF.TIF.gdal");
-   //Create texture
-
-  
-   // Assign the texture to the image we read from file: 
-   
-   osg::HeightField *grid = osgDB::readHeightFieldFile("C:/dev/OSGLab/osgVegetation/repo/samples/data/SP27GTIF.TIF.gdal"); 
-   grid->setOrigin(osg::Vec3(0.0, 0.0, 0.0)); 
-   double radius = 6371 * 1000;
-   float xsize = (radius * osg::PI * grid->getXInterval()) / 180.0; 
-   float ysize = (radius * osg::PI * grid->getYInterval()) / 180.0; 
-   float xint = grid->getXInterval();
-   float yint = grid->getYInterval();
-
- //  grid->setXInterval(xsize); 
-   //grid->setYInterval(ysize);
 
 
-   osg::Image* image = new osg::Image();
+	osgVegetation::BillboardLayer grass_data(240, 0.02, 1.0, 0.3, 0.1, 5);
+	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	
+	osgVegetation::BillboardLayer tree_data(740, 0.01, 0.5, 0.7, 0.1, 2);
+	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16),1.2,1.0));
+	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
+	std::vector<osgVegetation::BillboardLayer> layers;
+	layers.push_back(grass_data);
+	layers.push_back(tree_data);
+	
+	/*terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
+	terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
+	
+	std::vector< osgVegetation::BillboardLayer> l2;
+	l2.push_back(tree_data);
+	osgVegetation::LODLayer tree_layer(2, l2);
+	std::vector< osgVegetation::LODLayer> layers;
+	layers.push_back(tree_layer);
+	*/
+	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::PLODTerrainTileInjection(layers));
+	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
 
-   //image->allocateImage(grid->getNumColumns(), grid->getNumRows(), 1, GL_LUMINANCE, GL_FLOAT);
-   image->allocateImage(512, 512, 1, GL_LUMINANCE, GL_FLOAT);
-   //image->setInternalTextureFormat( GL_LUMINANCE32F_ARB );
-   image->setInternalTextureFormat( GL_LUMINANCE_FLOAT32_ATI  );
-   
-   //osg::Vec4 color2 = image->getColor(osg::Vec3(0.6,0.6,0.0));
-   //float* data = reinterpret_cast<float*>(image->data());
-   for(int i =0;i< 512;i++)
-   {
-	   for(int j =0; j<   512 ;j++)
-	   {
-		   float h = 10;
-		   // data[1*(j + i*grid->getNumColumns())] = h;
-		   *((float*)(image->data(j,i))) =h;
+	osgVegetation::Terrain terrain_data;
+	terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
+	terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
+	osgVegetation::PrepareTerrainForDetailMapping(rootnode, terrain_data);
+	if (!rootnode)
+	{
+		osg::notify(osg::NOTICE) << "Warning: no valid data loaded, please specify a database on the command line." << std::endl;
+		return 1;
+	}
+	
+	//Add light and shadows
+	osg::Light* pLight = new osg::Light;
+	pLight->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	osg::Vec4 lightPos(1, 1.0, 1, 0);
+	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
+	osg::Vec3f lightDir(-lightPos.x(), -lightPos.y(), -lightPos.z());
+	lightDir.normalize();
+	pLight->setDirection(lightDir);
+	pLight->setAmbient(osg::Vec4(0.5f, 0.5f, 0.5f, 1.0f));
 
-	   }
-   }
-   /* for(int i =0;i< grid->getNumRows();i++)
-   {
-	   for(int j =0; j<   grid->getNumColumns() ;j++)
-	   {
-		   float h = grid->getHeight(j,i);
-		  // data[1*(j + i*grid->getNumColumns())] = h;
-		   *((float*)(image->data(j,i))) =h;
-		   
-	   }
-   }*/
-  // image->dirty();
-   
-   //int w = image->s(), h = image->t(), nw, nh; 
-   //nw = image->computeNearestPowerOfTwo(w); 
-   //nh = image->computeNearestPowerOfTwo(h); 
-   //unsigned int bits = image->getPixelSizeInBits();
-  // image->scaleImage(nw, nh, image->r()); 
-   //image->dirty();
+	osg::LightSource* pLightSource = new osg::LightSource;
+	pLightSource->setLight(pLight);
+	rootnode->asGroup()->addChild(pLightSource);
 
-   osg::ref_ptr<osg::Texture2D> tex = new osg::Texture2D;
-   tex->setImage(image);
-   tex->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST);
-   tex->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::NEAREST);
-   tex->setResizeNonPowerOfTwoHint(false);
+	// add a viewport to the viewer and attach the scene graph.
+	viewer.setSceneData(rootnode.get());
+	bool use_fog = true;
+	if (use_fog)
+	{
+		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
+		//Add fog
+		osg::StateSet* state = rootnode->getOrCreateStateSet();
+		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
+		state->setMode(GL_FOG, osg::StateAttribute::ON);
+		state->setAttributeAndModes(fog.get());
+		fog->setMode(osg::Fog::EXP2);
+		fog->setDensity(0.0005);
+		fog->setColor(fog_color);
+		viewer.getCamera()->setClearColor(fog_color);
+		osg::StateSet::DefineList& defineList = state->getDefineList();
+		defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+	}
 
-   osg::Geode* pGeode = new osg::Geode();
-   pGeode->addDrawable( new osg::ShapeDrawable(grid) );
+	
+	viewer.setUpViewInWindow(100, 100, 800, 600);
 
-	   
-   
-	osgVegetation::BRTShaderInstancing2* test = new osgVegetation::BRTShaderInstancing2(grass_data);
-	osg::Node* grass_node  = test->create(tex,grass_data, 40, bb);
+	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
+	//viewer.getCamera()->getGraphicsContext()->getState()->resetVertexAttributeAlias(false, 8);
+	//viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
+	// run the viewers main loop
 
-	//Create root node
-	osg::Group* group = new osg::Group;
-	group->addChild(grass_node);
-	//group->addChild(pGeode);
+	while (!viewer.done())
+	{
+		//animate light if shadows enabled
+		//if(shadow_type != osgVegetation::SM_DISABLED)
+		{
+			float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
+		    lightPos.set(sinf(t), cosf(t), 0.5 + 0.45*cosf(t), 0.0f);
+		   //lightPos.set(1.0, 0, 0.5 + 0.45*cosf(t), 0.0f);
+			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
+			pLight->setPosition(lightPos);
+			lightDir.set(-lightPos.x(), -lightPos.y(), -lightPos.z());
+			lightDir.normalize();
+			pLight->setDirection(lightDir);
+		}
+		viewer.frame();
+	}
+	return 0;
+	//return viewer.run();
 
-	  //load terrain
-	osg::ref_ptr<osg::Node> terrain = osgDB::readNodeFile("C:/dev/gass/samples/common/data/sceneries/osg_demo/terrain.3ds");
-
-	group->addChild(terrain);
-
-	viewer.setSceneData(group);
-
-	return viewer.run();
 }

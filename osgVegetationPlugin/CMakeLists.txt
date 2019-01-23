@@ -19,7 +19,7 @@ SET(H_FILES
 
 SET(CMAKE_DEBUG_POSTFIX  "d")
 
-include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/osgVegetationRuntime)
+include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/osgVegetation)
 
 #Enable class export 
 #add_definitions( -DOSG_VEGETATION_EXPORTS)

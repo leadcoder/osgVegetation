@@ -15,7 +15,7 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
 
 SET(CMAKE_DEBUG_POSTFIX  "_d" CACHE STRING "add a debug postfix, usually d on windows")
 ADD_SUBDIRECTORY(osgVegetation)
-ADD_SUBDIRECTORY(osgVegetationRuntime)
+ADD_SUBDIRECTORY(osgVegetationPlugin)
 IF(OSGV_BUILD_APPLICATIONS)
 	ADD_SUBDIRECTORY(applications)
 ENDIF()

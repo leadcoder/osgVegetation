@@ -6,7 +6,6 @@
 #include <osgDB/ReadFile>
 #include "ov_Serializer.h"
 #include <osg/PagedLOD>
-#include "ov_BillboardTile.h"
 #include "ov_Utils.h"
 #include "ov_PLODGeodeInjection.h"
 #include "ov_PLODTerrainTileInjection.h"
@@ -51,10 +50,10 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
 	const std::string file_path = osgDB::getFilePath(fileName);
 	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path);
 
-	if(terrain_data.Type == osgVegetation::Terrain::TT_PLOD_TERRAIN)
-		osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::PLODTerrainTileInjection(terrain_data));
-	else if (terrain_data.Type == osgVegetation::Terrain::TT_PLOD_GEODE)
-		osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::GeodePLODInjection(terrain_data));
+	//if(terrain_data.Type == osgVegetation::Terrain::TT_PLOD_TERRAIN)
+	//	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::PLODTerrainTileInjection(terrain_data));
+	//else if (terrain_data.Type == osgVegetation::Terrain::TT_PLOD_GEODE)
+	//	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::GeodePLODInjection(terrain_data));
 
 	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(terrain_data.Filename);
 	
