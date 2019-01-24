@@ -10,8 +10,9 @@ before_install:
 - sudo apt-get update -qq
 - sudo apt-get install -y cmake
 - cmake --version
-#- sudo apt-get install -y --force-yes openscenegraph=3.4.0
-- sudo apt-get install -y libopenscenegraph-dev
+- sudo apt-get install -y --force-yes openscenegraph=3.4.1
+#- sudo apt-get install -y libopenscenegraph-dev
+- osgversion
 script:
 - cmake -DCMAKE_BUILD_TYPE=Release . && make
 notifications:
