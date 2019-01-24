@@ -35,59 +35,8 @@
 #include <osg/Fog>
 #include <osg/ShapeDrawable>
 #include <iostream>
-#include "terrain_coords.h"
+#include "ov_DemoTerrain.h"
 
-osg::Node* createTerrain(const osg::Vec3& center, float radius)
-{
-	osg::Geode* geode = new osg::Geode;
-	// set up the texture of the base.
-	osg::StateSet* stateset = new osg::StateSet();
-	osg::ref_ptr<osg::Image> image = osgDB::readRefImageFile("Images/lz.rgb");
-	if (image)
-	{
-		osg::Texture2D* texture = new osg::Texture2D;
-		texture->setImage(image);
-		stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
-	}
-
-	geode->setStateSet(stateset);
-
-	osg::HeightField* grid = new osg::HeightField;
-	grid->allocate(38, 39);
-	grid->setOrigin(center + osg::Vec3(-radius, -radius, 0.0f));
-	grid->setXInterval(radius*2.0f / (float)(38 - 1));
-	grid->setYInterval(radius*2.0f / (float)(39 - 1));
-
-	float minHeight = FLT_MAX;
-	float maxHeight = -FLT_MAX;
-
-	unsigned int r;
-	for (r = 0; r < 39; ++r)
-	{
-		for (unsigned int c = 0; c < 38; ++c)
-		{
-			float h = vertex[r + c * 39][2];
-			if (h > maxHeight) maxHeight = h;
-			if (h < minHeight) minHeight = h;
-		}
-	}
-
-	float hieghtScale = radius * 0.5f / (maxHeight - minHeight);
-	float hieghtOffset = -(minHeight + maxHeight)*0.5f;
-
-	for (r = 0; r < 39; ++r)
-	{
-		for (unsigned int c = 0; c < 38; ++c)
-		{
-			float h = vertex[r + c * 39][2];
-			grid->setHeight(c, r, (h + hieghtOffset)*hieghtScale);
-		}
-	}
-	geode->addDrawable(new osg::ShapeDrawable(grid));
-	osg::Group* group = new osg::Group;
-	group->addChild(geode);
-	return group;
-}
 
 int main(int argc, char** argv)
 {
@@ -125,7 +74,7 @@ int main(int argc, char** argv)
 
 	
 	osg::ref_ptr<osg::Group> rootnode = new osg::Group();
-	osg::ref_ptr<osg::Node> terrain = createTerrain(osg::Vec3(0, 0, 0), 1000);
+	osg::ref_ptr<osg::Node> terrain = CreateDemoTerrain(osg::Vec3(0, 0, 0), 1000);
 
 	//convert to patches
 	osgVegetation::ConvertToPatches(terrain);
