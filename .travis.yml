@@ -13,7 +13,7 @@ before_install:
 #- sudo apt-get update -qq
 - sudo apt-get install -y cmake
 - cmake --version
-- sudo apt-get install -y openscenegraph-3.4
+- sudo apt-get install -y libopenscenegraph-3.4-dev
 #- sudo apt-get install -y --force-yes openscenegraph=3.4.1
 #- sudo apt-get install -y libopenscenegraph-dev
 - osgversion
