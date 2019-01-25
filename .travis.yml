@@ -18,6 +18,7 @@ before_install:
 - find -name "osgversion"
 - find -name "PositionAttitudeTransform"
 - apt-cache search openscenegraph
+- dpkg -L libopenscenegraph-dev
 - export OSGDIR=/usr/local
 script:
 - cmake -DCMAKE_BUILD_TYPE=Release . && make
