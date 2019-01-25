@@ -7,11 +7,14 @@ language: cpp
 compiler:
 - gcc
 before_install:
-- sudo echo "deb http://dl.bintray.com/jasonbeverage/pelicanmapping trusty main" | sudo tee -a /etc/apt/sources.list
-- sudo apt-get update -qq
+#- sudo echo "deb http://dl.bintray.com/jasonbeverage/pelicanmapping trusty main" | sudo tee -a /etc/apt/sources.list
+- sudo add-apt-repository ppa:openmw/openmw -y
+- sudo apt-get update -q
+#- sudo apt-get update -qq
 - sudo apt-get install -y cmake
 - cmake --version
-- sudo apt-get install -y --force-yes openscenegraph=3.4.1
+- sudo apt-get install -y openscenegraph-3.4
+#- sudo apt-get install -y --force-yes openscenegraph=3.4.1
 #- sudo apt-get install -y libopenscenegraph-dev
 - osgversion
 - whereis osgversion
@@ -19,7 +22,7 @@ before_install:
 - whereis libosg.so
 - apt-cache search openscenegraph
 #- dpkg -L libopenscenegraph-dev
-- export OSGDIR=/usr/
+#- export OSGDIR=/usr/
 script:
 - cmake -DCMAKE_BUILD_TYPE=Release . && make
 notifications:
