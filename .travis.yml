@@ -15,8 +15,10 @@ before_install:
 #- sudo apt-get install -y libopenscenegraph-dev
 - osgversion
 - whereis osgversion
-- export OSGDIR=/usr/local
+- find -name "osgversion"
 - find -name "PositionAttitudeTransform"
+- apt-cache search openscenegraph
+- export OSGDIR=/usr/local
 script:
 - cmake -DCMAKE_BUILD_TYPE=Release . && make
 notifications:
