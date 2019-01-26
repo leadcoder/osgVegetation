@@ -161,7 +161,7 @@ namespace osgVegetation
 
 		
 
-		std::vector<osg::ref_ptr<osg::StateSet>> m_Layers;
+		std::vector<osg::ref_ptr<osg::StateSet> > m_Layers;
 
 	};
 

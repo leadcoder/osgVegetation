@@ -31,7 +31,7 @@ namespace osgVegetation
 	
 		PLODTerrainTileInjection(const std::vector<BillboardLayer> &layers) 
 		{
-			typedef std::map<int, std::vector<BillboardLayer>> LODBuckets;
+			typedef std::map<int, std::vector<BillboardLayer> > LODBuckets;
 			LODBuckets lod_buckets;
 			for (size_t i = 0; i < layers.size(); i++)
 			{
