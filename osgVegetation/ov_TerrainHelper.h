@@ -1,9 +1,11 @@
 #pragma once
 
 #include "ov_Utils.h"
-#include <osg/PositionAttitudeTransform>
+#include <osg/MatrixTransform>
+
 #include <osg/Texture2D>
 #include <osgTerrain/TerrainTile>
+#include <osgTerrain/Locator>
 #include <osg/ShapeDrawable>
 
 namespace osgVegetation
@@ -13,16 +15,35 @@ namespace osgVegetation
 	public:
 		static osg::Node* CreateTerrainNodeFromTerrainTile(osgTerrain::TerrainTile* tile)
 		{
-			osg::PositionAttitudeTransform* ret_node = NULL;
+			osg::MatrixTransform* ret_node = NULL;
 			osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(tile->getElevationLayer());
 			if (layer)
 			{
 				osg::HeightField* hf = layer->getHeightField();
 				if (hf)
 				{
-					osg::Geometry* hf_geom = _CreateGeometryFromHeightField(hf);
-					ret_node = new osg::PositionAttitudeTransform();
-					ret_node->setPosition(hf->getOrigin());
+					osgTerrain::Locator* locator = tile->getLocator();
+					osg::EllipsoidModel* em = locator->getEllipsoidModel();
+					
+					ret_node = new osg::MatrixTransform();
+					
+					osg::Matrixd matrix = locator->getTransform();
+					osg::Vec3d center = osg::Vec3d(0.5, 0.5, 0.0) * matrix;
+					if (locator->getCoordinateSystemType() == osgTerrain::Locator::GEOCENTRIC)
+					{
+						osg::Matrixd localToWorldTransform;
+						em->computeLocalToWorldTransformFromLatLongHeight(center.y(), center.x(), center.z(), localToWorldTransform);
+						ret_node->setMatrix(localToWorldTransform);
+					}
+					else
+					{
+						ret_node->setMatrix(locator->getTransform());
+					}
+
+					osg::Matrixd worldToLocalTransform;
+					worldToLocalTransform.invert(ret_node->getMatrix());
+					osg::Geometry* hf_geom = _CreateGeometryFromHeightField(hf, locator, worldToLocalTransform);
+
 					ret_node->addChild(hf_geom);
 				
 					//Add color texture
@@ -47,12 +68,17 @@ namespace osgVegetation
 			return ret_node;
 		}
 	private:
-		static osg::Geometry* _CreateGeometryFromHeightField(osg::HeightField* hf)
+		static osg::Geometry* _CreateGeometryFromHeightField(const osg::HeightField* hf, const osgTerrain::Locator* locator ,const osg::Matrixd& worldToLocalTransform)
 		{
-			unsigned int numColumns = hf->getNumColumns();
-			unsigned int numRows = hf->getNumRows();
-			float columnCoordDelta = hf->getXInterval();
-			float rowCoordDelta = hf->getYInterval();
+			const unsigned int numColumns = hf->getNumColumns();
+			const unsigned int numRows = hf->getNumRows();
+			//float columnCoordDelta = hf->getXInterval();
+			//float rowCoordDelta = hf->getYInterval();
+
+			const float rowCoordDelta = 1.0f / (float)(numRows - 1);
+			const float columnCoordDelta = 1.0f / (float)(numColumns - 1);
+			const float rowTexDelta = 1.0f / (float)(numRows - 1);
+			const float columnTexDelta = 1.0f / (float)(numColumns - 1);
 
 			osg::Geometry* geometry = new osg::Geometry;
 
@@ -60,27 +86,27 @@ namespace osgVegetation
 			osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
 			osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
 			color[0].set(255, 255, 255, 255);
-			float rowTexDelta = 1.0f / (float)(numRows - 1);
-			float columnTexDelta = 1.0f / (float)(numColumns - 1);
-			osg::Vec3 local_origin(0, 0, 0);
-
-			osg::Vec3 pos(local_origin.x(), local_origin.y(), local_origin.z());
+			osg::Vec3d local_origin(0, 0, 0);
+			osg::Vec3d local_pos = local_origin;
 			osg::Vec2 tex(0.0f, 0.0f);
 			int vi = 0;
 			for (unsigned int r = 0; r < numRows; ++r)
 			{
-				pos.x() = local_origin.x();
+				local_pos.x() = local_origin.x();
 				tex.x() = 0.0f;
 				for (unsigned int c = 0; c < numColumns; ++c)
 				{
-					float h = hf->getHeight(c, r);
-					v[vi].set(pos.x(), pos.y(), h);
+					local_pos.z() = static_cast<double>(hf->getHeight(c, r));
+					osg::Vec3d world_pos;
+					locator->convertLocalToModel(local_pos, world_pos);
+					osg::Vec3d new_local_pos = world_pos * worldToLocalTransform;
+					v[vi].set(new_local_pos.x(), new_local_pos.y(), new_local_pos.z());
 					t[vi].set(tex.x(), tex.y());
-					pos.x() += columnCoordDelta;
+					local_pos.x() += columnCoordDelta;
 					tex.x() += columnTexDelta;
 					++vi;
 				}
-				pos.y() += rowCoordDelta;
+				local_pos.y() += rowCoordDelta;
 				tex.y() += rowTexDelta;
 			}
 
