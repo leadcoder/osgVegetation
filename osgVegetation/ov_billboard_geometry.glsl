@@ -277,6 +277,13 @@ void main(void)
 	
 	}
 #endif
+
+#if defined(BLT_CROSS_QUADS) || defined(BLT_GRASS) 
+	//Hack to support VPB terrain-tiles geometry that use scaling to get terrain vertices from normalized space. 
+	//We extract the scale factor and use the inverse to scale the billboard vectors  
+	vec3 inv_terrain_scale = vec3(1.0/length(gl_ModelViewMatrix[0].xyz), 1.0/length(gl_ModelViewMatrix[1].xyz), 1.0/length(gl_ModelViewMatrix[2].xyz));
+#endif
+
 #ifdef BLT_CROSS_QUADS
 	//get fake random rotation in radians
 	float rand_rad = mod(random_pos.x, 2 * 3.14);
@@ -293,13 +300,13 @@ void main(void)
 	float cos_wind = cos_rot*wind;
 
 	//set billboard up vector
-	vec3 bb_up = vec3(0, 0, bb_height);
+	vec3 bb_up = vec3(0, 0, bb_height) * inv_terrain_scale;
 
 	//First quad, left vector used to offset in xy-space from anchor point 
-	vec3 bb_left = vec3(-width_sin, -width_cos, 0.0);
+	vec3 bb_left = vec3(-width_sin, -width_cos, 0.0) * inv_terrain_scale;
 
 	//Calc a offset vector to add wind effect
-	vec3 offset = vec3(sin_wind, cos_wind, 0);
+	vec3 offset = vec3(sin_wind, cos_wind, 0) * inv_terrain_scale;
 
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
@@ -310,9 +317,9 @@ void main(void)
 	EndPrimitive();
 	
 	//Second quad, calc new left vector (perpendicular to prev left vec)
-	bb_left = vec3(-width_cos, width_sin, 0.0);
+	bb_left = vec3(-width_cos, width_sin, 0.0) * inv_terrain_scale;
 	//also recalc offset to reflect that we have a 90-deg rotatation
-	offset = vec3(sin_wind, cos_wind, 0);
+	offset = vec3(sin_wind, cos_wind, 0) * inv_terrain_scale;
 
 	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
 	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
@@ -320,7 +327,10 @@ void main(void)
 	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 #endif
+
+
 #ifdef BLT_GRASS
+	
 	//get fake random rotation in radians
 	float rand_rad = mod(random_pos.x, 2 * 3.14);
 	
@@ -339,12 +349,12 @@ void main(void)
 	vec3 bb_up = vec3(0, 0, bb_height);
 
 	//First quad, left vector used to offset in xy-space from anchor point 
-	vec3 bb_left = vec3(-width_sin, -width_cos, 0.0);
+	vec3 bb_left = vec3(-width_sin, -width_cos, 0.0) * inv_terrain_scale;
 
 	//Calc a adhoc offset vector used to offset top verticies (perpendicular to left vec)
 	//Here we just offset by the perpendicular left vector that will give us a 45-deg tilt
 	//if bb height and width are the same. On top of that we add the wind effect.
-	vec3 offset = vec3(width_cos, -width_sin, 0) + vec3(sin_wind, cos_wind, 0);
+	vec3 offset = (vec3(width_cos, -width_sin, 0) + vec3(sin_wind, cos_wind, 0)) * inv_terrain_scale;
 
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
@@ -364,9 +374,9 @@ void main(void)
 	EndPrimitive();
 
 	//Third quad, calc new left vector (perpendicular to prev left vec)
-	bb_left = vec3(-width_cos, width_sin, 0.0);
+	bb_left = vec3(-width_cos, width_sin, 0.0) * inv_terrain_scale;
 	//also recalc offset to reflect that we have a 90-deg rotatation
-	offset = vec3(-width_sin, -width_cos, 0) + vec3(sin_wind, cos_wind, 0);
+	offset = (vec3(-width_sin, -width_cos, 0) + vec3(sin_wind, cos_wind, 0)) * inv_terrain_scale;
 
 	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
 	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
