@@ -20,13 +20,13 @@ namespace osgVegetation
 	class BillboardNodeGenerator
 	{
 	public:
-		BillboardNodeGenerator(std::vector<BillboardLayer> &layers)
+		BillboardNodeGenerator(const std::vector<BillboardLayer> &layers)
 		{
 			for(size_t i = 0; i < layers.size(); i++)
 				m_Layers.push_back(_CreateStateSet(layers[i]));
 		}
 
-		osg::ref_ptr<osg::Node> CreateNode(osg::Node* terrain)
+		osg::ref_ptr<osg::Node> CreateNode(osg::Node* terrain) const
 		{
 			osg::ref_ptr<osg::Group> layers = new osg::Group();
 			for (size_t i = 0; i < m_Layers.size(); i++)
@@ -39,7 +39,7 @@ namespace osgVegetation
 			return layers;
 		}
 	private:
-		osg::StateSet* _CreateStateSet( BillboardLayer& data)
+		osg::StateSet* _CreateStateSet(const BillboardLayer& data)
 		{
 			osg::StateSet* stateset = new osg::StateSet();
 			osg::Program* program = new osg::Program;
