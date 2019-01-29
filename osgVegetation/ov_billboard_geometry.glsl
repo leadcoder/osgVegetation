@@ -17,6 +17,24 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = MAX_NUM_VERTS) out;
 
+in vec2 ov_te_texcoord[];
+in vec3 ov_te_normal[];
+out vec2 ov_geometry_texcoord;
+out vec4 ov_geometry_color;
+flat out int ov_geometry_tex_index;
+out vec3 ov_geometry_normal;
+out float ov_depth;
+
+uniform float osg_SimulationTime;
+uniform sampler2D ov_color_texture;
+uniform sampler2D ov_land_cover_texture;
+uniform int ov_num_billboards;
+uniform vec4 ov_billboard_data[10];
+uniform float ov_billboard_max_distance;
+uniform float ov_billboard_color_threshold;
+uniform float ov_billboard_color_impact;
+uniform float ov_billboard_land_cover_id;
+
 #ifdef SM_LISPSM
 uniform int shadowTextureUnit;
 #endif
@@ -29,35 +47,6 @@ uniform int shadowTextureUnit0;
 uniform int shadowTextureUnit0;
 uniform int shadowTextureUnit1;
 #endif
-
-in vec2 ov_te_texcoord[];
-in vec3 ov_te_normal[];
-varying vec2 ov_geometry_texcoord;
-varying vec4 ov_geometry_color;
-flat varying int ov_geometry_tex_index;
-varying vec3 ov_geometry_normal;
-varying float ov_depth;
-
-//out vec2 ov_geometry_texcoord;
-//out vec4 ov_geometry_color;
-//flat out int ov_geometry_tex_index;
-//out vec3 ov_geometry_normal;
-//out float ov_depth;
-
-//uniform mat4 osg_ModelViewProjectionMatrix;
-//uniform mat4 osg_ProjectionMatrix;
-uniform float osg_SimulationTime;
-
-uniform sampler2D ov_color_texture;
-uniform sampler2D ov_land_cover_texture;
-uniform int ov_num_billboards;
-uniform vec4 ov_billboard_data[10];
-uniform float ov_billboard_max_distance;
-uniform float ov_billboard_color_threshold;
-uniform float ov_billboard_color_impact;
-uniform float ov_billboard_land_cover_id;
-
-
 
 void ov_shadow(vec4 ecPosition)
 {

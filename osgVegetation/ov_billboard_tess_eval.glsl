@@ -23,10 +23,4 @@ void main(){
 	ov_te_normal  = (gl_TessCoord.x * ov_tc_normal[0]) +
                   (gl_TessCoord.y * ov_tc_normal[1]) +
                   (gl_TessCoord.z * ov_tc_normal[2]);
-	
-	//position.z = texture2D(terrainTexture, texcoord).r;
-	//    tePatchDistance = gl_TessCoord;
-	//    tePosition = normalize(p0 + p1 + p2);
-	//    gl_Position = osg_ModelViewProjectionMatrix * vec4(position,1);
-	
 }
