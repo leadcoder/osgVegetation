@@ -36,6 +36,7 @@
 #include <osg/ShapeDrawable>
 #include <iostream>
 #include "ov_DemoTerrain.h"
+#include "ov_DemoShadow.h"
 
 
 int main(int argc, char** argv)
@@ -71,30 +72,45 @@ int main(int argc, char** argv)
 
 	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
-
 	
-	osg::ref_ptr<osg::Group> rootnode = new osg::Group();
-	osg::ref_ptr<osg::Node> terrain = CreateDemoTerrain(osg::Vec3(0, 0, 0), 1000);
+	//osg::ref_ptr<osg::Group> rootnode = new osg::Group();
+	osg::ref_ptr<osg::Group> rootnode = CreateShadowNode(1);
+	
+	const double t_size = 1000;
+
+	osg::ref_ptr<osg::Node> terrain = CreateDemoTerrain(osg::Vec3(0, 0, 0), t_size);
 
 	//convert to patches
 	osgVegetation::ConvertToPatches(terrain);
-	osg::ref_ptr<osg::Group> ground = new osg::Group();
-	osgVegetation::PrepareTerrainForTesselation(ground);
+	//osg::ref_ptr<osg::Group> ground = new osg::Group();
+
+	//osgVegetation::PrepareTerrainForTesselation(ground);
 	
-	ground->addChild(terrain);
-	rootnode->addChild(ground);
-	//rootnode->addChild(createTerrain(osg::Vec3(0, 0, 0), 1000));
+	//ground->addChild(terrain);
+	//rootnode->addChild(ground);
+
+	osg::ref_ptr<osg::Node> visual_t = CreateDemoTerrain(osg::Vec3(0, 0, 0), t_size);
+	visual_t->setNodeMask(0x1);
+	osgVegetation::PrepareTerrainForDetailMapping(rootnode);
+	rootnode->addChild(visual_t);
 
 	//Setup billboard layers
 	std::vector<osgVegetation::BillboardLayer> layers;
-	osgVegetation::BillboardLayer grass_data(100, 0.2, 1.0, 0.6, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data(100, 0.1, 1.0, 0.6, 0.1, 5);
 	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	//grass_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data);
 
+	osgVegetation::BillboardLayer grass_data2(30, 0.4, 1.0, 0.6, 0.1, 5);
+	grass_data2.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	grass_data2.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	layers.push_back(grass_data2);
+
 	osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
+	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.2, 1.0));
 	layers.push_back(tree_data);
@@ -121,14 +137,16 @@ int main(int argc, char** argv)
 	osg::Vec3f lightDir(-lightPos.x(), -lightPos.y(), -lightPos.z());
 	lightDir.normalize();
 	pLight->setDirection(lightDir);
-	pLight->setAmbient(osg::Vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	pLight->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f));
 
 	osg::LightSource* pLightSource = new osg::LightSource;
 	pLightSource->setLight(pLight);
 	rootnode->asGroup()->addChild(pLightSource);
 
+
+	viewer.setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
 	// add a viewport to the viewer and attach the scene graph.
-	viewer.setSceneData(rootnode.get());
+	viewer.setSceneData(rootnode);
 	bool use_fog = true;
 	if (use_fog)
 	{
@@ -159,7 +177,7 @@ int main(int argc, char** argv)
 		//if(shadow_type != osgVegetation::SM_DISABLED)
 		{
 			float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
-		    lightPos.set(sinf(t), cosf(t), 0.5 + 0.45*cosf(t), 0.0f);
+		    lightPos.set(sinf(t), cosf(t),1, 0.0f);
 			//lightPos.set(sinf(t), cosf(t), 1, 0.0f);
 		   //lightPos.set(1.0, 0, 0.5 + 0.45*cosf(t), 0.0f);
 			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);

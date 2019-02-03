@@ -20,7 +20,11 @@ namespace osgVegetation
 	class BillboardNodeGenerator
 	{
 	public:
-		BillboardNodeGenerator(const std::vector<BillboardLayer> &layers)
+		BillboardNodeGenerator(const std::vector<BillboardLayer> &layers) : m_Config(layers),
+			m_TerrainColorTexUnit(0),
+			m_TerrainLandcoverTexUnit(1),
+			m_BillboardTexUnit(2),
+			m_ReceivesShadowTraversalMask(0x1)
 		{
 			for(size_t i = 0; i < layers.size(); i++)
 				m_Layers.push_back(_CreateStateSet(layers[i]));
@@ -34,6 +38,10 @@ namespace osgVegetation
 				osg::ref_ptr<osg::Group> layer_node = new osg::Group();
 				layer_node->setStateSet(m_Layers[i]);
 				layer_node->addChild(terrain);
+				
+				//Disable shadow casting for grass, TODO make this optional
+				if (m_Config[i].Type == BillboardLayer::BLT_GRASS)
+					layer_node->setNodeMask(m_ReceivesShadowTraversalMask);
 				layers->addChild(layer_node);
 			}
 			return layers;
@@ -45,18 +53,22 @@ namespace osgVegetation
 			osg::Program* program = new osg::Program;
 			//stateset->setAttribute(program);
 			stateset->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
-			stateset->addUniform(new osg::Uniform("ov_color_texture", 0));
-			stateset->addUniform(new osg::Uniform("ov_land_cover_texture", 1));
-			stateset->addUniform(new osg::Uniform("ov_billboard_texture", 2));
+			stateset->addUniform(new osg::Uniform("ov_color_texture", m_TerrainColorTexUnit));
+			stateset->addUniform(new osg::Uniform("ov_billboard_texture", m_BillboardTexUnit));
 			stateset->addUniform(new osg::Uniform("ov_billboard_max_distance", data.MaxDistance));
 
-			double target_instance_area = 1.0 / data.Density;
-			float target_tri_side_lenght = static_cast<float>(GetEquilateralTriangleSideLengthFromArea(target_instance_area));
+			const double target_instance_area = 1.0 / data.Density;
+			const float target_tri_side_lenght = static_cast<float>(GetEquilateralTriangleSideLengthFromArea(target_instance_area));
 
 			stateset->addUniform(new osg::Uniform("ov_billboard_density", target_tri_side_lenght));
 			stateset->addUniform(new osg::Uniform("ov_billboard_color_threshold", data.ColorThreshold));
 			stateset->addUniform(new osg::Uniform("ov_billboard_color_impact", data.ColorImpact));
-			stateset->addUniform(new osg::Uniform("ov_billboard_land_cover_id", data.LandCoverID));
+			const bool use_land_cover = data.LandCoverID >= 0;
+			if(use_land_cover)
+			{
+				stateset->addUniform(new osg::Uniform("ov_land_cover_texture", m_TerrainLandcoverTexUnit));
+				stateset->addUniform(new osg::Uniform("ov_billboard_land_cover_id", data.LandCoverID));
+			}
 
 			int num_billboards = static_cast<int>(data.Billboards.size());
 			osg::Uniform* numBillboards = new osg::Uniform("ov_num_billboards", num_billboards);
@@ -77,6 +89,8 @@ namespace osgVegetation
 			}
 
 			stateset->addUniform(billboardUniform);
+			
+			//need this for shadow pass
 			osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
 			alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, data.AlphaRejectValue);
 			stateset->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
@@ -88,15 +102,16 @@ namespace osgVegetation
 			else
 			{
 				stateset->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
-				stateset->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+				//stateset->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
+				//stateset->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
 			}
-			stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
-			stateset->setTextureAttributeAndModes(2, _CreateTextureArray(data.Billboards), osg::StateAttribute::ON);
+			//stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+			stateset->setTextureAttributeAndModes(m_BillboardTexUnit, _CreateTextureArray(data.Billboards), osg::StateAttribute::ON);
 #if 0 //debug
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("shaders/terrain_vertex.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("shaders/terrain_tess_ctrl.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("shaders/terrain_tess_eval.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("shaders/terrain_fragment.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_billboard_vertex.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("ov_billboard_tess_ctrl.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_terrain_tess_eval.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_terrain_fragment.glsl")));
 #else			
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_billboard_vertex.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("ov_billboard_tess_ctrl.glsl")));
@@ -122,12 +137,11 @@ namespace osgVegetation
 				//program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 16);
 				blt_type = "BLT_GRASS";
 			}
-#if OSG_VERSION_GREATER_OR_EQUAL( 3, 4, 0 ) 
+
 			osg::StateSet::DefineList& defineList = stateset->getDefineList();
 			defineList[blt_type].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-#else
-			//TODO: add compiler warning 
-#endif
+			if (use_land_cover)
+				defineList["USE_LANDCOVER"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 #endif
 			stateset->setAttribute(new osg::PatchParameter(3));
 			stateset->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
@@ -159,11 +173,12 @@ namespace osgVegetation
 			return tex;
 		}
 
-		
-
 		std::vector<osg::ref_ptr<osg::StateSet> > m_Layers;
+		std::vector<BillboardLayer> m_Config;
 
+		int m_TerrainLandcoverTexUnit;
+		int m_TerrainColorTexUnit;
+		int m_BillboardTexUnit;
+		int m_ReceivesShadowTraversalMask;
 	};
-
-	
 }

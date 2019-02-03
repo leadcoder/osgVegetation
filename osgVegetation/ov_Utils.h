@@ -24,7 +24,7 @@ namespace osgVegetation
 	void PrepareTerrainForDetailMapping(osg::Node* terrain, const Terrain& tdm)
 	{
 		osg::Program* program = new osg::Program;
-		terrain->getOrCreateStateSet()->setAttribute(program);
+		terrain->getOrCreateStateSet()->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 		terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_color_texture", 0));
 		terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_land_cover_texture", 1));
 		//terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_detail_texture1", 3));
@@ -60,10 +60,10 @@ namespace osgVegetation
 		Terrain tdm;
 		tdm.VertexShader = "ov_terrain_detail_vertex.glsl";
 		tdm.FragmentShader = "ov_terrain_detail_fragment.glsl";
-		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"),10));
-		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
-		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
-		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
+		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"),0.1));
+		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
+		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
+		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
 		PrepareTerrainForDetailMapping(terrain,tdm);
 	}
 

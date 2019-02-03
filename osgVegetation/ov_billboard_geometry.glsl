@@ -2,7 +2,7 @@
 #version 330 compatibility
 //#version 400
 #extension GL_ARB_geometry_shader4 : enable
-#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, SM_LISPSM, SM_VDSM1, SM_VDSM2)
+#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, SM_LISPSM, SM_VDSM1, SM_VDSM2, USE_LANDCOVER)
 
 #if defined(SM_LISPSM) || defined(SM_VDSM1) || defined(SM_VDSM2)
  #define HAS_SHADOW
@@ -22,18 +22,22 @@ in vec3 ov_te_normal[];
 out vec2 ov_geometry_texcoord;
 out vec4 ov_geometry_color;
 flat out int ov_geometry_tex_index;
+flat out float ov_fade;
 out vec3 ov_geometry_normal;
 out float ov_depth;
 
 uniform float osg_SimulationTime;
 uniform sampler2D ov_color_texture;
+#ifdef USE_LANDCOVER
 uniform sampler2D ov_land_cover_texture;
+uniform float ov_billboard_land_cover_id;
+#endif
 uniform int ov_num_billboards;
 uniform vec4 ov_billboard_data[10];
 uniform float ov_billboard_max_distance;
 uniform float ov_billboard_color_threshold;
 uniform float ov_billboard_color_impact;
-uniform float ov_billboard_land_cover_id;
+
 
 #ifdef SM_LISPSM
 uniform int shadowTextureUnit;
@@ -116,17 +120,16 @@ void main(void)
 		terrain_normal.z += b[i] * ov_te_normal[i].z;
     }
 	
-	
+#ifdef USE_LANDCOVER
 	vec4 lc_color = texture2D(ov_land_cover_texture, terrain_texcoord);
 	//if (lc_color.y < ov_billboard_land_cover_id)
 	//	return;
 
 	if (lc_color.x > 0 || lc_color.z > 0)
 		return;
-	
-	if (ov_billboard_land_cover_id > 0.5 && lc_color.y < 0.5)
-		return;
-	
+	//if (ov_billboard_land_cover_id > 0.5 && lc_color.y < 0.5)
+	//	return;
+#endif
 
 	ov_geometry_color = texture2D(ov_color_texture, terrain_texcoord);
 
@@ -160,10 +163,15 @@ void main(void)
 	float bb_fade_dist = adjusted_max_dist /3.0;
 	float bb_fade_start_dist = adjusted_max_dist - bb_fade_dist;
 	float bb_scale = 1 -clamp((-mv_pos.z - bb_fade_start_dist) / bb_fade_dist, 0.0, 1.0);
+	
+	ov_fade = bb_scale;
+	//bb_scale = 1.0;
 
 	//culling
     if (bb_scale == 0.0 )
         return;
+	bb_scale = 1.0;
+
 	
 	float rand_scale = ov_range_rand(0.5, 1.5, random_pos.xy + vec2(10.5,111.3));
 	bb_scale = bb_scale*bb_scale*bb_scale*rand_scale;

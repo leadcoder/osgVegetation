@@ -26,14 +26,15 @@ void main(){
 		vec4 p0 = osg_ModelViewMatrix * ov_vertex_position[0];
 		vec4 p1 = osg_ModelViewMatrix * ov_vertex_position[1];
 		vec4 p2 = osg_ModelViewMatrix * ov_vertex_position[2];
-		float dist =  -max( max(p0.z, p1.z), p2.z);
+		float min_z_dist =  min( min(p0.z, p1.z), p2.z); //if postive entire polygon behinde camera
+		float min_dist =  min( min( length(p0.xyz), length(p1.xyz)), length(p2.xyz));
 		
 		float adjusted_max_dist = 10000;
 
 		if(osg_ProjectionMatrix[3][3] == 0)
 			adjusted_max_dist = ov_billboard_max_distance*max(osg_ProjectionMatrix[0][0],1);
 
-		if(dist < adjusted_max_dist)
+		if(min_z_dist < 0 && min_dist < adjusted_max_dist)
 		{
 			float l0 = length(p1.xyz - p2.xyz);
 			float l1 = length(p0.xyz - p2.xyz);

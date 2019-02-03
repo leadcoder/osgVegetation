@@ -28,6 +28,5 @@ void main(void)
 	fog_factor = clamp(fog_factor, 0.0, 1.0);
 	out_color.xyz = mix(gl_Fog.color.xyz, out_color.xyz, fog_factor);
 #endif
-
 	gl_FragColor = out_color;
 }

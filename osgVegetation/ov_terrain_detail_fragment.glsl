@@ -12,6 +12,7 @@ uniform sampler2D ov_detail_texture3;
 uniform vec4 ov_detail_scale;
 varying vec3 ov_normal;
 varying vec2 ov_tex_coord0;
+varying vec2 ov_tex_coord1;
 varying float ov_depth;
 
 #ifdef SM_LISPSM
@@ -56,10 +57,10 @@ void main(void)
 	vec4 base_color = texture2D(ov_color_texture, ov_tex_coord0.xy);
 	vec4 lc = texture2D(ov_land_cover_texture, ov_tex_coord0.xy);
 	
-	vec4 d0 = texture2D(ov_detail_texture0, ov_tex_coord0.xy*ov_detail_scale.x);
-	vec4 d1 = texture2D(ov_detail_texture1, ov_tex_coord0.xy*ov_detail_scale.y);
-	vec4 d2 = texture2D(ov_detail_texture2, ov_tex_coord0.xy*ov_detail_scale.z);
-	vec4 d3 = texture2D(ov_detail_texture3, ov_tex_coord0.xy*ov_detail_scale.w);
+	vec4 d0 = texture2D(ov_detail_texture0, ov_tex_coord1.xy*ov_detail_scale.x);
+	vec4 d1 = texture2D(ov_detail_texture1, ov_tex_coord1.xy*ov_detail_scale.y);
+	vec4 d2 = texture2D(ov_detail_texture2, ov_tex_coord1.xy*ov_detail_scale.z);
+	vec4 d3 = texture2D(ov_detail_texture3, ov_tex_coord1.xy*ov_detail_scale.w);
 	
 	//d0.w = (d0.x + d0.y + d0.z)/3.0;
 	//d1.w = (d1.x + d1.y + d1.z)/3.0;

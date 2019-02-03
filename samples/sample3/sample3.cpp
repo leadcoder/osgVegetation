@@ -42,7 +42,7 @@
 #include <osg/PositionAttitudeTransform>
 #include <osg/PatchParameter>
 #include <osg/Fog>
-
+#include "ov_DemoShadow.h"
 #include <iostream>
 
 
@@ -96,14 +96,15 @@ int main(int argc, char** argv)
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 
 
-	osgVegetation::BillboardLayer grass_data(240, 0.02, 1.0, 0.3, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data(140, 0.2, 1.0, 0.3, 0.1, 5);
 	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	
-	osgVegetation::BillboardLayer tree_data(740, 0.01, 0.5, 0.7, 0.1, 2);
+	osgVegetation::BillboardLayer tree_data(740, 0.001, 0.5, 0.7, 0.1, 2);
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
+	tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16),1.2,1.0));
 	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
 	std::vector<osgVegetation::BillboardLayer> layers;
@@ -123,16 +124,23 @@ int main(int argc, char** argv)
 	std::vector< osgVegetation::LODLayer> layers;
 	layers.push_back(tree_layer);
 	*/
+	osg::ref_ptr<osg::Group> shadow_root = CreateShadowNode(0);
+
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::PLODTerrainTileInjection(layers));
-	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
+	//osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
+
+
+	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");
+	
+	shadow_root->addChild(rootnode);
 
 	osgVegetation::Terrain terrain_data;
 	terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
 	terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
+	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
 	osgVegetation::PrepareTerrainForDetailMapping(rootnode, terrain_data);
 	if (!rootnode)
 	{
@@ -154,8 +162,9 @@ int main(int argc, char** argv)
 	pLightSource->setLight(pLight);
 	rootnode->asGroup()->addChild(pLightSource);
 
+
 	// add a viewport to the viewer and attach the scene graph.
-	viewer.setSceneData(rootnode.get());
+	viewer.setSceneData(shadow_root.get());
 	bool use_fog = true;
 	if (use_fog)
 	{
@@ -187,7 +196,8 @@ int main(int argc, char** argv)
 		//if(shadow_type != osgVegetation::SM_DISABLED)
 		{
 			float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
-		    lightPos.set(sinf(t), cosf(t), 0.5 + 0.45*cosf(t), 0.0f);
+		    //lightPos.set(sinf(t), cosf(t), 0.5 + 0.45*cosf(t), 0.0f);
+			lightPos.set(sinf(t), cosf(t), 1, 0.0f);
 		   //lightPos.set(1.0, 0, 0.5 + 0.45*cosf(t), 0.0f);
 			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
 			pLight->setPosition(lightPos);

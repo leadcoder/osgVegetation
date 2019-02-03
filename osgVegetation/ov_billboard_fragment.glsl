@@ -8,6 +8,7 @@ varying vec4 ov_geometry_color;
 flat varying int ov_geometry_tex_index;
 varying vec3 ov_geometry_normal;
 varying float ov_depth;
+flat varying float ov_fade;  
 
 #ifdef SM_LISPSM
 uniform sampler2DShadow shadowTexture;
@@ -86,6 +87,6 @@ void main(void)
 	fog_factor = clamp(fog_factor, 0.0, 1.0);
 	out_color.xyz = mix(gl_Fog.color.xyz, out_color.xyz, fog_factor);
 #endif
-	
+	out_color.a *= ov_fade;
 	gl_FragColor = out_color;
 }

@@ -74,44 +74,6 @@ namespace osgVegetation
 		int LODLevel;
 		BillboardLayerType Type;
 		std::vector<Billboard> Billboards;
-
-		/*osg::ref_ptr<osg::Texture2DArray> _BillboardTextures;
-		osg::ref_ptr<osg::Texture2DArray> GetOrCreateTexArray()
-		{
-			if (_BillboardTextures.valid())
-				return _BillboardTextures;
-			_BillboardTextures = CreateTextureArray();
-			return _BillboardTextures;
-		}
-
-		osg::ref_ptr<osg::Texture2DArray> CreateTextureArray()
-		{
-			//Load textures
-			const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options();
-			//options->setOptionString("dds_flip");
-			osg::ref_ptr<osg::Texture2DArray> tex = new osg::Texture2DArray;
-
-			for (size_t i = 0; i < Billboards.size(); i++)
-			{
-				const std::string texture_name = Billboards[i].TextureName;
-				//const osg::ref_ptr<osgDB::ReaderWriter::Options> new_options = new osgDB::ReaderWriter::Options();
-				options->setOptionString("dds_flip");
-				osg::Image* image = osgDB::readImageFile(texture_name, options);
-				if (image == NULL)
-					OSGV_EXCEPT(std::string("BillboardLayer::CreateTextureArray - Failed to load texture:" + texture_name).c_str());
-				if (i == 0) // first image decide array size
-				{
-					tex->setTextureSize(image->s(), image->t(), Billboards.size());
-					tex->setUseHardwareMipMapGeneration(true);
-				}
-				tex->setImage(i, image);
-			}
-			return tex;
-		}*/
 	private:
 	};
-
-	
-
-	
 }
