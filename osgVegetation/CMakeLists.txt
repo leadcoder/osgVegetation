@@ -23,6 +23,7 @@ SET(SHADERS_FILES
 	ov_billboard_tess_eval.glsl
 	ov_billboard_geometry.glsl
 	ov_billboard_fragment.glsl
+	ov_common_fragment.glsl
 	ov_terrain_detail_fragment.glsl
 	ov_terrain_detail_vertex.glsl
 	ov_terrain_vertex.glsl
