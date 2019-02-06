@@ -2,11 +2,7 @@
 #version 330 compatibility
 //#version 400
 #extension GL_ARB_geometry_shader4 : enable
-#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, SM_LISPSM, SM_VDSM1, SM_VDSM2, USE_LANDCOVER)
-
-#if defined(SM_LISPSM) || defined(SM_VDSM1) || defined(SM_VDSM2)
- #define HAS_SHADOW
-#endif
+#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, USE_LANDCOVER)
 
 #ifdef BLT_GRASS
 	#define MAX_NUM_VERTS 16
@@ -38,40 +34,8 @@ uniform float ov_billboard_max_distance;
 uniform float ov_billboard_color_threshold;
 uniform float ov_billboard_color_impact;
 
-
-#ifdef SM_LISPSM
-uniform int shadowTextureUnit;
-#endif
-
-#ifdef SM_VDSM1
-uniform int shadowTextureUnit0;
-#endif
-
-#ifdef SM_VDSM2
-uniform int shadowTextureUnit0;
-uniform int shadowTextureUnit1;
-#endif
-
-void ov_shadow(vec4 ecPosition)
-{
-#ifdef HAS_SHADOW
-#ifdef SM_LISPSM
-	int shadowTextureUnit0 = shadowTextureUnit;
-#endif
-	//ecPosition = gl_ModelViewMatrix * ecPosition;
-	// generate coords for shadow mapping                              
-	gl_TexCoord[shadowTextureUnit0].s = dot(ecPosition, gl_EyePlaneS[shadowTextureUnit0]);
-	gl_TexCoord[shadowTextureUnit0].t = dot(ecPosition, gl_EyePlaneT[shadowTextureUnit0]);
-	gl_TexCoord[shadowTextureUnit0].p = dot(ecPosition, gl_EyePlaneR[shadowTextureUnit0]);
-	gl_TexCoord[shadowTextureUnit0].q = dot(ecPosition, gl_EyePlaneQ[shadowTextureUnit0]);
-#ifdef SM_VDSM2
-	gl_TexCoord[shadowTextureUnit1].s = dot(ecPosition, gl_EyePlaneS[shadowTextureUnit1]);
-	gl_TexCoord[shadowTextureUnit1].t = dot(ecPosition, gl_EyePlaneT[shadowTextureUnit1]);
-	gl_TexCoord[shadowTextureUnit1].p = dot(ecPosition, gl_EyePlaneR[shadowTextureUnit1]);
-	gl_TexCoord[shadowTextureUnit1].q = dot(ecPosition, gl_EyePlaneQ[shadowTextureUnit1]);
-#endif
-#endif	
-}
+//forward declaration
+void ov_setShadowTexCoords(vec4 mv_pos);
 
 float ov_range_rand(float minValue, float maxValue, vec2 co)
 {
@@ -214,22 +178,22 @@ void main(void)
 		vec4 p3 = vec4(p1.xyz + bb_up, 1.0);
 
 		gl_Position = gl_ProjectionMatrix*p0;
-		ov_shadow(p0);
+		ov_setShadowTexCoords(p0);
 		ov_geometry_texcoord = vec2(0,0);
 		EmitVertex();
     
 		gl_Position = gl_ProjectionMatrix*p1;
-		ov_shadow(p1);
+		ov_setShadowTexCoords(p1);
 		ov_geometry_texcoord = vec2(1,0);
 		EmitVertex();
     
 		gl_Position = gl_ProjectionMatrix*p2;
-		ov_shadow(p2);
+		ov_setShadowTexCoords(p2);
 		ov_geometry_texcoord = vec2(0,1);
 		EmitVertex();
 
 		gl_Position = gl_ProjectionMatrix*p3;
-		ov_shadow(p3);
+		ov_setShadowTexCoords(p3);
 		ov_geometry_texcoord = vec2(1,1);
 		EmitVertex();
 		
@@ -270,8 +234,6 @@ void main(void)
 			tangent_vector = gl_NormalMatrix * vec3(0,1,0);
 			bb_right = cross(tangent_vector, up_view) * bb_half_width;
 		}
-
-	
 	}
 #endif
 
@@ -307,10 +269,10 @@ void main(void)
 
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
-	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 	
 	//Second quad, calc new left vector (perpendicular to prev left vec)
@@ -318,10 +280,10 @@ void main(void)
 	//also recalc offset to reflect that we have a 90-deg rotatation
 	offset = vec3(sin_wind, cos_wind, 0) * inv_terrain_scale;
 
-	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 #endif
 
@@ -355,19 +317,19 @@ void main(void)
 
 	vec4 bb_vertex;
 	bb_vertex.w = random_pos.w;
-	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 
 	//Second quad, just flip offset
 	offset = -offset;
 
-	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 
 	//Third quad, calc new left vector (perpendicular to prev left vec)
@@ -375,18 +337,18 @@ void main(void)
 	//also recalc offset to reflect that we have a 90-deg rotatation
 	offset = (vec3(-width_sin, -width_cos, 0) + vec3(sin_wind, cos_wind, 0)) * inv_terrain_scale;
 
-	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 
 	//Last quad, just flip offset as before
 	offset = -offset;
-	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
-	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_shadow(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left;                  gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 0.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz + bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(0.0, 1.0); EmitVertex();
+	bb_vertex.xyz = random_pos.xyz - bb_left + bb_up + offset; gl_Position = gl_ModelViewProjectionMatrix * bb_vertex; ov_setShadowTexCoords(gl_ModelViewMatrix*bb_vertex); ov_geometry_texcoord = vec2(1.0, 1.0); EmitVertex();
 	EndPrimitive();
 #endif
 }

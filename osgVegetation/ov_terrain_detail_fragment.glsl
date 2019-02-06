@@ -14,12 +14,13 @@ varying vec2 ov_tex_coord0;
 varying vec2 ov_tex_coord1;
 varying float ov_depth;
 
-vec3 ov_directional_light_shadow(vec3 normal);
-vec3 ov_apply_fog(vec3 color, float depth);
+vec3 ov_directionalLightShadow(vec3 normal);
+vec3 ov_applyFog(vec3 color, float depth);
 
 void main(void) 
 {
-	float depth = ov_depth;//gl_FragCoord.z / gl_FragCoord.w;
+	float depth = ov_depth;
+	//float depth = gl_FragCoord.z / gl_FragCoord.w;
 
 	vec4 base_color = texture2D(ov_color_texture, ov_tex_coord0.xy);
 	vec4 lc = texture2D(ov_land_cover_texture, ov_tex_coord0.xy);
@@ -42,7 +43,7 @@ void main(void)
 	vec4 out_color = mix(detail_color, detail_base_color, 0.3);
 	//2 * base_color * detail_color.wwww + 0.5*detail_color;
 
-	float end_fade = 500.0*max(gl_ProjectionMatrix[0][0], 1);
+	float end_fade = 500.0 * max(gl_ProjectionMatrix[0][0], 1);
 
 	float fade = clamp(depth / end_fade, 0.0, 1);
 	out_color = 1.3*mix(out_color, base_color, fade);
@@ -62,7 +63,7 @@ void main(void)
 	*/
 
 	//apply lighting and fog
-	out_color.xyz *= ov_directional_light_shadow(normalize(ov_normal));
-	out_color.xyz = ov_apply_fog(out_color.xyz, depth);
+	out_color.xyz *= ov_directionalLightShadow(normalize(ov_normal));
+	out_color.xyz = ov_applyFog(out_color.xyz, depth);
 	gl_FragColor = out_color;	
 }

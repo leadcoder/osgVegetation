@@ -17,9 +17,9 @@ uniform sampler2DShadow shadowTexture1;
 uniform int shadowTextureUnit1;
 #endif
 
-float ov_shadow(float value)
+float ov_getShadow()
 {
-	float shadow = value;
+	float shadow = 1.0;
 #ifdef SM_LISPSM
 	shadow *= shadow2DProj(shadowTexture, gl_TexCoord[shadowTextureUnit]).r;
 #endif
@@ -35,24 +35,29 @@ float ov_shadow(float value)
 	return shadow;
 }
 
-vec3 ov_directional_light_shadow(vec3 normal)
+vec3 ov_directionalLightShadow(vec3 normal)
 {
 	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
 	float NdotL = max(dot(normal, light_dir), 0.0);
-	NdotL *= ov_shadow(NdotL);
+	NdotL *= ov_getShadow();
+	vec3 light = min(NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz, 2.0);
+    
+	//float NdotHV = max(dot(normal, gl_LightSource[0].halfVector.xyz), 0.0);
+	//if ( NdotL * NdotHV > 0.0 )
+	//	light += gl_LightSource[0].specular.xyz * pow( NdotHV, 1.0);
+    //light += gl_FrontLightProduct[0].specular.xyz * pow( NdotHV, gl_FrontMaterial.shininess );
+	return light;
+}
+
+vec3 ov_directionalLight(vec3 normal)
+{
+	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
+	float NdotL = max(dot(normal, light_dir), 0.0);
 	vec3 light = min(NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz , 2.0);
 	return light;
 }
 
-vec3 ov_directional_light(vec3 normal)
-{
-	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
-	float NdotL = max(dot(normal, light_dir), 0.0);
-	vec3 light = min(NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz , 2.0);
-	return light;
-}
-
-vec3 ov_apply_fog(vec3 color, float depth)
+vec3 ov_applyFog(vec3 color, float depth)
 {
 #if defined(FM_LINEAR) || defined(FM_EXP) || defined(FM_EXP2)
 

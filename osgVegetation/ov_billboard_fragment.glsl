@@ -11,10 +11,9 @@ varying float ov_depth;
 flat varying float ov_fade;
 
 //forward declarations
-float ov_shadow(float value);
-vec3 ov_directional_light(vec3 normal);
-vec3 ov_directional_light_shadow(vec3 normal);
-vec3 ov_apply_fog(vec3 color, float depth);
+vec3 ov_directionalLight(vec3 normal);
+vec3 ov_directionalLightShadow(vec3 normal);
+vec3 ov_applyFog(vec3 color, float depth);
 
 //get billboard normal
 vec3 ov_get_billboard_normal()
@@ -37,13 +36,12 @@ void main(void)
 	vec3 normal = ov_get_billboard_normal();
 
 #ifndef BLT_ROTATED_QUAD //self shadows don't work well for rotated quads
-	out_color.xyz *= ov_directional_light_shadow(normal);
+	out_color.xyz *= ov_directionalLightShadow(normal);
 #else
-	out_color.xyz *= ov_directional_light(normal);
+	out_color.xyz *= ov_directionalLight(normal);
 #endif
 
-	out_color.xyz = ov_apply_fog(out_color.xyz, ov_depth);
-	//float depth = ov_depth;//gl_FragCoord.z / gl_FragCoord.w;
+	out_color.xyz = ov_applyFog(out_color.xyz, ov_depth);
 	out_color.a *= ov_fade;
 	gl_FragColor = out_color;
 }

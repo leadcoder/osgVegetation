@@ -53,8 +53,9 @@ namespace osgVegetation
 		
 		terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_detail_scale", scale));
 
+		program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_common_vertex.glsl")));
 		program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile(tdm.VertexShader)));
-
+		
 		program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_common_fragment.glsl")));
 		program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile(tdm.FragmentShader)));
 	}
