@@ -3,6 +3,7 @@
 #extension GL_EXT_texture_array : enable
 #pragma import_defines (BLT_ROTATED_QUAD)
 uniform sampler2DArray ov_billboard_texture;
+uniform float ov_billboard_color_impact;
 varying vec2 ov_geometry_texcoord;
 varying vec4 ov_geometry_color;
 flat varying int ov_geometry_tex_index;
@@ -31,8 +32,14 @@ vec3 ov_get_billboard_normal()
 
 void main(void) 
 {
-	vec4 out_color = ov_geometry_color * texture2DArray(ov_billboard_texture, vec3(ov_geometry_texcoord, ov_geometry_tex_index));
-	
+	float intensity = ov_geometry_color.w;
+	vec4 tex_color = texture2DArray(ov_billboard_texture, vec3(ov_geometry_texcoord, ov_geometry_tex_index));
+
+	//modulate colors
+	vec3 mod_color = tex_color.xyz * ov_geometry_color.xyz;
+	vec3 mixed_color = mix(tex_color.xyz, mod_color, ov_billboard_color_impact) * intensity; 
+	vec4 out_color = vec4(mixed_color, tex_color.a);
+
 	vec3 normal = ov_get_billboard_normal();
 
 #ifndef BLT_ROTATED_QUAD //self shadows don't work well for rotated quads
