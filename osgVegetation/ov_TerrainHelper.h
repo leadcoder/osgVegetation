@@ -7,6 +7,7 @@
 #include <osgTerrain/TerrainTile>
 #include <osgTerrain/Locator>
 #include <osg/ShapeDrawable>
+#include <osgUtil/Optimizer>
 
 namespace osgVegetation
 {
@@ -29,17 +30,22 @@ namespace osgVegetation
 					
 					osg::Matrixd matrix = locator->getTransform();
 					osg::Vec3d center = osg::Vec3d(0.5, 0.5, 0.0) * matrix;
+					osg::Matrixd localToWorldTransform;
+
 					if (locator->getCoordinateSystemType() == osgTerrain::Locator::GEOCENTRIC)
 					{
-						osg::Matrixd localToWorldTransform;
 						em->computeLocalToWorldTransformFromLatLongHeight(center.y(), center.x(), center.z(), localToWorldTransform);
-						ret_node->setMatrix(localToWorldTransform);
 					}
 					else
 					{
-						ret_node->setMatrix(locator->getTransform());
+						localToWorldTransform = locator->getTransform();
 					}
-
+#if 1
+					//unscale to allow VDSM-shadowing...and avoid this inverse scaling in geometry shader
+					osg::Vec3d scale = localToWorldTransform.getScale();
+					localToWorldTransform.preMultScale(osg::Vec3d(1.0/ scale.x(), 1.0 / scale.y(), 1.0 / scale.z()));
+					ret_node->setMatrix(localToWorldTransform);
+#endif
 					osg::Matrixd worldToLocalTransform;
 					worldToLocalTransform.invert(ret_node->getMatrix());
 					osg::Geometry* hf_geom = _CreateGeometryFromHeightField(hf, locator, worldToLocalTransform);
@@ -97,9 +103,13 @@ namespace osgVegetation
 				for (unsigned int c = 0; c < numColumns; ++c)
 				{
 					local_pos.z() = static_cast<double>(hf->getHeight(c, r));
+#if 1
 					osg::Vec3d world_pos;
 					locator->convertLocalToModel(local_pos, world_pos);
 					osg::Vec3d new_local_pos = world_pos * worldToLocalTransform;
+#else
+					osg::Vec3d new_local_pos = local_pos * worldToLocalTransform;
+#endif
 					v[vi].set(new_local_pos.x(), new_local_pos.y(), new_local_pos.z());
 					t[vi].set(tex.x(), tex.y());
 					local_pos.x() += columnCoordDelta;
