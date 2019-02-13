@@ -41,7 +41,7 @@ namespace osgVegetation
 						localToWorldTransform = locator->getTransform();
 					}
 #if 1
-					//unscale to allow VDSM-shadowing...and avoid this inverse scaling in geometry shader
+					//unscale to allow VDSM-shadowing...and avoid inverse scaling in geometry shader
 					osg::Vec3d scale = localToWorldTransform.getScale();
 					localToWorldTransform.preMultScale(osg::Vec3d(1.0/ scale.x(), 1.0 / scale.y(), 1.0 / scale.z()));
 					ret_node->setMatrix(localToWorldTransform);
@@ -90,12 +90,14 @@ namespace osgVegetation
 
 			osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
 			osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
+			osg::Vec3Array& n = *(new osg::Vec3Array(numColumns*numRows));
 			osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
 			color[0].set(255, 255, 255, 255);
 			osg::Vec3d local_origin(0, 0, 0);
 			osg::Vec3d local_pos = local_origin;
 			osg::Vec2 tex(0.0f, 0.0f);
 			int vi = 0;
+
 			for (unsigned int r = 0; r < numRows; ++r)
 			{
 				local_pos.x() = local_origin.x();
@@ -110,8 +112,15 @@ namespace osgVegetation
 #else
 					osg::Vec3d new_local_pos = local_pos * worldToLocalTransform;
 #endif
+					/*osg::Vec3 normal = hf->getNormal(c, r);
+					normal.x() = hf->getXInterval()*normal.x();
+					normal.y() = hf->getYInterval()*normal.y();
+					normal.normalize();
+					n[vi].set(normal.x(), normal.y(), normal.z());*/
+
 					v[vi].set(new_local_pos.x(), new_local_pos.y(), new_local_pos.z());
 					t[vi].set(tex.x(), tex.y());
+					
 					local_pos.x() += columnCoordDelta;
 					tex.x() += columnTexDelta;
 					++vi;
@@ -120,7 +129,48 @@ namespace osgVegetation
 				tex.y() += rowTexDelta;
 			}
 
+			for (unsigned int r = 0; r < numRows; ++r)
+			{
+				for (unsigned int c = 0; c < numColumns; ++c)
+				{
+					int center = (r)*numColumns + c;
+					osg::Vec3 center_p = v[center];
+					osg::Vec3 dx(0.0f, 0.0f, 0.0f);
+					osg::Vec3 dy(0.0f, 0.0f, 0.0f);
+					osg::Vec3 zero(0.0f, 0.0f, 0.0f);
+
+					if (c < numColumns - 1)
+					{
+						int right = (r)*numColumns + c + 1;
+						dx += v[right] - v[center];
+					}
+					if (c > 0)
+					{
+						int left = (r)*numColumns + c - 1;
+						dx += v[center] - v[left];
+					}
+					if (r > 0)
+					{
+						int down = (r - 1)*numColumns + c;
+						dy += v[center] - v[down];
+					}
+					if (r < numRows-1)
+					{
+						int up = (r + 1)*numColumns + c;
+						dy += v[up] - v[center];
+					}
+
+					if (dx != zero && dy != zero)
+					{
+						osg::Vec3 normal = dx ^ dy;
+						normal.normalize();
+						n[center].set(normal.x(), normal.y(), normal.z());
+					}
+				}
+			}
+
 			geometry->setVertexArray(&v);
+			geometry->setNormalArray(&n, osg::Array::BIND_PER_VERTEX);
 			geometry->setTexCoordArray(0, &t);
 			geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
 
@@ -135,12 +185,12 @@ namespace osgVegetation
 					// which way to put the diagonal by choosing to
 					// place it between the two corners that have the least curvature
 					// relative to each other.
-					// Due to how normals are calculated we don't get exact match...fix this by using same normal calulations
-
-					osg::Vec3 n00 = hf->getNormal(c, r);
-					osg::Vec3 n01 = hf->getNormal(c, r + 1);
-					osg::Vec3 n10 = hf->getNormal(c + 1, r);
-					osg::Vec3 n11 = hf->getNormal(c + 1, r + 1);
+					
+					osg::Vec3 n00 = n[r*numColumns + c];
+					osg::Vec3 n01 = n[(r+1)*numColumns + c];
+					osg::Vec3 n10 = n[r*numColumns + c +1];
+					osg::Vec3 n11 = n[(r + 1)*numColumns + c+1];
+					
 					float dot_00_11 = n00 * n11;
 					float dot_01_10 = n01 * n10;
 					if (dot_00_11 > dot_01_10)
