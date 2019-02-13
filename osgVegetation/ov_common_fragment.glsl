@@ -1,4 +1,4 @@
-#pragma import_defines (SM_LISPSM,SM_VDSM1,SM_VDSM2,FM_LINEAR,FM_EXP,FM_EXP2)
+#pragma import_defines (SM_LISPSM, SM_VDSM1, SM_VDSM2, FM_LINEAR, FM_EXP, FM_EXP2)
 
 #ifdef SM_LISPSM
 uniform sampler2DShadow shadowTexture;

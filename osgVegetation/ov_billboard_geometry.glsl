@@ -347,12 +347,15 @@ void main(void)
 	if(length(terrain_color) > ov_billboard_color_threshold)
 		return;
 
-	vec4 camera_pos = gl_ModelViewMatrixInverse[3];
-	vec3 camera_to_bb_dir = camera_pos.xyz - terrain_pos.xyz;
+	if(dot(normalize(terrain_normal), vec3(0,0,1)) < 0.9)
+		return;
+	
+	//vec4 camera_pos = gl_ModelViewMatrixInverse[3];
+	//vec3 camera_to_bb_dir = camera_pos.xyz - terrain_pos.xyz;
 	
 	//we are only interested in xy-plane direction
-	camera_to_bb_dir.z = 0;
-	camera_to_bb_dir = normalize(camera_to_bb_dir);
+	//camera_to_bb_dir.z = 0;
+	//camera_to_bb_dir = normalize(camera_to_bb_dir);
 	
 	vec4 mv_pos = gl_ModelViewMatrix * terrain_pos;
 	ov_depth = -mv_pos.z;
@@ -386,15 +389,13 @@ void main(void)
 	float bb_height = base_scale * billboard_data.y;
 	float bb_intensity = billboard_data.z;
 
-	//ov_geometry_normal = gl_NormalMatrix * vec3(0, 0, 1);
+	
 	ov_geometry_color.xyz  = terrain_color;
 	ov_geometry_color.w = bb_intensity; 
-	ov_geometry_normal = terrain_normal;
+	ov_geometry_normal = gl_NormalMatrix * terrain_normal;
 
 #ifdef BLT_ROTATED_QUAD
-
 	ov_emitRotatedBillboard(mv_pos.xyz, bb_half_width, bb_height);
-
 #else //BLT_CROSS_QUADS || BLT_GRASS
     float random_rot = mod(terrain_pos.x*100, 2 * 3.14);
 	mat3 rot_mat = ov_getRotationMatrix(vec3(0,0,1), random_rot);
@@ -402,17 +403,18 @@ void main(void)
 #if 1
 	//Hack to support VPB terrain-tiles geometry that use scaling to get terrain vertices from normalized space. 
 	//We extract the scale factor and use the inverse to scale the billboard vectors  
-	vec3 inv_terrain_scale = vec3(1.0/length(gl_ModelViewMatrix[0].xyz), 1.0/length(gl_ModelViewMatrix[1].xyz), 1.0/length(gl_ModelViewMatrix[2].xyz));
-	mat3 scale_mat = mat3(inv_terrain_scale.x, 0, 0,   // first column
-	0, inv_terrain_scale.y, 0,
-	0, 0, inv_terrain_scale.z);
-	rot_mat = scale_mat*rot_mat;
+	vec3 inv_terrain_scale = vec3(1.0 / length(gl_ModelViewMatrix[0].xyz), 1.0 / length(gl_ModelViewMatrix[1].xyz), 1.0 / length(gl_ModelViewMatrix[2].xyz));
+	mat3 scale_mat = mat3(inv_terrain_scale.x, 0,                   0,   // first column
+	                      0,                   inv_terrain_scale.y, 0,
+	                      0,                   0,                   inv_terrain_scale.z);
+	rot_mat = rot_mat*scale_mat;
 #endif
 
 	float wind_effect = sin(osg_SimulationTime * random_rot) * bb_height * 0.01;
     vec3 wind_vec = rot_mat * vec3(wind_effect,0,0);
 
 #if defined(BLT_CROSS_QUADS)
+	//ov_geometry_normal = vec3(0, 0, 1);
 	ov_emitCrossQuads(terrain_pos, rot_mat, wind_vec, bb_half_width, bb_height);
 #elif defined(BLT_GRASS)
 	ov_emitGrass(terrain_pos, rot_mat, wind_vec, bb_half_width, bb_height);

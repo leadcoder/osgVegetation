@@ -7,7 +7,7 @@ uniform mat4 osg_ModelViewProjectionMatrix;
 void main(){
    ov_vertex_texcoord = gl_MultiTexCoord0.xy;
    ov_vertex_position = gl_Vertex;
-   ov_vertex_normal = normalize(gl_NormalMatrix * gl_Normal);
+   ov_vertex_normal = gl_Normal;//normalize(gl_NormalMatrix * gl_Normal);
    gl_Position = gl_Vertex;
    gl_FrontColor = vec4(1.0,1.0,1.0,1.0);
 }

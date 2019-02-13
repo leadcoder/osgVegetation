@@ -14,6 +14,23 @@ uniform mat4 osg_ModelViewMatrix;
 uniform mat4 osg_ProjectionMatrix;
 uniform float ov_billboard_max_distance;
 uniform float ov_billboard_density;
+/*
+bool ov_pointInViewFrustum(mat4 matrix, vec3 point)
+{
+    vec4 p;
+    p = matrix * vec4(point,1);
+    
+    int out_of_bound[6] = int[6]( 0, 0, 0, 0, 0, 0 );
+    out_of_bound[0] = int( p.x >  p.w );
+    out_of_bound[1] = int( p.x < -p.w );
+    out_of_bound[2] = int( p.y >  p.w );
+    out_of_bound[3] = int( p.y < -p.w );
+    out_of_bound[4] = int( p.z >  p.w );
+    out_of_bound[5] = int( p.z < -p.w );
+    
+    return (out_of_bound[0] < 1 ) && ( out_of_bound[1] < 1 ) && ( out_of_bound[2] < 1 ) && ( out_of_bound[3] < 1 ) && ( out_of_bound[4] < 1 ) && ( out_of_bound[5] < 1 );
+}
+*/
 
 #define ID gl_InvocationID
 void main(){
