@@ -20,11 +20,16 @@ namespace osgVegetation
 	class BillboardNodeGenerator
 	{
 	public:
-		BillboardNodeGenerator(const std::vector<BillboardLayer> &layers) : m_Config(layers),
-			m_TerrainColorTexUnit(0),
-			m_TerrainLandcoverTexUnit(1),
-			m_BillboardTexUnit(2),
-			m_ReceivesShadowTraversalMask(0x1)
+		BillboardNodeGenerator(const std::vector<BillboardLayer> &layers, 
+			int terrain_color_texture_unit = 0, 
+			int terrain_landcover_texture_unit = 1,
+			int billboard_texture_unit = 2,
+			int receives_shadow_mask = 0x1,
+			int cast_shadow_mask = 0x2) : m_Config(layers),
+			m_TerrainColorTexUnit(terrain_color_texture_unit),
+			m_TerrainLandcoverTexUnit(terrain_landcover_texture_unit),
+			m_BillboardTexUnit(billboard_texture_unit),
+			m_CastShadowTraversalMask(cast_shadow_mask)
 		{
 			for(size_t i = 0; i < layers.size(); i++)
 				m_Layers.push_back(_CreateStateSet(layers[i]));
@@ -42,6 +47,9 @@ namespace osgVegetation
 				//Disable shadow casting for grass, TODO make this optional
 				if (m_Config[i].Type == BillboardLayer::BLT_GRASS)
 					layer_node->setNodeMask(m_ReceivesShadowTraversalMask);
+				else
+					layer_node->setNodeMask(m_ReceivesShadowTraversalMask | m_CastShadowTraversalMask);
+					
 				layers->addChild(layer_node);
 			}
 			return layers;
@@ -182,5 +190,6 @@ namespace osgVegetation
 		int m_TerrainColorTexUnit;
 		int m_BillboardTexUnit;
 		int m_ReceivesShadowTraversalMask;
+		int m_CastShadowTraversalMask;
 	};
 }

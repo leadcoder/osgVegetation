@@ -94,7 +94,7 @@ namespace osgVegetation
 			if (geometry)
 			{
 				geometry->setUseDisplayList(false);
-				for (int i = 0; i < geometry->getNumPrimitiveSets() ; i++)
+				for (unsigned int i = 0; i < geometry->getNumPrimitiveSets() ; i++)
 				{
 					geometry->getPrimitiveSet(i)->setMode(GL_PATCHES);
 				}
