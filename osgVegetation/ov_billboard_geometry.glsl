@@ -170,8 +170,6 @@ void ov_emitCrossQuadsMV(vec3 mv_pos, mat3 model_rot_mat, float wind, float bb_h
 	vec3 tangent_vector = rot_mat * vec3(1,0,0);
 	vec3 bb_right = cross(tangent_vector, up_view) * bb_half_width;
 	vec3 bb_up = up_view * bb_height;
-	//vec3 wind_tangent_vector = gl_NormalMatrix * rot_mat * vec3(1,0,0);
-	//vec3 wind_vec = cross(tangent_vector, up_view);
 	vec3 wind_vec = normalize(bb_right) * wind;
 	
 	for(int i=0; i<2; ++i)
@@ -213,9 +211,6 @@ void ov_emitCrossQuads(vec4 pos, mat3 rot, vec3 wind_vec, float bb_half_width, f
 
 	//First quad, left vector used to offset in xy-space from anchor point 
 	vec3 bb_left = rot * vec3(bb_half_width, 0.0, 0.0);
-
-	//Calc a offset vector to add wind effect
-	//vec3 wind_vec = normalize(bb_left) * wind;
 
 	for(int i=0; i<2; ++i)
 	{
@@ -350,13 +345,6 @@ void main(void)
 	if(dot(normalize(terrain_normal), vec3(0,0,1)) < 0.9)
 		return;
 	
-	//vec4 camera_pos = gl_ModelViewMatrixInverse[3];
-	//vec3 camera_to_bb_dir = camera_pos.xyz - terrain_pos.xyz;
-	
-	//we are only interested in xy-plane direction
-	//camera_to_bb_dir.z = 0;
-	//camera_to_bb_dir = normalize(camera_to_bb_dir);
-	
 	vec4 mv_pos = gl_ModelViewMatrix * terrain_pos;
 	ov_depth = -mv_pos.z;
 
@@ -400,7 +388,7 @@ void main(void)
     float random_rot = mod(terrain_pos.x*100, 2 * 3.14);
 	mat3 rot_mat = ov_getRotationMatrix(vec3(0,0,1), random_rot);
 
-#if 1
+#if 0
 	//Hack to support VPB terrain-tiles geometry that use scaling to get terrain vertices from normalized space. 
 	//We extract the scale factor and use the inverse to scale the billboard vectors  
 	vec3 inv_terrain_scale = vec3(1.0 / length(gl_ModelViewMatrix[0].xyz), 1.0 / length(gl_ModelViewMatrix[1].xyz), 1.0 / length(gl_ModelViewMatrix[2].xyz));
@@ -414,7 +402,6 @@ void main(void)
     vec3 wind_vec = rot_mat * vec3(wind_effect,0,0);
 
 #if defined(BLT_CROSS_QUADS)
-	//ov_geometry_normal = vec3(0, 0, 1);
 	ov_emitCrossQuads(terrain_pos, rot_mat, wind_vec, bb_half_width, bb_height);
 #elif defined(BLT_GRASS)
 	ov_emitGrass(terrain_pos, rot_mat, wind_vec, bb_half_width, bb_height);
