@@ -102,10 +102,10 @@ int main(int argc, char** argv)
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	
-	osgVegetation::BillboardLayer tree_data(740, 0.001, 0.5, 0.7, 0.1, 2);
+	osgVegetation::BillboardLayer tree_data(740, 0.004, 0.5, 0.7, 0.1, 2);
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
-	tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16),1.2,1.0));
+	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 2.5, 1.0));
 	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
 	std::vector<osgVegetation::BillboardLayer> layers;
 	layers.push_back(grass_data);
@@ -126,12 +126,13 @@ int main(int argc, char** argv)
 	*/
 	osg::ref_ptr<osg::Group> shadow_root = CreateShadowNode(0);
 
-	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::PLODTerrainTileInjection(layers));
-	//osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
-
-
+	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(layers));
+#if 0
+	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
+#else
+	//osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osgb");
 	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");
-	
+#endif	
 	shadow_root->addChild(rootnode);
 
 	osgVegetation::Terrain terrain_data;
@@ -156,7 +157,8 @@ int main(int argc, char** argv)
 	osg::Vec3f lightDir(-lightPos.x(), -lightPos.y(), -lightPos.z());
 	lightDir.normalize();
 	pLight->setDirection(lightDir);
-	pLight->setAmbient(osg::Vec4(0.5f, 0.5f, 0.5f, 1.0f));
+	pLight->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f));
+	//pLight->setSpecular(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 	osg::LightSource* pLightSource = new osg::LightSource;
 	pLightSource->setLight(pLight);
