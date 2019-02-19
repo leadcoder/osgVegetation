@@ -7,7 +7,7 @@
 #include "ov_Serializer.h"
 #include <osg/PagedLOD>
 #include "ov_Utils.h"
-#include "ov_PLODTerrainTileInjection.h"
+#include "ov_VPBVegetationInjection.h"
 
 using namespace osg;
 using namespace osgDB;

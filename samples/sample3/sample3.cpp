@@ -16,7 +16,7 @@
 *  THE SOFTWARE.
 */
 
-#include "ov_PLODTerrainTileInjection.h"
+#include "ov_VPBVegetationInjection.h"
 #include "ov_Utils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
@@ -61,20 +61,6 @@ int main(int argc, char** argv)
 		keyswitchManipulator->addMatrixManipulator('2', "Flight", new osgGA::FlightManipulator());
 		keyswitchManipulator->addMatrixManipulator('3', "Drive", new osgGA::DriveManipulator());
 		keyswitchManipulator->addMatrixManipulator('4', "Terrain", new osgGA::TerrainManipulator());
-
-		std::string pathfile;
-		char keyForAnimationPath = '5';
-		while (arguments.read("-p", pathfile))
-		{
-			osgGA::AnimationPathManipulator* apm = new osgGA::AnimationPathManipulator(pathfile);
-			if (apm || !apm->valid())
-			{
-				unsigned int num = keyswitchManipulator->getNumMatrixManipulators();
-				keyswitchManipulator->addMatrixManipulator(keyForAnimationPath, "Path", apm);
-				keyswitchManipulator->selectMatrixManipulator(num);
-				++keyForAnimationPath;
-			}
-		}
 		viewer.setCameraManipulator(keyswitchManipulator.get());
 	}
 
@@ -95,7 +81,7 @@ int main(int argc, char** argv)
 	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 
-
+	//setup vegetation layers
 	osgVegetation::BillboardLayer grass_data(140, 0.2, 1.0, 0.3, 0.1, 5);
 	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
@@ -104,36 +90,22 @@ int main(int argc, char** argv)
 	
 	osgVegetation::BillboardLayer tree_data(740, 0.004, 0.5, 0.7, 0.1, 2);
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
-	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 2.5, 1.0));
 	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
 	std::vector<osgVegetation::BillboardLayer> layers;
 	layers.push_back(grass_data);
 	layers.push_back(tree_data);
 	
-	/*terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
-	terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 10));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 10));
-	
-	std::vector< osgVegetation::BillboardLayer> l2;
-	l2.push_back(tree_data);
-	osgVegetation::LODLayer tree_layer(2, l2);
-	std::vector< osgVegetation::LODLayer> layers;
-	layers.push_back(tree_layer);
-	*/
-	osg::ref_ptr<osg::Group> shadow_root = CreateShadowNode(0);
+	osg::ref_ptr<osg::Group> root_root = CreateShadowNode(0);
 
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(layers));
 #if 0
-	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
 #else
-	//osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osgb");
-	osg::ref_ptr<osg::Node> rootnode = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");
+	//osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osgb");
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");
 #endif	
-	shadow_root->addChild(rootnode);
+	root_root->addChild(terrain_node);
 
 	osgVegetation::Terrain terrain_data;
 	terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
@@ -142,14 +114,14 @@ int main(int argc, char** argv)
 	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
 	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
 	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
-	osgVegetation::PrepareTerrainForDetailMapping(rootnode, terrain_data);
-	if (!rootnode)
+	osgVegetation::PrepareTerrainForDetailMapping(terrain_node, terrain_data);
+	if (!terrain_node)
 	{
 		osg::notify(osg::NOTICE) << "Warning: no valid data loaded, please specify a database on the command line." << std::endl;
 		return 1;
 	}
 	
-	//Add light and shadows
+	//Add light
 	osg::Light* pLight = new osg::Light;
 	pLight->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	osg::Vec4 lightPos(1, 1.0, 1, 0);
@@ -162,17 +134,16 @@ int main(int argc, char** argv)
 
 	osg::LightSource* pLightSource = new osg::LightSource;
 	pLightSource->setLight(pLight);
-	rootnode->asGroup()->addChild(pLightSource);
-
+	root_root->asGroup()->addChild(pLightSource);
 
 	// add a viewport to the viewer and attach the scene graph.
-	viewer.setSceneData(shadow_root.get());
+	viewer.setSceneData(root_root.get());
 	bool use_fog = true;
 	if (use_fog)
 	{
 		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
 		//Add fog
-		osg::StateSet* state = rootnode->getOrCreateStateSet();
+		osg::StateSet* state = root_root->getOrCreateStateSet();
 		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
 		state->setMode(GL_FOG, osg::StateAttribute::ON);
 		state->setAttributeAndModes(fog.get());
@@ -183,15 +154,11 @@ int main(int argc, char** argv)
 		osg::StateSet::DefineList& defineList = state->getDefineList();
 		defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 	}
-
 	
 	viewer.setUpViewInWindow(100, 100, 800, 600);
 
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
-	//viewer.getCamera()->getGraphicsContext()->getState()->resetVertexAttributeAlias(false, 8);
-	//viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
 	// run the viewers main loop
-
 	while (!viewer.done())
 	{
 		//animate light if shadows enabled
@@ -210,6 +177,4 @@ int main(int argc, char** argv)
 		viewer.frame();
 	}
 	return 0;
-	//return viewer.run();
-
 }
