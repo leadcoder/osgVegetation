@@ -9,10 +9,9 @@ SET(CPP_FILES
 
 SET(H_FILES
 	ov_BillboardLayer.h
-	ov_BillboardTile.h
 	ov_Common.h
 	ov_Utils.h
-	ov_PLODTerrainTileInjection.h
+	ov_VPBVegetationInjection.h
 	ov_Terrain.h
 	ov_BillboardNodeGenerator.h
 )

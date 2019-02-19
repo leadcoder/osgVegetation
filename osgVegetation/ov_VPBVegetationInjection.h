@@ -11,6 +11,9 @@
 
 namespace osgVegetation
 {
+	//Inject vegetation layers into VirtualPlanetBuilder (VPB) PLOD terrains,
+	//ie terrain created with --PagedLOD, --POLYGONAL or --TERRAIN.
+	//Both flat and geocentric terrains should work.
 	class VPBVegetationInjection : public osgDB::ReadFileCallback
 	{
 	public:
@@ -41,7 +44,6 @@ namespace osgVegetation
 				geode.setNodeMask(m_NodeMask);
 			}
 		};
-
 
 		//Vistor that create geometry from found terrain tiles and add them to provided root group
 		class TerrainTilesToGeometryVisitor : public osg::NodeVisitor
@@ -193,9 +195,6 @@ namespace osgVegetation
 					root_node->addChild(veg_node);
 				}
 			}
-			
-			
-
 			return rr;
 		}
 	protected:
