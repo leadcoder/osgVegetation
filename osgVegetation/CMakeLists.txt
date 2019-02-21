@@ -13,6 +13,7 @@ SET(H_FILES
 	ov_Utils.h
 	ov_VPBVegetationInjection.h
 	ov_Terrain.h
+	ov_Scene.h
 	ov_BillboardNodeGenerator.h
 )
 
