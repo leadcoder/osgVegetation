@@ -41,6 +41,10 @@
 
 int main(int argc, char** argv)
 {
+	osgVegetation::SceneConfiguration config;
+	config.ShadowMode = osgVegetation::SM_LISPSM;
+	config.FogMode = osgVegetation::FM_EXP2;
+
 	osg::ArgumentParser arguments(&argc, argv);
 
 	// construct the viewer.
@@ -74,7 +78,7 @@ int main(int argc, char** argv)
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 	
 	//osg::ref_ptr<osg::Group> rootnode = new osg::Group();
-	osg::ref_ptr<osg::Group> rootnode = CreateShadowNode(1);
+	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.ShadowMode);
 	
 	const double t_size = 1000;
 
@@ -91,25 +95,26 @@ int main(int argc, char** argv)
 
 	osg::ref_ptr<osg::Node> visual_t = CreateDemoTerrain(osg::Vec3(0, 0, 0), t_size);
 	visual_t->setNodeMask(0x1);
-	osgVegetation::PrepareTerrainForDetailMapping(rootnode);
-	rootnode->addChild(visual_t);
+	osgVegetation::PrepareTerrainForDetailMapping(root_node);
+	root_node->addChild(visual_t);
 
 	//Setup billboard layers
 	std::vector<osgVegetation::BillboardLayer> layers;
-	osgVegetation::BillboardLayer grass_data(100, 0.1, 1.0, 0.6, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data(100, 0.1, 1.0, 0.4, 0.1, 5);
 	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
 	//grass_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.1, 1.0));
 	layers.push_back(grass_data);
 
-	osgVegetation::BillboardLayer grass_data2(30, 0.4, 1.0, 0.6, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data2(30, 0.4, 1.0, 0.4, 0.1, 5);
 	grass_data2.Type = osgVegetation::BillboardLayer::BLT_GRASS;
 	grass_data2.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data2);
 
-	osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
+	//osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
+	osgVegetation::BillboardLayer tree_data(2740, 0.01, 0.5, 0.7, 0.1, 2);
 	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.2, 1.0));
@@ -119,73 +124,60 @@ int main(int argc, char** argv)
 	osgVegetation::BillboardNodeGenerator node_generator(layers);
 
 	//Create vegetation node 
-	rootnode->addChild(node_generator.CreateNode(terrain));
+	root_node->addChild(node_generator.CreateNode(terrain));
 	
-	if (!rootnode)
+	if (!root_node)
 	{
 		osg::notify(osg::NOTICE) << "Warning: no valid data loaded, please specify a database on the command line." << std::endl;
 		return 1;
 	}
-
-	//osgVegetation::PrepareTerrainForDetailMapping(rootnode);
 	
 	//Add light and shadows
-	osg::Light* pLight = new osg::Light;
-	pLight->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
-	osg::Vec4 lightPos(1, 1.0, 1, 0);
-	pLight->setPosition(lightPos);		// last param	w = 0.0 directional light (direction)
-	osg::Vec3f lightDir(-lightPos.x(), -lightPos.y(), -lightPos.z());
-	lightDir.normalize();
-	pLight->setDirection(lightDir);
-	pLight->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f));
+	osg::Light* light = new osg::Light;
+	light->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	osg::Vec4 light_pos(1, 1.0, 1, 0);
+	light->setPosition(light_pos);		// last param	w = 0.0 directional light (direction)
+	osg::Vec3f light_dir(-light_pos.x(), -light_pos.y(), -light_pos.z());
+	light_dir.normalize();
+	light->setDirection(light_dir);
+	light->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f));
 
-	osg::LightSource* pLightSource = new osg::LightSource;
-	pLightSource->setLight(pLight);
-	rootnode->asGroup()->addChild(pLightSource);
-
+	osg::LightSource* light_source = new osg::LightSource;
+	light_source->setLight(light);
+	root_node->addChild(light_source);
 
 	viewer.setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
-	// add a viewport to the viewer and attach the scene graph.
-	viewer.setSceneData(rootnode);
-	bool use_fog = true;
-	if (use_fog)
+
+	if (config.ShadowMode != osgVegetation::FM_DISABLED) //Add fog effect?
 	{
 		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
-		//Add fog
-		osg::StateSet* state = rootnode->getOrCreateStateSet();
+		osg::StateSet* state = root_node->getOrCreateStateSet();
 		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
 		state->setMode(GL_FOG, osg::StateAttribute::ON);
 		state->setAttributeAndModes(fog.get());
-		fog->setMode(osg::Fog::EXP2);
+		fog->setMode(osg::Fog::Mode(config.FogMode));
 		fog->setDensity(0.0005);
 		fog->setColor(fog_color);
 		viewer.getCamera()->setClearColor(fog_color);
-		osg::StateSet::DefineList& defineList = state->getDefineList();
-		defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 	}
-	
+
+	osgVegetation::SetSceneDefinitions(root_node->getOrCreateStateSet(), config);
+
+	viewer.setSceneData(root_node);
 	viewer.setUpViewInWindow(100, 100, 800, 600);
 
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
-	//viewer.getCamera()->getGraphicsContext()->getState()->resetVertexAttributeAlias(false, 8);
-	//viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
-	// run the viewers main loop
 
+	// run the viewers main loop
 	while (!viewer.done())
 	{
-		//animate light if shadows enabled
-		//if(shadow_type != osgVegetation::SM_DISABLED)
-		{
-			float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
-		    lightPos.set(sinf(t), cosf(t),1, 0.0f);
-			//lightPos.set(sinf(t), cosf(t), 1, 0.0f);
-		   //lightPos.set(1.0, 0, 0.5 + 0.45*cosf(t), 0.0f);
-			//lightPos.set(0.2f,0,1.1 + cosf(t),0.0f);
-			pLight->setPosition(lightPos);
-			lightDir.set(-lightPos.x(), -lightPos.y(), -lightPos.z());
-			lightDir.normalize();
-			pLight->setDirection(lightDir);
-		}
+		float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
+		light_pos.set(sinf(t), cosf(t), 1, 0.0f);
+		light->setPosition(light_pos);
+		light_dir.set(-light_pos.x(), -light_pos.y(), -light_pos.z());
+		light_dir.normalize();
+		light->setDirection(light_dir);
+		
 		viewer.frame();
 	}
 	return 0;

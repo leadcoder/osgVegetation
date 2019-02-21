@@ -1,4 +1,5 @@
 #pragma once
+#include "ov_Scene.h"
 #include <osgShadow/ShadowedScene>
 #include <osgShadow/ShadowMap>
 #include <osgShadow/ParallelSplitShadowMap>
@@ -6,9 +7,13 @@
 #include <osgShadow/StandardShadowMap>
 #include <osgShadow/ViewDependentShadowMap>
 
-osg::ref_ptr<osg::Group> CreateShadowNode(int type)
+
+static int ReceivesShadowTraversalMask = 0x1;
+static int CastsShadowTraversalMask = 0x2;
+
+osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowMode type)
 {
-	if (type == 0)
+	if (type == osgVegetation::SM_LISPSM)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
 		int mapres = 2048;
@@ -31,10 +36,7 @@ osg::ref_ptr<osg::Group> CreateShadowNode(int type)
 
 		//sm->setMainVertexShader( NULL );
 		//sm->setShadowVertexShader(NULL);
-
-		static unsigned int ReceivesShadowTraversalMask = 0x1;
-		static unsigned int CastsShadowTraversalMask = 0x2;
-
+	
 		shadowedScene->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
 		shadowedScene->setCastsShadowTraversalMask(CastsShadowTraversalMask);
 
@@ -63,35 +65,32 @@ osg::ref_ptr<osg::Group> CreateShadowNode(int type)
 
 		sm->setMainFragmentShader(mainFragmentShader);
 		shadowedScene->setShadowTechnique(sm);
-		osg::StateSet::DefineList& defineList = shadowedScene->getOrCreateStateSet()->getDefineList();
-		defineList["SM_LISPSM"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+		//osg::StateSet::DefineList& defineList = shadowedScene->getOrCreateStateSet()->getDefineList();
+		//defineList["SM_LISPSM"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 
 		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
 		shadowTextureUnit->set(shadowTexUnit);
 		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit);
-
 		return shadowedScene;
 	}
-	else if (type == 1)
+	else if (type == osgVegetation::SM_VDSM1 ||
+			 type == osgVegetation::SM_VDSM2)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
 		int mapres = 2048;
 
-		static int ReceivesShadowTraversalMask = 0x1;
-		static int CastsShadowTraversalMask = 0x2;
-
-
+	
 		osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
 		settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
 		settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
-		//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
+		settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
 		int shadowTexUnit = 6;
 		settings->setBaseShadowTextureUnit(shadowTexUnit);
 
 		double n = 0.8;
 		settings->setMinimumShadowMapNearFarRatio(n);
 
-		unsigned int numShadowMaps = 2;
+		const unsigned int numShadowMaps = (type == osgVegetation::SM_VDSM1) ? 1 : 2;
 		settings->setNumShadowMapsPerLight(numShadowMaps);
 		//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
 		settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
@@ -102,10 +101,10 @@ osg::ref_ptr<osg::Group> CreateShadowNode(int type)
 		shadowedScene->setShadowTechnique(vdsm.get());
 
 		osg::StateSet::DefineList& defineList = shadowedScene->getOrCreateStateSet()->getDefineList();
-		if (numShadowMaps == 1)
-			defineList["SM_VDSM1"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-		else
-			defineList["SM_VDSM2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+		//if (numShadowMaps == 1)
+		//	defineList["SM_VDSM1"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+		//else
+		//	defineList["SM_VDSM2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 
 		osg::Uniform* shadowTextureUnit0 = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit0");
 		shadowTextureUnit0->set(shadowTexUnit);
