@@ -40,7 +40,7 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
     if (fileName.empty())
         return ReadResult::FILE_NOT_FOUND;
 
-	osgVegetation::Terrain terrain_data;
+	osgVegetation::TerrainConfiguration terrain_data;
 	osgVegetation::XMLSerializer::ReadTerrainData(fileName, terrain_data);
 
 	terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
@@ -58,7 +58,7 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
 	
 	//Setup shadow defines
 	osg::StateSet::DefineList& defineList = terrain_node->getOrCreateStateSet()->getDefineList();
-	if(terrain_data.ShadowMode == osgVegetation::Terrain::SM_LISPSM)
+	/*if(terrain_data.ShadowMode == osgVegetation::Terrain::SM_LISPSM)
 	{
 		defineList["SM_LISPSM"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 	}
@@ -77,7 +77,7 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
 	terrain_node->getOrCreateStateSet()->addUniform(shadowTextureUnit);
 
 	defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-
+	*/
 	return terrain_node;
 }
 
