@@ -24,14 +24,13 @@ namespace osgVegetation
 		terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_color_texture", 0));
 	}
 
-	void PrepareTerrainForDetailMapping(osg::Node* terrain, const Terrain& tdm)
+	void PrepareTerrainForDetailMapping(osg::Node* terrain, const TerrainConfiguration& tdm)
 	{
 		osg::Program* program = new osg::Program;
 		terrain->getOrCreateStateSet()->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 		terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_color_texture", 0));
 		terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_land_cover_texture", 1));
-		//terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_detail_texture1", 3));
-
+	
 		int tex_unit_index = 2;
 
 		osg::Vec4 scale(1, 1, 1, 1);
@@ -63,7 +62,7 @@ namespace osgVegetation
 	//Setup terrain for simple detail mapping. Note: Sample data path must be added!
 	void PrepareTerrainForDetailMapping(osg::Node* terrain)
 	{
-		Terrain tdm;
+		TerrainConfiguration tdm;
 		tdm.VertexShader = "ov_terrain_detail_vertex.glsl";
 		tdm.FragmentShader = "ov_terrain_detail_fragment.glsl";
 		tdm.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"),0.1));
