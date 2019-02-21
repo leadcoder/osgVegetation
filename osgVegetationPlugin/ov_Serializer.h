@@ -11,6 +11,6 @@ namespace osgVegetation
 	public:
 		XMLSerializer(){}
 		virtual ~XMLSerializer(){}
-		static void ReadTerrainData(const std::string &filename, Terrain &terrain);
+		static void ReadTerrainData(const std::string &filename, TerrainConfiguration &terrain);
 	};
 }

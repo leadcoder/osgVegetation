@@ -101,7 +101,7 @@ namespace osgVegetation
 		return layers;
 	}
 
-	void XMLSerializer::ReadTerrainData(const std::string &filename, Terrain &terrain)
+	void XMLSerializer::ReadTerrainData(const std::string &filename, TerrainConfiguration &terrain)
 	{
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())
@@ -118,7 +118,7 @@ namespace osgVegetation
 			throw std::runtime_error(std::string("Failed to find attribute: File").c_str());
 		terrain.Filename = terrain_elem->Attribute("File");
 
-		if (terrain_elem->Attribute("Type"))
+		/*if (terrain_elem->Attribute("Type"))
 		{
 			const std::string tt_str = terrain_elem->Attribute("Type");
 			if (tt_str == "TT_PLOD_TERRAIN")
@@ -143,15 +143,15 @@ namespace osgVegetation
 				terrain.ShadowMode = Terrain::SM_UNDEFINED;
 			else
 				throw std::runtime_error(std::string("Serializer::GetTerrainData - Unknown ShadowMode:" + sm_str).c_str());
-		}
+		}*/
 
 		TiXmlElement *dlv_elem = terrain_elem->FirstChildElement("DetailLayers");
 		if (dlv_elem)
 			terrain.DetailLayers = loadDetailLayers(dlv_elem);
 
 		TiXmlElement *bblv_elem = terrain_elem->FirstChildElement("BillboardLayers");
-		if(bblv_elem)
-			terrain.BillboardLayers = loadBillboardLayers(bblv_elem);
+		//if(bblv_elem)
+			//terrain.BillboardLayers = loadBillboardLayers(bblv_elem);
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
 		delete xmlDoc;
