@@ -29,6 +29,7 @@ namespace osgVegetation
 			m_TerrainColorTexUnit(terrain_color_texture_unit),
 			m_TerrainLandcoverTexUnit(terrain_landcover_texture_unit),
 			m_BillboardTexUnit(billboard_texture_unit),
+			m_ReceivesShadowTraversalMask(receives_shadow_mask),
 			m_CastShadowTraversalMask(cast_shadow_mask)
 		{
 			for(size_t i = 0; i < layers.size(); i++)
