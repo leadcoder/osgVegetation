@@ -1,6 +1,6 @@
 #pragma once
 #include "ov_Common.h"
-#include "ov_BillboardLayer.h"
+//#include "ov_BillboardLayer.h"
 #include <osg/Vec2>
 #include <vector>
 
@@ -14,10 +14,9 @@ namespace osgVegetation
 		float Scale;
 	};
 
-	class Terrain
+	class TerrainConfiguration
 	{
 	public:
-
 		enum OSGShadowMode
 		{
 			SM_DISABLED,
@@ -32,7 +31,8 @@ namespace osgVegetation
 			TT_PLOD_TERRAIN,
 			TT_PLOD_GEODE,
 		};
-		Terrain() : Type(TT_PLOD_TERRAIN), ShadowMode(SM_DISABLED)
+
+		TerrainConfiguration() //: Type(TT_PLOD_TERRAIN), ShadowMode(SM_DISABLED)
 		{
 
 		}
@@ -41,8 +41,8 @@ namespace osgVegetation
 		std::string VertexShader;
 		std::string FragmentShader;
 		std::vector<DetailLayer> DetailLayers;
-		std::vector<BillboardLayer> BillboardLayers;
+	//	std::vector<BillboardLayer> BillboardLayers;
 		OSGShadowMode ShadowMode;
-		TerrainType Type;
+		//TerrainType Type;
 	};
 }
