@@ -11,7 +11,7 @@
 static int ReceivesShadowTraversalMask = 0x1;
 static int CastsShadowTraversalMask = 0x2;
 
-osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowMode type)
+osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 {
 	if (type == osgVegetation::SM_LISPSM)
 	{

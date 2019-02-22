@@ -3,7 +3,7 @@
 
 namespace osgVegetation
 {
-	enum ShadowMode
+	enum ShadowModeEnum
 	{
 		SM_DISABLED,
 		SM_UNDEFINED,
@@ -12,7 +12,7 @@ namespace osgVegetation
 		SM_VDSM2, //two textures
 	};
 
-	enum FogMode
+	enum FogModeEnum
 	{
 		FM_LINEAR = osg::Fog::LINEAR,
 		FM_EXP = osg::Fog::EXP,
@@ -23,8 +23,8 @@ namespace osgVegetation
 	class SceneConfiguration
 	{
 	public:
-		ShadowMode ShadowMode;
-		FogMode FogMode;
+		ShadowModeEnum ShadowMode;
+		FogModeEnum FogMode;
 	};
 
 	void SetSceneDefinitions(osg::StateSet* state_set, const SceneConfiguration &config)

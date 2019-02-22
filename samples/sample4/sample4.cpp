@@ -148,7 +148,7 @@ int main(int argc, char** argv)
 
 	viewer.setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
 
-	if (config.ShadowMode != osgVegetation::FM_DISABLED) //Add fog effect?
+	if (config.FogMode != osgVegetation::FM_DISABLED) //Add fog effect?
 	{
 		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
 		osg::StateSet* state = root_node->getOrCreateStateSet();
