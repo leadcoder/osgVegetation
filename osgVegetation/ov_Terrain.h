@@ -17,14 +17,14 @@ namespace osgVegetation
 	class TerrainConfiguration
 	{
 	public:
-		enum OSGShadowMode
+		/*enum OSGShadowMode
 		{
 			SM_DISABLED,
 			SM_UNDEFINED,
 			SM_LISPSM,
 			SM_VDSM1, //one texture
 			SM_VDSM2, //two textures
-		};
+		};*/
 
 		enum TerrainType
 		{
@@ -32,7 +32,7 @@ namespace osgVegetation
 			TT_PLOD_GEODE,
 		};
 
-		TerrainConfiguration() //: Type(TT_PLOD_TERRAIN), ShadowMode(SM_DISABLED)
+		TerrainConfiguration() :UseTessellation(true)//: Type(TT_PLOD_TERRAIN), ShadowMode(SM_DISABLED)
 		{
 
 		}
@@ -41,8 +41,9 @@ namespace osgVegetation
 		std::string VertexShader;
 		std::string FragmentShader;
 		std::vector<DetailLayer> DetailLayers;
+		bool UseTessellation;
 	//	std::vector<BillboardLayer> BillboardLayers;
-		OSGShadowMode ShadowMode;
+		//OSGShadowMode ShadowMode;
 		//TerrainType Type;
 	};
 }

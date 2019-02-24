@@ -8,6 +8,7 @@ out vec3 ov_tc_normal[];
 void main(){
 	gl_out[ID].gl_Position =  gl_in[ID].gl_Position;
 	gl_out[ID].gl_TexCoord[0] = gl_in[ID].gl_TexCoord[0];
+	gl_out[ID].gl_TexCoord[1] = gl_in[ID].gl_TexCoord[1];
 	ov_tc_normal[ID] = ov_vertex_normal[ID];
 	if (ID == 0) {
 		float level = 4;

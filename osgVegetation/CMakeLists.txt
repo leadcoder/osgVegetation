@@ -31,6 +31,7 @@ SET(SHADERS_FILES
 	ov_terrain_tess_eval.glsl
 	ov_terrain_tess_ctrl.glsl
 	ov_terrain_fragment.glsl
+	ov_terrain_detail_texturing.glsl
 )
 
 include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})

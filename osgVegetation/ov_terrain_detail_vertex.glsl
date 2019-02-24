@@ -1,10 +1,7 @@
-//#version 140
-//uniform mat4 osg_ModelViewProjectionMatrix;
 varying vec3 ov_normal;
 varying vec2 ov_tex_coord0;
 varying vec2 ov_tex_coord1;
 varying float ov_depth;
-
 void ov_setShadowTexCoords(vec4 mv_pos);
 
 void main() {
