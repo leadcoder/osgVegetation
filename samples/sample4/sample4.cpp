@@ -39,6 +39,98 @@
 #include "ov_DemoShadow.h"
 
 
+std::vector<osgVegetation::BillboardLayer> GetVegetationLayers()
+{
+	std::vector<osgVegetation::BillboardLayer> layers;
+	osgVegetation::BillboardLayer grass_data(100, 0.1, 1.0, 0.4, 0.1, 5);
+	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	//grass_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.1, 1.0));
+	layers.push_back(grass_data);
+
+	osgVegetation::BillboardLayer grass_data2(30, 0.4, 1.0, 0.4, 0.1, 5);
+	grass_data2.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	grass_data2.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	layers.push_back(grass_data2);
+
+	//osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
+	osgVegetation::BillboardLayer tree_data(2740, 0.01, 0.5, 0.7, 0.1, 2);
+	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
+	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.2, 1.0));
+	layers.push_back(tree_data);
+	return layers;
+}
+
+osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
+{
+	const double terrain_size = 2000;
+	const bool share_terrain_geometry = true;
+	
+	//Create terrain geometry used for both terrain layer and  vegetation layers
+
+	osg::ref_ptr<osg::Node> terrain_geometry = CreateDemoTerrain(terrain_size);
+	if(share_terrain_geometry)
+		osgVegetation::ConvertToPatches(terrain_geometry);
+
+	//Create main node for both terrain and vegetation
+	osg::ref_ptr<osg::Group> root = new osg::Group();
+	
+	//setup shared texture resources.
+	{
+		osg::StateSet* stateset = root->getOrCreateStateSet();
+		osg::ref_ptr<osg::Image> image = osgDB::readRefImageFile("Images/lz.rgb");
+		if (image)
+		{
+			osg::Texture2D* texture = new osg::Texture2D;
+			texture->setImage(image);
+			stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+		}
+	}
+
+	//Create terrain layer node
+	{
+
+		osgVegetation::TerrainConfiguration tdm;
+		//tdm.VertexShader = "ov_terrain_detail_vertex.glsl";
+		//tdm.FragmentShader = "ov_terrain_detail_fragment.glsl";
+		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
+		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
+		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
+		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
+		tdm.UseTessellation = share_terrain_geometry;
+		osg::ref_ptr<osg::Group> terrain_layer = new osg::Group();
+		//Disable terrain self shadowning
+		terrain_layer->setNodeMask(ReceivesShadowTraversalMask);
+		//add geometry
+		terrain_layer->addChild(terrain_geometry);
+		//add some detail mapping based on landcover
+		osgVegetation::TerrainGenerator terrain_generator(tdm);
+		terrain_generator.Apply(terrain_layer);
+		//add terrain layer to top node
+		root->addChild(terrain_layer);
+	}
+
+	//Create vegetation layer node
+	{
+		std::vector<osgVegetation::BillboardLayer> veg_config = GetVegetationLayers();
+		osgVegetation::BillboardNodeGenerator node_generator(veg_config);
+		if (!share_terrain_geometry)
+		{
+			osg::ref_ptr<osg::Node> terrain_geometry_patches = dynamic_cast<osg::Node*>(terrain_geometry->clone(osg::CopyOp::DEEP_COPY_ALL));
+			osgVegetation::ConvertToPatches(terrain_geometry_patches);
+			root->addChild(node_generator.CreateNode(terrain_geometry_patches));
+		}
+		else
+		{
+			root->addChild(node_generator.CreateNode(terrain_geometry));
+		}
+		return root;
+	}
+}
+
 int main(int argc, char** argv)
 {
 	osgVegetation::SceneConfiguration config;
@@ -77,54 +169,42 @@ int main(int argc, char** argv)
 	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 	
-	//osg::ref_ptr<osg::Group> rootnode = new osg::Group();
 	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.ShadowMode);
 	
-	const double t_size = 1000;
+	osg::ref_ptr<osg::Group> terrain_and_vegetation_node = CreateTerrainAndVegetation();
 
-	osg::ref_ptr<osg::Node> terrain = CreateDemoTerrain(osg::Vec3(0, 0, 0), t_size);
-
-	//convert to patches
-	osgVegetation::ConvertToPatches(terrain);
-	//osg::ref_ptr<osg::Group> ground = new osg::Group();
-
-	//osgVegetation::PrepareTerrainForTesselation(ground);
+	//apply scene settings to terrain and vegetation shaders
+	osgVegetation::SetSceneDefinitions(terrain_and_vegetation_node->getOrCreateStateSet(), config);
 	
+	root_node->addChild(terrain_and_vegetation_node);
+	
+	//const double terrain_size = 1000;
+	//osg::ref_ptr<osg::Group> ground = new osg::Group();
+	//osgVegetation::PrepareTerrainForTesselation(ground);
 	//ground->addChild(terrain);
 	//rootnode->addChild(ground);
 
-	osg::ref_ptr<osg::Node> visual_t = CreateDemoTerrain(osg::Vec3(0, 0, 0), t_size);
-	visual_t->setNodeMask(0x1);
-	osgVegetation::PrepareTerrainForDetailMapping(root_node);
-	root_node->addChild(visual_t);
+	//osg::ref_ptr<osg::Node> visual_terrain = CreateDemoTerrain(terrain_size);
+	//visual_terrain->setNodeMask(ReceivesShadowTraversalMask);
+	//root_node->addChild(visual_terrain);
+	//osgVegetation::PrepareTerrainForDetailMapping(visual_terrain);
+	//osg::ref_ptr<osg::Group> ground = new osg::Group();
+	//osgVegetation::PrepareTerrainForDetailMapping(ground);
+	//ground->addChild(visual_terrain);
+	//root_node->addChild(ground);
 
 	//Setup billboard layers
-	std::vector<osgVegetation::BillboardLayer> layers;
-	osgVegetation::BillboardLayer grass_data(100, 0.1, 1.0, 0.4, 0.1, 5);
-	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
-	//grass_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.1, 1.0));
-	layers.push_back(grass_data);
-
-	osgVegetation::BillboardLayer grass_data2(30, 0.4, 1.0, 0.4, 0.1, 5);
-	grass_data2.Type = osgVegetation::BillboardLayer::BLT_GRASS;
-	grass_data2.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
-	layers.push_back(grass_data2);
-
-	//osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
-	osgVegetation::BillboardLayer tree_data(2740, 0.01, 0.5, 0.7, 0.1, 2);
-	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
-	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.2, 1.0));
-	layers.push_back(tree_data);
-
+	
 	//Initialize node generator
-	osgVegetation::BillboardNodeGenerator node_generator(layers);
+	//osgVegetation::BillboardNodeGenerator node_generator(layers);
 
+	//osg::ref_ptr<osg::Node> veg_terrain = dynamic_cast<osg::Node*>(visual_terrain->clone(osg::CopyOp::DEEP_COPY_ALL));
+	
+	//convert to patches
+	//osgVegetation::ConvertToPatches(veg_terrain);
+	//osg::ref_ptr<osg::Node> veg_terrain = CreateDemoTerrain(osg::Vec3(0, 0, 0), terrain_size);
 	//Create vegetation node 
-	root_node->addChild(node_generator.CreateNode(terrain));
+	//root_node->addChild(node_generator.CreateNode(veg_terrain));
 	
 	if (!root_node)
 	{
@@ -161,8 +241,8 @@ int main(int argc, char** argv)
 		viewer.getCamera()->setClearColor(fog_color);
 	}
 
-	osgVegetation::SetSceneDefinitions(root_node->getOrCreateStateSet(), config);
-
+	
+	
 	viewer.setSceneData(root_node);
 	viewer.setUpViewInWindow(100, 100, 800, 600);
 

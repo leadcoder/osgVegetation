@@ -1612,26 +1612,15 @@ static osg::Geometry* _CreateGeometryFromHeightField(osg::HeightField* hf)
 	return geometry;
 }
 
-osg::Node* CreateDemoTerrain(const osg::Vec3& center, float radius)
+osg::Node* CreateDemoTerrain(float terrain_size, const osg::Vec3& center = osg::Vec3(0,0,0))
 {
 	osg::Geode* geode = new osg::Geode;
-	// set up the texture of the base.
-	osg::StateSet* stateset = new osg::StateSet();
-	osg::ref_ptr<osg::Image> image = osgDB::readRefImageFile("Images/lz.rgb");
-	if (image)
-	{
-		osg::Texture2D* texture = new osg::Texture2D;
-		texture->setImage(image);
-		stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
-	}
-
-	geode->setStateSet(stateset);
-
+	
 	osg::HeightField* grid = new osg::HeightField;
 	grid->allocate(38, 39);
-	grid->setOrigin(center + osg::Vec3(-radius, -radius, 0.0f));
-	grid->setXInterval(radius*2.0f / (float)(38 - 1));
-	grid->setYInterval(radius*2.0f / (float)(39 - 1));
+	grid->setOrigin(center + osg::Vec3(-terrain_size * 0.5, -terrain_size * 0.5, 0.0f));
+	grid->setXInterval(terrain_size / (float)(38 - 1));
+	grid->setYInterval(terrain_size / (float)(39 - 1));
 
 	float minHeight = FLT_MAX;
 	float maxHeight = -FLT_MAX;
@@ -1647,7 +1636,7 @@ osg::Node* CreateDemoTerrain(const osg::Vec3& center, float radius)
 		}
 	}
 
-	float hieghtScale = radius * 0.5f / (maxHeight - minHeight);
+	float hieghtScale = terrain_size*0.25 / (maxHeight - minHeight);
 	float hieghtOffset = -(minHeight + maxHeight)*0.5f;
 
 	for (r = 0; r < 39; ++r)
@@ -1661,14 +1650,12 @@ osg::Node* CreateDemoTerrain(const osg::Vec3& center, float radius)
 
 	//osg::Geometry* geometry = _CreateGeometryFromHeightField(grid);
 	//geode->addDrawable(geometry);
-	
 
 	osg::ShapeDrawable* sd = new osg::ShapeDrawable(grid);
 	geode->addDrawable(sd);
-	//sd->setNodeMask(0x1);
-	osg::Group* group = new osg::Group;
-	group->addChild(geode);
-	return group;
+	//osg::Group* group = new osg::Group;
+	///group->addChild(geode);
+	return geode;
 }
 
 
