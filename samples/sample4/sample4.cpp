@@ -70,13 +70,20 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 	const bool share_terrain_geometry = true;
 	
 	//Create terrain geometry used for both terrain layer and  vegetation layers
-
 	osg::ref_ptr<osg::Node> terrain_geometry = CreateDemoTerrain(terrain_size);
+	osg::ref_ptr<osg::Node> terrain_geometry_vegetation = terrain_geometry;
 	if(share_terrain_geometry)
 		osgVegetation::ConvertToPatches(terrain_geometry);
+	else
+	{
+		terrain_geometry_vegetation = dynamic_cast<osg::Node*>(terrain_geometry->clone(osg::CopyOp::DEEP_COPY_ALL));
+		osgVegetation::ConvertToPatches(terrain_geometry_vegetation);
+	}
 
 	//Create main node for both terrain and vegetation
 	osg::ref_ptr<osg::Group> root = new osg::Group();
+
+	//root->addChild(CreateDemoTerrain(terrain_size));
 	
 	//setup shared texture resources.
 	{
@@ -92,23 +99,19 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 
 	//Create terrain layer node
 	{
-
+		//add some detail mapping based on landcover
 		osgVegetation::TerrainConfiguration tdm;
-		//tdm.VertexShader = "ov_terrain_detail_vertex.glsl";
-		//tdm.FragmentShader = "ov_terrain_detail_fragment.glsl";
 		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
 		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
 		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
 		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
 		tdm.UseTessellation = share_terrain_geometry;
-		osg::ref_ptr<osg::Group> terrain_layer = new osg::Group();
+
+		osgVegetation::TerrainGenerator terrain_generator(tdm);
+		osg::ref_ptr<osg::Group> terrain_layer = terrain_generator.Create(terrain_geometry);
+		
 		//Disable terrain self shadowning
 		terrain_layer->setNodeMask(ReceivesShadowTraversalMask);
-		//add geometry
-		terrain_layer->addChild(terrain_geometry);
-		//add some detail mapping based on landcover
-		osgVegetation::TerrainGenerator terrain_generator(tdm);
-		terrain_generator.Apply(terrain_layer);
 		//add terrain layer to top node
 		root->addChild(terrain_layer);
 	}
@@ -117,18 +120,10 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 	{
 		std::vector<osgVegetation::BillboardLayer> veg_config = GetVegetationLayers();
 		osgVegetation::BillboardNodeGenerator node_generator(veg_config);
-		if (!share_terrain_geometry)
-		{
-			osg::ref_ptr<osg::Node> terrain_geometry_patches = dynamic_cast<osg::Node*>(terrain_geometry->clone(osg::CopyOp::DEEP_COPY_ALL));
-			osgVegetation::ConvertToPatches(terrain_geometry_patches);
-			root->addChild(node_generator.CreateNode(terrain_geometry_patches));
-		}
-		else
-		{
-			root->addChild(node_generator.CreateNode(terrain_geometry));
-		}
-		return root;
+		root->addChild(node_generator.CreateNode(terrain_geometry_vegetation));
+		
 	}
+	return root;
 }
 
 int main(int argc, char** argv)
@@ -177,34 +172,6 @@ int main(int argc, char** argv)
 	osgVegetation::SetSceneDefinitions(terrain_and_vegetation_node->getOrCreateStateSet(), config);
 	
 	root_node->addChild(terrain_and_vegetation_node);
-	
-	//const double terrain_size = 1000;
-	//osg::ref_ptr<osg::Group> ground = new osg::Group();
-	//osgVegetation::PrepareTerrainForTesselation(ground);
-	//ground->addChild(terrain);
-	//rootnode->addChild(ground);
-
-	//osg::ref_ptr<osg::Node> visual_terrain = CreateDemoTerrain(terrain_size);
-	//visual_terrain->setNodeMask(ReceivesShadowTraversalMask);
-	//root_node->addChild(visual_terrain);
-	//osgVegetation::PrepareTerrainForDetailMapping(visual_terrain);
-	//osg::ref_ptr<osg::Group> ground = new osg::Group();
-	//osgVegetation::PrepareTerrainForDetailMapping(ground);
-	//ground->addChild(visual_terrain);
-	//root_node->addChild(ground);
-
-	//Setup billboard layers
-	
-	//Initialize node generator
-	//osgVegetation::BillboardNodeGenerator node_generator(layers);
-
-	//osg::ref_ptr<osg::Node> veg_terrain = dynamic_cast<osg::Node*>(visual_terrain->clone(osg::CopyOp::DEEP_COPY_ALL));
-	
-	//convert to patches
-	//osgVegetation::ConvertToPatches(veg_terrain);
-	//osg::ref_ptr<osg::Node> veg_terrain = CreateDemoTerrain(osg::Vec3(0, 0, 0), terrain_size);
-	//Create vegetation node 
-	//root_node->addChild(node_generator.CreateNode(veg_terrain));
 	
 	if (!root_node)
 	{

@@ -65,9 +65,13 @@ namespace osgVegetation
 			}
 		}
 
-		void Apply(osg::ref_ptr<osg::Node> terrain)
+		osg::ref_ptr<osg::Group> Create(osg::ref_ptr<osg::Node> terrain_geometry)
 		{
-			terrain->setStateSet(m_StateSet);
+			osg::ref_ptr<osg::Group> terrain_layer = new osg::Group();
+			terrain_layer->setStateSet(m_StateSet);
+			//add geometry
+			terrain_layer->addChild(terrain_geometry);
+			return terrain_layer;
 		}
 	private:
 		osg::ref_ptr<osg::StateSet> m_StateSet;
