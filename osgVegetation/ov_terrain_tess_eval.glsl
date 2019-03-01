@@ -12,7 +12,7 @@ void main(){
     vec4 mv_pos =	osg_ModelViewMatrix*((gl_TessCoord.x * gl_in[0].gl_Position) +
                   (gl_TessCoord.y * gl_in[1].gl_Position) +
                   (gl_TessCoord.z * gl_in[2].gl_Position));
-	ov_depth = mv_pos.z;
+	
 	gl_Position = osg_ModelViewProjectionMatrix*((gl_TessCoord.x * gl_in[0].gl_Position) +
                   (gl_TessCoord.y * gl_in[1].gl_Position) +
                   (gl_TessCoord.z * gl_in[2].gl_Position));
@@ -28,6 +28,8 @@ void main(){
 	ov_normal  = (gl_TessCoord.x * ov_tc_normal[0]) +
                   (gl_TessCoord.y * ov_tc_normal[1]) +
                   (gl_TessCoord.z * ov_tc_normal[2]);
+
+	ov_depth = length(mv_pos.xyz);
 
 	ov_setShadowTexCoords(mv_pos);
 	
