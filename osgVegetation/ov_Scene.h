@@ -40,8 +40,11 @@ namespace osgVegetation
 		case SM_LISPSM:
 			shadow_mode_str = "SM_LISPSM";
 			break;
+		case SM_VDSM1:
+			shadow_mode_str = "SM_VDSM1";
+			break;
 		case SM_VDSM2:
-			shadow_mode_str = "SM_LISPSM";
+			shadow_mode_str = "SM_VDSM2";
 			break;
 		}
 		if (shadow_mode_str != "")
