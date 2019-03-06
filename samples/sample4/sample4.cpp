@@ -56,10 +56,10 @@ std::vector<osgVegetation::BillboardLayer> GetVegetationLayers()
 	layers.push_back(grass_data2);
 
 	//osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
-	osgVegetation::BillboardLayer tree_data(2740, 0.01, 0.5, 0.7, 0.1, 2);
+	osgVegetation::BillboardLayer tree_data(740, 0.01, 0.5, 0.7, 0.1, 2);
 	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.2, 1.0));
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.5, 1.0));
 	layers.push_back(tree_data);
 	return layers;
 }
@@ -76,24 +76,36 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 		osgVegetation::ConvertToPatches(terrain_geometry);
 	else
 	{
-		terrain_geometry_vegetation = dynamic_cast<osg::Node*>(terrain_geometry->clone(osg::CopyOp::DEEP_COPY_ALL));
+		//Arrays can still be shared, we only need unique primitives sets, ie they need to have draw mode GL_PATCHES
+		//terrain_geometry_vegetation = dynamic_cast<osg::Node*>(terrain_geometry->clone(osg::CopyOp::DEEP_COPY_ALL & ~osg::CopyOp::DEEP_COPY_ARRAYS));
+
+		//minimal copy for our sample data
+		terrain_geometry_vegetation = dynamic_cast<osg::Node*>(terrain_geometry->clone(osg::CopyOp::DEEP_COPY_PRIMITIVES | osg::CopyOp::DEEP_COPY_DRAWABLES));
 		osgVegetation::ConvertToPatches(terrain_geometry_vegetation);
 	}
 
 	//Create main node for both terrain and vegetation
 	osg::ref_ptr<osg::Group> root = new osg::Group();
-
-	//root->addChild(CreateDemoTerrain(terrain_size));
 	
 	//setup shared texture resources.
 	{
 		osg::StateSet* stateset = root->getOrCreateStateSet();
-		osg::ref_ptr<osg::Image> image = osgDB::readRefImageFile("Images/lz.rgb");
-		if (image)
+		osg::ref_ptr<osg::Image> color_image = osgDB::readRefImageFile("Images/lz.rgb");
+	
+		if (color_image)
 		{
-			osg::Texture2D* texture = new osg::Texture2D;
-			texture->setImage(image);
-			stateset->setTextureAttributeAndModes(0, texture, osg::StateAttribute::ON);
+			
+			osg::Texture2D* color_texture = new osg::Texture2D;
+			color_texture->setImage(color_image);
+			stateset->setTextureAttributeAndModes(0, color_texture, osg::StateAttribute::ON);
+		}
+		
+		osg::ref_ptr<osg::Image> landcover_image = osgDB::readRefImageFile("Images/lz_coverage.png");
+		if (landcover_image)
+		{
+			osg::Texture2D* landcover_texture = new osg::Texture2D;
+			landcover_texture->setImage(landcover_image);
+			stateset->setTextureAttributeAndModes(1, landcover_texture, osg::StateAttribute::ON);
 		}
 	}
 
@@ -129,7 +141,7 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 int main(int argc, char** argv)
 {
 	osgVegetation::SceneConfiguration config;
-	config.ShadowMode = osgVegetation::SM_LISPSM;
+	config.ShadowMode = osgVegetation::SM_VDSM2;
 	config.FogMode = osgVegetation::FM_EXP2;
 
 	osg::ArgumentParser arguments(&argc, argv);
@@ -205,6 +217,12 @@ int main(int argc, char** argv)
 		fog->setMode(osg::Fog::Mode(config.FogMode));
 		fog->setDensity(0.0005);
 		fog->setColor(fog_color);
+		if (config.FogMode == osgVegetation::FM_LINEAR)
+		{
+			fog->setStart(0);
+			fog->setEnd(1000);
+		}
+		
 		viewer.getCamera()->setClearColor(fog_color);
 	}
 
