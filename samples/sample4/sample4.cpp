@@ -84,6 +84,11 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 		osgVegetation::ConvertToPatches(terrain_geometry_vegetation);
 	}
 
+	osgVegetation::TerrainTextureUnitSettings tex_units;
+	tex_units.ColorTextureUnit = 0;
+	tex_units.SplatTextureUnit = 1;
+	tex_units.DetailTextureUnit = 2;
+
 	//Create main node for both terrain and vegetation
 	osg::ref_ptr<osg::Group> root = new osg::Group();
 	
@@ -91,13 +96,12 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 	{
 		osg::StateSet* stateset = root->getOrCreateStateSet();
 		osg::ref_ptr<osg::Image> color_image = osgDB::readRefImageFile("Images/lz.rgb");
-	
 		if (color_image)
 		{
 			
 			osg::Texture2D* color_texture = new osg::Texture2D;
 			color_texture->setImage(color_image);
-			stateset->setTextureAttributeAndModes(0, color_texture, osg::StateAttribute::ON);
+			stateset->setTextureAttributeAndModes(tex_units.ColorTextureUnit, color_texture, osg::StateAttribute::ON);
 		}
 		
 		osg::ref_ptr<osg::Image> landcover_image = osgDB::readRefImageFile("Images/lz_coverage.png");
@@ -105,22 +109,23 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 		{
 			osg::Texture2D* landcover_texture = new osg::Texture2D;
 			landcover_texture->setImage(landcover_image);
-			stateset->setTextureAttributeAndModes(1, landcover_texture, osg::StateAttribute::ON);
+			stateset->setTextureAttributeAndModes(tex_units.SplatTextureUnit, landcover_texture, osg::StateAttribute::ON);
 		}
 	}
 
 	//Create terrain layer node
 	{
 		//add some detail mapping based on landcover
-		osgVegetation::TerrainConfiguration tdm;
-		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
-		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
-		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
-		tdm.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
-		tdm.UseTessellation = share_terrain_geometry;
-
-		osgVegetation::TerrainGenerator terrain_generator(tdm);
-		osg::ref_ptr<osg::Group> terrain_layer = terrain_generator.Create(terrain_geometry);
+		osgVegetation::TerrainShadingConfiguration tsc(tex_units);
+		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
+		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
+		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
+		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
+		tsc.UseTessellation = share_terrain_geometry;
+	
+		osg::ref_ptr<osg::Group> terrain_layer = new osg::Group();
+		terrain_layer->addChild(terrain_geometry);
+		osgVegetation::ApplyTerrainShading(terrain_layer, tsc);
 		
 		//Disable terrain self shadowning
 		terrain_layer->setNodeMask(ReceivesShadowTraversalMask);
@@ -130,8 +135,8 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 
 	//Create vegetation layer node
 	{
-		std::vector<osgVegetation::BillboardLayer> veg_config = GetVegetationLayers();
-		osgVegetation::BillboardNodeGenerator node_generator(veg_config);
+		osgVegetation::BillboardNodeGeneratorConfig config(GetVegetationLayers(), tex_units);
+		osgVegetation::BillboardNodeGenerator node_generator(config);
 		root->addChild(node_generator.CreateNode(terrain_geometry_vegetation));
 		
 	}
@@ -141,7 +146,7 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 int main(int argc, char** argv)
 {
 	osgVegetation::SceneConfiguration config;
-	config.ShadowMode = osgVegetation::SM_VDSM2;
+	config.ShadowMode = osgVegetation::SM_VDSM1;
 	config.FogMode = osgVegetation::FM_EXP2;
 
 	osg::ArgumentParser arguments(&argc, argv);

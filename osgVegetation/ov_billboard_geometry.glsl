@@ -2,7 +2,7 @@
 #version 330 compatibility
 //#version 400
 #extension GL_ARB_geometry_shader4 : enable
-#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, USE_LANDCOVER)
+#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, OV_TERRAIN_COLOR_TEXTURE, USE_LANDCOVER, OV_TERRAIN_ELEVATION_TEXTURE, OV_LANDCOVER_FILTER(v))
 
 #ifdef BLT_GRASS
 	#define MAX_NUM_VERTS 16
@@ -23,11 +23,20 @@ out vec3 ov_geometry_normal;
 out float ov_depth;
 
 uniform float osg_SimulationTime;
+
+#ifdef OV_TERRAIN_COLOR_TEXTURE
 uniform sampler2D ov_color_texture;
+#endif
+
 #ifdef USE_LANDCOVER
 uniform sampler2D ov_land_cover_texture;
 uniform float ov_billboard_land_cover_id;
 #endif
+
+#ifdef OV_TERRAIN_ELEVATION_TEXTURE
+uniform sampler2D ov_elevation_texture;
+#endif
+
 uniform int ov_num_billboards;
 uniform vec4 ov_billboard_data[10];
 uniform float ov_billboard_max_distance;
@@ -325,22 +334,36 @@ void main(void)
 		terrain_normal.y += barycentric_coords[i] * ov_te_normal[i].y;
 		terrain_normal.z += barycentric_coords[i] * ov_te_normal[i].z;
     }
+
+#ifdef OV_TERRAIN_ELEVATION_TEXTURE
+	//offset and scale texture coordiantes to match pixel center to vertex pos
+	ivec2 elev_texture_size = textureSize(ov_elevation_texture,0);
+    vec2 ELEVATION_TEXEL_SIZE = vec2(1.0/ float(elev_texture_size.x), 1.0/float(elev_texture_size.y)); 
+	vec2 tex_coord_scale = vec2(1.0, 1.0) - ELEVATION_TEXEL_SIZE; //strech texture by on texel
+	vec2 tex_coord_offset = 0.5 * ELEVATION_TEXEL_SIZE; //offset texture to match pixel center with vertex pos
+	terrain_pos.z = texture2D(ov_elevation_texture, (tex_coord_scale * terrain_texcoord.xy) + tex_coord_offset).x;
+#endif
 	
 #ifdef USE_LANDCOVER
 	vec4 lc_color = texture2D(ov_land_cover_texture, terrain_texcoord);
 	//if (lc_color.y < ov_billboard_land_cover_id)
 	//	return;
-	if (lc_color.x > 0 || lc_color.z > 0)
-		return;
+	//OV_LANDCOVER_FILTER(lc_color);
+	//if (lc_color.x > 0)
+	//	return;
 	//if (ov_billboard_land_cover_id > 0.5 && lc_color.y < 0.5)
 	//	return;
 #endif
 
 	//sample terrain color
+#ifdef OV_TERRAIN_COLOR_TEXTURE
 	vec3 terrain_color = texture2D(ov_color_texture, terrain_texcoord).xyz;
 
 	if(length(terrain_color) > ov_billboard_color_threshold)
 		return;
+#else
+	vec3 terrain_color = vec3(1,1,1);
+#endif
 
 	if(dot(normalize(terrain_normal), vec3(0,0,1)) < 0.9)
 		return;

@@ -72,7 +72,15 @@ int main(int argc, char** argv)
 
 	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.ShadowMode);
 
-	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(layers));
+	//Setup texture units
+	osgVegetation::TerrainTextureUnitSettings terrain_tu;
+	terrain_tu.ColorTextureUnit = 0;
+	terrain_tu.SplatTextureUnit = 1;
+	terrain_tu.DetailTextureUnit = 2;
+
+	osgVegetation::BillboardNodeGeneratorConfig bbconfig(layers, terrain_tu,-1);
+
+	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(bbconfig));
 #if 0
 	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
 #else
@@ -81,15 +89,12 @@ int main(int argc, char** argv)
 #endif
 	root_node->addChild(terrain_node);
 	
-	osgVegetation::TerrainConfiguration terrain_data;
-	terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
-	terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
-	terrain_data.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
-
-	osgVegetation::PrepareTerrainForDetailMapping(terrain_node, terrain_data);
+	osgVegetation::TerrainShadingConfiguration terrain_shading(terrain_tu);
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
+	osgVegetation::ApplyTerrainShading(terrain_node, terrain_shading);
 
 	if (!terrain_node)
 	{

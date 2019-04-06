@@ -13,6 +13,7 @@ static int CastsShadowTraversalMask = 0x2;
 
 osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 {
+	int shadowTexUnit = 7;
 	if (type == osgVegetation::SM_LISPSM)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
@@ -23,7 +24,6 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 		float minLightMargin = 20.f;
 		float maxFarPlane = 1400;
 		int baseTexUnit = 0;
-		int shadowTexUnit = 6;
 		sm->setMinLightMargin(minLightMargin);
 		sm->setMaxFarPlane(maxFarPlane);
 		sm->setTextureSize(osg::Vec2s(mapres, mapres));
@@ -84,7 +84,7 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 		settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
 		settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
 		settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
-		int shadowTexUnit = 6;
+		
 		settings->setBaseShadowTextureUnit(shadowTexUnit);
 
 		double n = 0.8;

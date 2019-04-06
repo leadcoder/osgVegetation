@@ -106,18 +106,20 @@ namespace osgVegetation
 			}
 		};
 	
-		VPBVegetationInjection(const std::vector<BillboardLayer> &layers)
+		VPBVegetationInjection(const BillboardNodeGeneratorConfig &config)
 		{
 			typedef std::map<int, std::vector<BillboardLayer> > LODBuckets;
 			LODBuckets lod_buckets;
-			for (size_t i = 0; i < layers.size(); i++)
+			for (size_t i = 0; i < config.Layers.size(); i++)
 			{
-				lod_buckets[layers[i].LODLevel].push_back(layers[i]);
+				lod_buckets[config.Layers[i].LODLevel].push_back(config.Layers[i]);
 			}
 
 			for (LODBuckets::const_iterator iter = lod_buckets.begin(); iter != lod_buckets.end(); iter++)
 			{
-				m_LODLayers.insert(std::pair<int, BillboardNodeGenerator>(iter->first, BillboardNodeGenerator(iter->second)));
+				BillboardNodeGeneratorConfig lod_config = config;
+				lod_config.Layers = iter->second;
+				m_LODLayers.insert(std::pair<int, BillboardNodeGenerator>(iter->first, BillboardNodeGenerator(lod_config)));
 			}
 		}
 	

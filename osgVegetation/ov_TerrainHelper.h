@@ -2,7 +2,7 @@
 
 #include "ov_Utils.h"
 #include <osg/MatrixTransform>
-
+#include <osg/NodeVisitor>
 #include <osg/Texture2D>
 #include <osgTerrain/TerrainTile>
 #include <osgTerrain/Locator>
@@ -13,7 +13,35 @@ namespace osgVegetation
 {
 	class TerrainHelper
 	{
+	private:
+		class TerrainTileVisitor : public osg::NodeVisitor
+		{
+		public:
+			TerrainTileVisitor(): osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
+			}
+
+			void apply(osg::Node& node)
+			{
+				osgTerrain::TerrainTile* tile = dynamic_cast<osgTerrain::TerrainTile*>(&node);
+				if (tile)
+				{
+					TerrainTiles.push_back(tile);
+				}
+				else
+				{
+					traverse(node);
+				}
+			}
+			std::vector<osgTerrain::TerrainTile*> TerrainTiles;
+		};
 	public:
+		static std::vector<osgTerrain::TerrainTile*> GetTerrainTiles(osg::Node* node)
+		{
+			TerrainTileVisitor visitor;
+			node->accept(visitor);
+			return visitor.TerrainTiles;
+		}
+
 		static osg::Node* CreateTerrainNodeFromTerrainTile(osgTerrain::TerrainTile* tile)
 		{
 			osg::MatrixTransform* ret_node = NULL;
@@ -105,18 +133,10 @@ namespace osgVegetation
 				for (unsigned int c = 0; c < numColumns; ++c)
 				{
 					local_pos.z() = static_cast<double>(hf->getHeight(c, r));
-#if 1
+
 					osg::Vec3d world_pos;
 					locator->convertLocalToModel(local_pos, world_pos);
 					osg::Vec3d new_local_pos = world_pos * worldToLocalTransform;
-#else
-					osg::Vec3d new_local_pos = local_pos * worldToLocalTransform;
-#endif
-					/*osg::Vec3 normal = hf->getNormal(c, r);
-					normal.x() = hf->getXInterval()*normal.x();
-					normal.y() = hf->getYInterval()*normal.y();
-					normal.normalize();
-					n[vi].set(normal.x(), normal.y(), normal.z());*/
 
 					v[vi].set(new_local_pos.x(), new_local_pos.y(), new_local_pos.z());
 					t[vi].set(tex.x(), tex.y());

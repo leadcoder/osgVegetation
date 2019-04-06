@@ -14,36 +14,31 @@ namespace osgVegetation
 		float Scale;
 	};
 
-	class TerrainConfiguration
+	class TerrainTextureUnitSettings
 	{
 	public:
-		/*enum OSGShadowMode
-		{
-			SM_DISABLED,
-			SM_UNDEFINED,
-			SM_LISPSM,
-			SM_VDSM1, //one texture
-			SM_VDSM2, //two textures
-		};*/
+		TerrainTextureUnitSettings() : ColorTextureUnit(-1),
+			SplatTextureUnit(-1), 
+			ElevationTextureUnit(-1),
+			DetailTextureUnit(-1)
+		{}
+		int ColorTextureUnit;
+		int SplatTextureUnit;
+		int ElevationTextureUnit;
+		int DetailTextureUnit;
+	};
 
-		enum TerrainType
-		{
-			TT_PLOD_TERRAIN,
-			TT_PLOD_GEODE,
-		};
-
-		TerrainConfiguration() :UseTessellation(true)//: Type(TT_PLOD_TERRAIN), ShadowMode(SM_DISABLED)
+	class TerrainShadingConfiguration
+	{
+	public:
+		TerrainShadingConfiguration(const TerrainTextureUnitSettings& tex_units) :
+			TextureUnits(tex_units),
+			UseTessellation(false)
 		{
 
 		}
-
-		std::string Filename;
-		std::string VertexShader;
-		std::string FragmentShader;
 		std::vector<DetailLayer> DetailLayers;
 		bool UseTessellation;
-	//	std::vector<BillboardLayer> BillboardLayers;
-		//OSGShadowMode ShadowMode;
-		//TerrainType Type;
+		TerrainTextureUnitSettings TextureUnits;
 	};
 }

@@ -73,6 +73,7 @@ namespace osgVegetation
 		float AlphaRejectValue;
 		int LODLevel;
 		BillboardLayerType Type;
+		std::vector<float> Filter;
 		std::vector<Billboard> Billboards;
 	private:
 	};
