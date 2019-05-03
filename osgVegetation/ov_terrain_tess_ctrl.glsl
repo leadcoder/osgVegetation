@@ -1,17 +1,31 @@
 #version 400
 layout(vertices = 3) out;
-uniform mat4 osg_ModelViewMatrix;
-in vec3 ov_vertex_normal[];
-out vec3 ov_tc_normal[];
+
+in ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_in[];
+
+out ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_out[];
+
 #define ID gl_InvocationID
 
-void main(){
-	gl_out[ID].gl_Position =  gl_in[ID].gl_Position;
-	gl_out[ID].gl_TexCoord[0] = gl_in[ID].gl_TexCoord[0];
-	gl_out[ID].gl_TexCoord[1] = gl_in[ID].gl_TexCoord[1];
-	ov_tc_normal[ID] = ov_vertex_normal[ID];
+void main()
+{
+	ov_out[ID].Position = ov_in[ID].Position;
+	ov_out[ID].TexCoord0 = ov_in[ID].TexCoord0;
+	ov_out[ID].Normal = ov_in[ID].Normal;
+	
 	if (ID == 0) {
-		float level = 4;
+		float level = 2;
+#if 0
 		vec4 p0 = osg_ModelViewMatrix*gl_in[0].gl_Position;
 		vec4 p1 = osg_ModelViewMatrix*gl_in[1].gl_Position;
 		vec4 p2 = osg_ModelViewMatrix*gl_in[2].gl_Position;
@@ -27,5 +41,10 @@ void main(){
         gl_TessLevelOuter[2] = l2/outer_factor;
 
 		gl_TessLevelInner[0] = ((l0+l1+l2)/3.0)/inner_factor;
+#endif
+		gl_TessLevelOuter[0] = level;
+        gl_TessLevelOuter[1] = level;
+        gl_TessLevelOuter[2] = level;
+		gl_TessLevelInner[0] = level;
 	}
 }

@@ -25,6 +25,8 @@ SET(SHADERS_FILES
 	ov_billboard_fragment.glsl
 	ov_common_vertex.glsl
 	ov_common_fragment.glsl
+	ov_terrain_color.glsl
+	ov_terrain_elevation.glsl
 	ov_terrain_detail_fragment.glsl
 	ov_terrain_detail_vertex.glsl
 	ov_terrain_vertex.glsl

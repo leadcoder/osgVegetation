@@ -74,6 +74,8 @@ namespace osgVegetation
 		int LODLevel;
 		BillboardLayerType Type;
 		std::vector<float> Filter;
+		std::string SplatFilter;
+		osg::Vec3 SplatColorThreshold;
 		std::vector<Billboard> Billboards;
 	private:
 	};

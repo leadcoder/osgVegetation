@@ -1,44 +1,38 @@
-#version 400 compatibility
-#pragma import_defines (OV_TERRAIN_ELEVATION_TEXTURE)
+#version 400
+
 layout(triangles, equal_spacing, ccw) in;
 uniform mat4 osg_ModelViewProjectionMatrix;
 uniform mat4 osg_ModelViewMatrix;
-in vec3 ov_tc_normal[];
-out vec3 ov_normal;
-out float ov_depth;
+uniform mat3 osg_NormalMatrix;
+
+in ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_in[];
+
+out ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_out;
+
 void ov_setShadowTexCoords(vec4 mv_pos);
+vec4 ov_applyTerrainElevation(vec4 pos, vec2 tex_coords);
 
-#ifdef OV_TERRAIN_ELEVATION_TEXTURE
-uniform sampler2D ov_elevation_texture;
-#endif
+void main()
+{
+	ov_out.Position = (gl_TessCoord.x * ov_in[0].Position) + (gl_TessCoord.y * ov_in[1].Position) + (gl_TessCoord.z * ov_in[2].Position);
+	ov_out.Normal  = (gl_TessCoord.x * ov_in[0].Normal) + (gl_TessCoord.y * ov_in[1].Normal) + (gl_TessCoord.z * ov_in[2].Normal);
+	ov_out.TexCoord0 = (gl_TessCoord.x * ov_in[0].TexCoord0) + (gl_TessCoord.y * ov_in[1].TexCoord0) + (gl_TessCoord.z * ov_in[2].TexCoord0);
 
-void main(){
-
-	vec4 pos = (gl_TessCoord.x * gl_in[0].gl_Position) +
-               (gl_TessCoord.y * gl_in[1].gl_Position) +
-               (gl_TessCoord.z * gl_in[2].gl_Position);
-				  
-	 vec4 tex_coord_0 = (gl_TessCoord.x * gl_in[0].gl_TexCoord[0]) +
-                  (gl_TessCoord.y * gl_in[1].gl_TexCoord[0]) +
-                  (gl_TessCoord.z * gl_in[2].gl_TexCoord[0]);
-
-#ifdef OV_TERRAIN_ELEVATION_TEXTURE
-	pos.z = texture2D(ov_elevation_texture, tex_coord_0.xy).x;
-#endif
-	gl_Position = osg_ModelViewProjectionMatrix*pos;
-	gl_TexCoord[0] = tex_coord_0;
-
-	gl_TexCoord[1]  = (gl_TessCoord.x * gl_in[0].gl_TexCoord[1]) +
-                  (gl_TessCoord.y * gl_in[1].gl_TexCoord[1]) +
-                  (gl_TessCoord.z * gl_in[2].gl_TexCoord[1]);
-
-	ov_normal  = (gl_TessCoord.x * ov_tc_normal[0]) +
-                  (gl_TessCoord.y * ov_tc_normal[1]) +
-                  (gl_TessCoord.z * ov_tc_normal[2]);
-
-	vec4 mv_pos = osg_ModelViewMatrix * pos;
-	ov_depth = length(mv_pos.xyz);
-
-	ov_setShadowTexCoords(mv_pos);
+	ov_out.Normal = osg_NormalMatrix * ov_out.Normal;
+	ov_out.Position = ov_applyTerrainElevation(ov_out.Position, ov_out.TexCoord0);
 	
+	gl_Position = osg_ModelViewProjectionMatrix*ov_out.Position;
+	
+	vec4 mv_pos = osg_ModelViewMatrix * ov_out.Position;
+	ov_setShadowTexCoords(mv_pos);
 }

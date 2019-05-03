@@ -1,14 +1,19 @@
 #version 400
 layout(vertices = 3) out;
 
-in vec4 ov_vertex_position[];
-out vec4 ov_tc_position[];
+in ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_in[];
 
-in vec2 ov_vertex_texcoord[];
-out vec2 ov_tc_texcoord[];
-
-in vec3 ov_vertex_normal[];
-out vec3 ov_tc_normal[];
+out ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_out[];
 
 uniform mat4 osg_ModelViewMatrix;
 uniform mat4 osg_ProjectionMatrix;
@@ -34,15 +39,17 @@ bool ov_pointInViewFrustum(mat4 matrix, vec3 point)
 
 #define ID gl_InvocationID
 void main(){
-	ov_tc_position[ID] = ov_vertex_position[ID];
-	ov_tc_texcoord[ID] = ov_vertex_texcoord[ID];
-	ov_tc_normal[ID] = ov_vertex_normal[ID];
+	
+	ov_out[ID].Position = ov_in[ID].Position;
+	ov_out[ID].TexCoord0 = ov_in[ID].TexCoord0;
+	ov_out[ID].Normal = ov_in[ID].Normal;
+
 	if (ID == 0) 
 	{
 		float level = 1;
-		vec4 p0 = osg_ModelViewMatrix * ov_vertex_position[0];
-		vec4 p1 = osg_ModelViewMatrix * ov_vertex_position[1];
-		vec4 p2 = osg_ModelViewMatrix * ov_vertex_position[2];
+		vec4 p0 = osg_ModelViewMatrix * ov_in[0].Position;
+		vec4 p1 = osg_ModelViewMatrix * ov_in[1].Position;
+		vec4 p2 = osg_ModelViewMatrix * ov_in[2].Position;
 		float min_z_dist =  min( min(p0.z, p1.z), p2.z); //if postive entire polygon behinde camera
 		float min_dist =  min( min( length(p0.xyz), length(p1.xyz)), length(p2.xyz));
 		

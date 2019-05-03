@@ -1,38 +1,49 @@
 #version 400
-//#pragma import_defines (OV_TERRAIN_ELEVATION_TEXTURE)
 layout(triangles, equal_spacing, ccw) in;
-in vec4 ov_tc_position[];
 
-in vec2 ov_tc_texcoord[];
+in ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_in[];
+
+out ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_out;
+
 out vec2 ov_te_texcoord;
-
-in vec3 ov_tc_normal[];
 out vec3 ov_te_normal;
-
 uniform mat4 osg_ModelViewProjectionMatrix;
 
-//#ifdef OV_TERRAIN_ELEVATION_TEXTURE
-//uniform sampler2D ov_elevation_texture;
-//#endif
+//vec4 ov_applyTerrainElevation(vec4 pos, vec2 tex_coords);
 
-void main(){
-				  
-	vec4 pos = (gl_TessCoord.x * ov_tc_position[0]) +
-               (gl_TessCoord.y * ov_tc_position[1]) +
-               (gl_TessCoord.z * ov_tc_position[2]);
+void main()
+{
+	ov_out.Position = (gl_TessCoord.x * ov_in[0].Position) +
+               (gl_TessCoord.y * ov_in[1].Position) +
+               (gl_TessCoord.z * ov_in[2].Position);
 
-	vec2 tex_coord_0 = (gl_TessCoord.x * ov_tc_texcoord[0]) +
-                  (gl_TessCoord.y * ov_tc_texcoord[1]) +
-                  (gl_TessCoord.z * ov_tc_texcoord[2]);
+	ov_out.TexCoord0 = (gl_TessCoord.x * ov_in[0].TexCoord0) +
+                  (gl_TessCoord.y * ov_in[1].TexCoord0) +
+                  (gl_TessCoord.z * ov_in[2].TexCoord0);
+	
+	//ov_out.Position = ov_applyTerrainElevation(pos,ov_out.TexCoord0);
+	
+	//vec3 a = ( ov_in[1].Position - ov_in[0].Position).xyz;
+    //vec3 b = ( ov_in[2].Position - ov_in[0].Position).xyz;
+	//ov_out.Normal = normalize( cross( a,b ) );
 
+	ov_out.Normal  = (gl_TessCoord.x * ov_in[0].Normal) +
+                     (gl_TessCoord.y * ov_in[1].Normal) +
+                     (gl_TessCoord.z * ov_in[2].Normal);
+
+	
 //#ifdef OV_TERRAIN_ELEVATION_TEXTURE
 //	pos.z = texture2D(ov_elevation_texture, tex_coord_0.xy).x;
 //#endif
- 
-	gl_Position = pos;
-	ov_te_texcoord = tex_coord_0; 
-	
-	ov_te_normal  = (gl_TessCoord.x * ov_tc_normal[0]) +
-                  (gl_TessCoord.y * ov_tc_normal[1]) +
-                  (gl_TessCoord.z * ov_tc_normal[2]);
+	//gl_Position = pos;
 }

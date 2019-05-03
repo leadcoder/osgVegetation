@@ -9,102 +9,7 @@
 
 namespace osgVegetation
 {
-	class TerrainShading
-	{
-	public:
-		TerrainShading(const TerrainShadingConfiguration& config)
-		{
-			m_StateSet = new osg::StateSet();
-			_SetupTerrainTextures(m_StateSet, config.TextureUnits);
-			if (config.UseTessellation)
-				m_StateSet->setDefine("OV_TERRAIN_TESSELLATION");
-
-			osg::Program* program = new osg::Program;
-			//m_StateSet->setAttribute(program);
-			m_StateSet->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
-
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_terrain_vertex.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_common_vertex.glsl")));
-			if (config.UseTessellation)
-			{
-				program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("ov_terrain_tess_ctrl.glsl")));
-				program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_common_vertex.glsl")));
-				program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_terrain_tess_eval.glsl")));
-			}
-			//else
-			//	program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_common_vertex.glsl")));
-
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_common_fragment.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_terrain_detail_texturing.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_terrain_fragment.glsl")));
-		
-			const bool has_detail = config.DetailLayers.size() > 0;
-			if (has_detail && config.TextureUnits.SplatTextureUnit > 0 && config.TextureUnits.DetailTextureUnit > 0)
-			{
-				m_StateSet->addUniform(new osg::Uniform("ov_land_cover_texture", config.TextureUnits.SplatTextureUnit));
-				m_StateSet->setDefine("OV_TERRAIN_DETAIL_TEXTURING");
-				osg::Vec4 scale(1, 1, 1, 1);
-				int detail_tex_unit_index = config.TextureUnits.DetailTextureUnit;
-				for (size_t i = 0; i < config.DetailLayers.size(); i++)
-				{
-					osg::Texture2D *dtex = new osg::Texture2D;
-					dtex->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::REPEAT);
-					dtex->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::REPEAT);
-					dtex->setImage(osgDB::readRefImageFile(config.DetailLayers[i].DetailTexture));
-					m_StateSet->setTextureAttributeAndModes(detail_tex_unit_index, dtex, osg::StateAttribute::ON);
-					std::stringstream ss_tex;
-					ss_tex << "ov_detail_texture" << i;
-					m_StateSet->addUniform(new osg::Uniform(ss_tex.str().c_str(), detail_tex_unit_index));
-					std::stringstream ss_scale;
-					detail_tex_unit_index++;
-					if (i < 4)
-						scale[i] = config.DetailLayers[i].Scale;
-				}
-				m_StateSet->addUniform(new osg::Uniform("ov_detail_scale", scale));
-			}
-		}
-
-		/*osg::ref_ptr<osg::Group> Create(osg::ref_ptr<osg::Node> terrain_geometry)
-		{
-			osg::ref_ptr<osg::Group> terrain_layer = new osg::Group();
-			terrain_layer->setStateSet(m_StateSet);
-			//add geometry
-			terrain_layer->addChild(terrain_geometry);
-			return terrain_layer;
-		}*/
-		osg::ref_ptr<osg::StateSet> GetStateSet() const 
-		{
-			return m_StateSet;
-		}
-
-		void  Apply(osg::ref_ptr<osg::StateSet> state_set) const
-		{
-			state_set->merge(*m_StateSet);
-		}
-	private:
-		void _SetupTerrainTextures(osg::ref_ptr<osg::StateSet> state_set, const TerrainTextureUnitSettings &config)
-		{
-			if (config.ColorTextureUnit > -1)
-			{
-				state_set->addUniform(new osg::Uniform("ov_color_texture", config.ColorTextureUnit));
-				state_set->setDefine("OV_TERRAIN_COLOR_TEXTURE");
-			}
-
-			if (config.SplatTextureUnit > -1)
-			{
-				state_set->addUniform(new osg::Uniform("ov_land_cover_texture", config.SplatTextureUnit));
-				state_set->setDefine("OV_TERRAIN_SPLAT_TEXTURE");
-			}
-
-			if (config.ElevationTextureUnit > -1)
-			{
-				state_set->addUniform(new osg::Uniform("ov_elevation_texture", config.ElevationTextureUnit));
-				state_set->setDefine("OV_TERRAIN_ELEVATION_TEXTURE");
-			}
-		}
-
-		osg::ref_ptr<osg::StateSet> m_StateSet;
-	};
+	
 
 	void PrepareTerrainForTesselation(osg::ref_ptr<osg::Node> terrain)
 	{
@@ -124,8 +29,8 @@ namespace osgVegetation
 
 	void ApplyTerrainShading(osg::Node* terrain, const TerrainShadingConfiguration& tdm)
 	{
-		TerrainShading terrain_shading(tdm);
-		terrain_shading.Apply(terrain->getOrCreateStateSet());
+		//TerrainShading terrain_shading(tdm);
+		//terrain_shading.Apply(terrain->getOrCreateStateSet());
 
 #if 0
 		osg::Program* program = new osg::Program;

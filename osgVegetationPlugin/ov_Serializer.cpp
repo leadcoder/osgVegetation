@@ -101,7 +101,7 @@ namespace osgVegetation
 		return layers;
 	}
 
-	void XMLSerializer::ReadTerrainData(const std::string &filename, TerrainConfiguration &terrain)
+	TerrainShadingConfiguration XMLSerializer::ReadTerrainData(const std::string &filename)
 	{
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())
@@ -116,7 +116,7 @@ namespace osgVegetation
 
 		if (!terrain_elem->Attribute("File"))
 			throw std::runtime_error(std::string("Failed to find attribute: File").c_str());
-		terrain.Filename = terrain_elem->Attribute("File");
+		//terrain.Filename = terrain_elem->Attribute("File");
 
 		/*if (terrain_elem->Attribute("Type"))
 		{
@@ -145,9 +145,11 @@ namespace osgVegetation
 				throw std::runtime_error(std::string("Serializer::GetTerrainData - Unknown ShadowMode:" + sm_str).c_str());
 		}*/
 
+		TerrainTextureUnitSettings tex_units;
+		TerrainShadingConfiguration config(tex_units);
 		TiXmlElement *dlv_elem = terrain_elem->FirstChildElement("DetailLayers");
 		if (dlv_elem)
-			terrain.DetailLayers = loadDetailLayers(dlv_elem);
+			config.DetailLayers = loadDetailLayers(dlv_elem);
 
 		TiXmlElement *bblv_elem = terrain_elem->FirstChildElement("BillboardLayers");
 		//if(bblv_elem)
@@ -155,5 +157,6 @@ namespace osgVegetation
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
 		delete xmlDoc;
+		return config;
 	}
 }

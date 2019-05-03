@@ -1,8 +1,9 @@
 //#version 120
-#version 330 compatibility
+#version 330 
+//compatibility
 //#version 400
 #extension GL_ARB_geometry_shader4 : enable
-#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, OV_TERRAIN_COLOR_TEXTURE, USE_LANDCOVER, OV_TERRAIN_ELEVATION_TEXTURE, OV_LANDCOVER_FILTER(v))
+#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, OV_TERRAIN_COLOR_TEXTURE, OV_LANDCOVER_FILTER(v), OV_SPLAT_FILTER(splat_color))
 
 #ifdef BLT_GRASS
 	#define MAX_NUM_VERTS 16
@@ -13,14 +14,28 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = MAX_NUM_VERTS) out;
 
-in vec2 ov_te_texcoord[];
-in vec3 ov_te_normal[];
-out vec2 ov_geometry_texcoord;
-out vec4 ov_geometry_color;
-flat out int ov_geometry_tex_index;
-flat out float ov_fade;
-out vec3 ov_geometry_normal;
-out float ov_depth;
+in ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_in[];
+
+out ov_BillboardVertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+  vec4 Color;
+  float Depth;
+  flat int TextureArrayIndex;
+  flat float Fade;
+} ov_bb_out;
+
+uniform mat4 osg_ProjectionMatrix;
+uniform mat4 osg_ModelViewProjectionMatrix;
+uniform mat4 osg_ModelViewMatrix;
+uniform mat3 osg_NormalMatrix;
 
 uniform float osg_SimulationTime;
 
@@ -28,24 +43,22 @@ uniform float osg_SimulationTime;
 uniform sampler2D ov_color_texture;
 #endif
 
-#ifdef USE_LANDCOVER
-uniform sampler2D ov_land_cover_texture;
-uniform float ov_billboard_land_cover_id;
+#ifdef OV_NOISE_TEXTURE
+uniform sampler2D ov_noise_texture;
 #endif
-
-#ifdef OV_TERRAIN_ELEVATION_TEXTURE
-uniform sampler2D ov_elevation_texture;
-#endif
-
 uniform int ov_num_billboards;
 uniform vec4 ov_billboard_data[10];
 uniform float ov_billboard_max_distance;
 uniform float ov_billboard_color_threshold;
 
-
 //forward declaration
 void ov_setShadowTexCoords(vec4 mv_pos);
+vec4 ov_applyTerrainElevation(vec4 pos, vec2 tex_coords);
+vec3 ov_applyTerrainNormal(vec3 normal, vec2 tex_coords);
+//vec3 ov_getTerrainNormal(vec2 tex_coords);
 
+vec4 ov_getTerrainColor(float depth,vec2 tex_coord0, vec2 terrain_pos);
+vec4 ov_getSplatColor(vec2 splat_tex_coord, vec2 terrain_pos);
 
 float ov_random(vec2 co)
 {
@@ -136,7 +149,7 @@ mat3 ov_getRotationMatrix(vec3 axis, float angle)
 
 void ov_emitRotatedBillboard(vec3 mv_pos, float bb_half_width, float bb_height)
 {
-	vec3 up_view = gl_NormalMatrix * vec3(0, 0, 1);
+	vec3 up_view = osg_NormalMatrix * vec3(0, 0, 1);
 	vec3 tangent_vector = normalize(cross(vec3(0, 0, -1), up_view));
 	vec3 bb_right = tangent_vector * bb_half_width;
 	vec3 bb_up = up_view* bb_height;
@@ -146,24 +159,24 @@ void ov_emitRotatedBillboard(vec3 mv_pos, float bb_half_width, float bb_height)
 	vec4 p2 = vec4(p0.xyz + bb_up, 1.0);
 	vec4 p3 = vec4(p1.xyz + bb_up, 1.0);
 
-	gl_Position = gl_ProjectionMatrix*p0;
+	gl_Position = osg_ProjectionMatrix*p0;
 	ov_setShadowTexCoords(p0);
-	ov_geometry_texcoord = vec2(0,0);
+	ov_bb_out.TexCoord0 = vec2(0,0);
 	EmitVertex();
     
-	gl_Position = gl_ProjectionMatrix*p1;
+	gl_Position = osg_ProjectionMatrix*p1;
 	ov_setShadowTexCoords(p1);
-	ov_geometry_texcoord = vec2(1,0);
+	ov_bb_out.TexCoord0 = vec2(1,0);
 	EmitVertex();
     
-	gl_Position = gl_ProjectionMatrix*p2;
+	gl_Position = osg_ProjectionMatrix*p2;
 	ov_setShadowTexCoords(p2);
-	ov_geometry_texcoord = vec2(0,1);
+	ov_bb_out.TexCoord0 = vec2(0,1);
 	EmitVertex();
 
-	gl_Position = gl_ProjectionMatrix*p3;
+	gl_Position = osg_ProjectionMatrix*p3;
 	ov_setShadowTexCoords(p3);
-	ov_geometry_texcoord = vec2(1,1);
+	ov_bb_out.TexCoord0 = vec2(1,1);
 	EmitVertex();
 
 	EndPrimitive();
@@ -174,7 +187,7 @@ void ov_emitRotatedBillboard(vec3 mv_pos, float bb_half_width, float bb_height)
 
 void ov_emitCrossQuadsMV(vec3 mv_pos, mat3 model_rot_mat, float wind, float bb_half_width, float bb_height)
 {
-	mat3 rot_mat = gl_NormalMatrix * model_rot_mat;
+	mat3 rot_mat = osg_NormalMatrix * model_rot_mat;
 	vec3 up_view = rot_mat * vec3(0, 0, 1);
 	vec3 tangent_vector = rot_mat * vec3(1,0,0);
 	vec3 bb_right = cross(tangent_vector, up_view) * bb_half_width;
@@ -190,20 +203,20 @@ void ov_emitCrossQuadsMV(vec3 mv_pos, mat3 model_rot_mat, float wind, float bb_h
 		p2.xyz += wind_vec;
 		p3.xyz += wind_vec;
 
-		gl_Position = gl_ProjectionMatrix*p0;
-		ov_geometry_texcoord = vec2(0,0);
+		gl_Position = osg_ProjectionMatrix * p0;
+		ov_bb_out.TexCoord0 = vec2(0,0);
 		EmitVertex();
 		
-		gl_Position = gl_ProjectionMatrix*p1;
-		ov_geometry_texcoord = vec2(1,0);
+		gl_Position = osg_ProjectionMatrix*p1;
+		ov_bb_out.TexCoord0 = vec2(1,0);
 		EmitVertex();
 		
-		gl_Position = gl_ProjectionMatrix*p2;
-		ov_geometry_texcoord = vec2(0,1);
+		gl_Position = osg_ProjectionMatrix*p2;
+		ov_bb_out.TexCoord0 = vec2(0,1);
 		EmitVertex();
 
-		gl_Position = gl_ProjectionMatrix*p3;
-		ov_geometry_texcoord = vec2(1,1);
+		gl_Position = osg_ProjectionMatrix*p3;
+		ov_bb_out.TexCoord0 = vec2(1,1);
 		EmitVertex();
 			
 		EndPrimitive();
@@ -231,24 +244,24 @@ void ov_emitCrossQuads(vec4 pos, mat3 rot, vec3 wind_vec, float bb_half_width, f
 		p2.xyz += wind_vec;
 		p3.xyz += wind_vec;
 
-		gl_Position = gl_ModelViewProjectionMatrix * p0; 
-		ov_setShadowTexCoords(gl_ModelViewMatrix * p0); 
-		ov_geometry_texcoord = vec2(0.0, 0.0); 
+		gl_Position = osg_ModelViewProjectionMatrix * p0; 
+		ov_setShadowTexCoords(osg_ModelViewMatrix * p0); 
+		ov_bb_out.TexCoord0 = vec2(0.0, 0.0); 
 		EmitVertex();
 
-		gl_Position = gl_ModelViewProjectionMatrix * p1; 
-		ov_setShadowTexCoords(gl_ModelViewMatrix * p1); 
-		ov_geometry_texcoord = vec2(1.0, 0.0); 
+		gl_Position = osg_ModelViewProjectionMatrix * p1; 
+		ov_setShadowTexCoords(osg_ModelViewMatrix * p1); 
+		ov_bb_out.TexCoord0 = vec2(1.0, 0.0); 
 		EmitVertex();
 
-		gl_Position = gl_ModelViewProjectionMatrix * p2; 
-		ov_setShadowTexCoords(gl_ModelViewMatrix * p2); 
-		ov_geometry_texcoord = vec2(0.0, 1.0); 
+		gl_Position = osg_ModelViewProjectionMatrix * p2; 
+		ov_setShadowTexCoords(osg_ModelViewMatrix * p2); 
+		ov_bb_out.TexCoord0 = vec2(0.0, 1.0); 
 		EmitVertex();
 
-		gl_Position = gl_ModelViewProjectionMatrix * p3; 
-		ov_setShadowTexCoords(gl_ModelViewMatrix * p3); 
-		ov_geometry_texcoord = vec2(1.0, 1.0); 
+		gl_Position = osg_ModelViewProjectionMatrix * p3; 
+		ov_setShadowTexCoords(osg_ModelViewMatrix * p3); 
+		ov_bb_out.TexCoord0 = vec2(1.0, 1.0); 
 		EmitVertex();
 
 		EndPrimitive();
@@ -282,24 +295,24 @@ void ov_emitGrass(vec4 pos, mat3 rot, vec3 wind_vec, float bb_half_width, float 
 			p2.xyz += (wind_vec + offset_vec);
 			p3.xyz += (wind_vec + offset_vec);
 
-			gl_Position = gl_ModelViewProjectionMatrix * p0; 
-			ov_setShadowTexCoords(gl_ModelViewMatrix*p0); 
-			ov_geometry_texcoord = vec2(0.0, 0.0); 
+			gl_Position = osg_ModelViewProjectionMatrix * p0; 
+			ov_setShadowTexCoords(osg_ModelViewMatrix*p0); 
+			ov_bb_out.TexCoord0 = vec2(0.0, 0.0); 
 			EmitVertex();
 
-			gl_Position = gl_ModelViewProjectionMatrix * p1; 
-			ov_setShadowTexCoords(gl_ModelViewMatrix*p1); 
-			ov_geometry_texcoord = vec2(1.0, 0.0); 
+			gl_Position = osg_ModelViewProjectionMatrix * p1; 
+			ov_setShadowTexCoords(osg_ModelViewMatrix*p1); 
+			ov_bb_out.TexCoord0 = vec2(1.0, 0.0); 
 			EmitVertex();
 
-			gl_Position = gl_ModelViewProjectionMatrix * p2; 
-			ov_setShadowTexCoords(gl_ModelViewMatrix*p2); 
-			ov_geometry_texcoord = vec2(0.0, 1.0); 
+			gl_Position = osg_ModelViewProjectionMatrix * p2; 
+			ov_setShadowTexCoords(osg_ModelViewMatrix*p2); 
+			ov_bb_out.TexCoord0 = vec2(0.0, 1.0); 
 			EmitVertex();
 
-			gl_Position = gl_ModelViewProjectionMatrix * p3; 
-			ov_setShadowTexCoords(gl_ModelViewMatrix*p3); 
-			ov_geometry_texcoord = vec2(1.0, 1.0); 
+			gl_Position = osg_ModelViewProjectionMatrix * p3; 
+			ov_setShadowTexCoords(osg_ModelViewMatrix*p3); 
+			ov_bb_out.TexCoord0 = vec2(1.0, 1.0); 
 			EmitVertex();
 
 			EndPrimitive();
@@ -320,69 +333,59 @@ void main(void)
 	//vec4 terrain_normal2[3];
 	//ov_getRandomPointInTriangle(gl_PositionIn, ov_te_texcoord, ov_te_normal, terrain_pos, terrain_texcoord, terrain_normal);
 	//gen a random point in triangle
-    vec3 barycentric_coords = ov_getRandomBarycentricCoords(gl_PositionIn[0].xy);
+    vec3 barycentric_coords = ov_getRandomBarycentricCoords(ov_in[0].Position.xy);
     for(int i=0; i < 3; ++i)
     {
-		terrain_pos.x += barycentric_coords[i] * gl_PositionIn[i].x;
-		terrain_pos.y += barycentric_coords[i] * gl_PositionIn[i].y;
-		terrain_pos.z += barycentric_coords[i] * gl_PositionIn[i].z;
+		terrain_pos.x += barycentric_coords[i] * ov_in[i].Position.x;
+		terrain_pos.y += barycentric_coords[i] * ov_in[i].Position.y;
+		terrain_pos.z += barycentric_coords[i] * ov_in[i].Position.z;
         
-		terrain_texcoord.x += barycentric_coords[i] * ov_te_texcoord[i].x;
-		terrain_texcoord.y += barycentric_coords[i] * ov_te_texcoord[i].y;
+		terrain_texcoord.x += barycentric_coords[i] * ov_in[i].TexCoord0.x;
+		terrain_texcoord.y += barycentric_coords[i] * ov_in[i].TexCoord0.y;
 
-		terrain_normal.x += barycentric_coords[i] * ov_te_normal[i].x;
-		terrain_normal.y += barycentric_coords[i] * ov_te_normal[i].y;
-		terrain_normal.z += barycentric_coords[i] * ov_te_normal[i].z;
+		terrain_normal.x += barycentric_coords[i] * ov_in[i].Normal.x;
+		terrain_normal.y += barycentric_coords[i] * ov_in[i].Normal.y;
+		terrain_normal.z += barycentric_coords[i] * ov_in[i].Normal.z;
     }
+	terrain_pos = ov_applyTerrainElevation(terrain_pos, terrain_texcoord.xy);
+	terrain_normal = ov_applyTerrainNormal(terrain_normal, terrain_texcoord.xy);
 
-#ifdef OV_TERRAIN_ELEVATION_TEXTURE
-	//offset and scale texture coordiantes to match pixel center to vertex pos
-	ivec2 elev_texture_size = textureSize(ov_elevation_texture,0);
-    vec2 ELEVATION_TEXEL_SIZE = vec2(1.0/ float(elev_texture_size.x), 1.0/float(elev_texture_size.y)); 
-	vec2 tex_coord_scale = vec2(1.0, 1.0) - ELEVATION_TEXEL_SIZE; //strech texture by on texel
-	vec2 tex_coord_offset = 0.5 * ELEVATION_TEXEL_SIZE; //offset texture to match pixel center with vertex pos
-	terrain_pos.z = texture2D(ov_elevation_texture, (tex_coord_scale * terrain_texcoord.xy) + tex_coord_offset).x;
-#endif
-	
-#ifdef USE_LANDCOVER
-	vec4 lc_color = texture2D(ov_land_cover_texture, terrain_texcoord);
-	//if (lc_color.y < ov_billboard_land_cover_id)
-	//	return;
-	//OV_LANDCOVER_FILTER(lc_color);
-	//if (lc_color.x > 0)
-	//	return;
-	//if (ov_billboard_land_cover_id > 0.5 && lc_color.y < 0.5)
-	//	return;
+#ifdef OV_SPLAT_FILTER
+	vec4 lc_color = ov_getSplatColor(terrain_texcoord, terrain_pos.xy);
+	OV_SPLAT_FILTER(lc_color)
 #endif
 
 	//sample terrain color
 #ifdef OV_TERRAIN_COLOR_TEXTURE
 	vec3 terrain_color = texture2D(ov_color_texture, terrain_texcoord).xyz;
-
 	if(length(terrain_color) > ov_billboard_color_threshold)
 		return;
 #else
 	vec3 terrain_color = vec3(1,1,1);
 #endif
-
+	//Slope filter
 	if(dot(normalize(terrain_normal), vec3(0,0,1)) < 0.9)
 		return;
 	
-	vec4 mv_pos = gl_ModelViewMatrix * terrain_pos;
-	ov_depth = -mv_pos.z;
+	vec4 mv_pos = osg_ModelViewMatrix * terrain_pos;
+	ov_bb_out.Depth = -mv_pos.z;
 
+	terrain_color =  ov_getTerrainColor(ov_bb_out.Depth, terrain_texcoord.xy, terrain_pos.xy).xyz;
+	terrain_color += ov_getTerrainColor(ov_bb_out.Depth, terrain_texcoord.xy, terrain_pos.xy + vec2(0.4,0.4)).xyz;
+	terrain_color += ov_getTerrainColor(ov_bb_out.Depth, terrain_texcoord.xy, terrain_pos.xy + vec2(-0.4,-0.4)).xyz;
+	terrain_color = terrain_color*0.33;
 	bool ortho_camera = true;
-	if (gl_ProjectionMatrix[3][3] == 0)
+	if (osg_ProjectionMatrix[3][3] == 0)
 		ortho_camera = false;
 
 	float adjusted_max_dist = 10000;
 	if (!ortho_camera)
-		adjusted_max_dist = ov_billboard_max_distance * max(gl_ProjectionMatrix[0][0], 1);
+		adjusted_max_dist = ov_billboard_max_distance * max(osg_ProjectionMatrix[0][0], 1);
 	
-	ov_fade = ov_calculateFade(ov_depth, adjusted_max_dist);
+	ov_bb_out.Fade = ov_calculateFade(ov_bb_out.Depth, adjusted_max_dist);
 
 	//culling
-    if (ov_fade == 0.0 )
+    if (ov_bb_out.Fade == 0.0 )
         return;
 	
 	vec2 scale_seed = terrain_pos.xy + vec2(10.5,111.3);
@@ -393,17 +396,18 @@ void main(void)
 	
 	//get random billboard
 	vec2 index_seed = terrain_pos.xy + vec2(1.5, 1.3);
-	ov_geometry_tex_index = ov_getRandomBillboardIndex(index_seed);
+	ov_bb_out.TextureArrayIndex = ov_getRandomBillboardIndex(index_seed);
 	
-	vec4 billboard_data = ov_billboard_data[ov_geometry_tex_index];
+	vec4 billboard_data = ov_billboard_data[ov_bb_out.TextureArrayIndex];
 	float bb_half_width = base_scale * billboard_data.x*0.5;
 	float bb_height = base_scale * billboard_data.y;
 	float bb_intensity = billboard_data.z;
 
+	//bb_intensity += 0.3 * texture2D(ov_noise_texture, terrain_pos.xy * 0.004).x;
 	
-	ov_geometry_color.xyz  = terrain_color;
-	ov_geometry_color.w = bb_intensity; 
-	ov_geometry_normal = gl_NormalMatrix * terrain_normal;
+	ov_bb_out.Color.xyz  = terrain_color;
+	ov_bb_out.Color.w = bb_intensity; 
+	ov_bb_out.Normal = osg_NormalMatrix * terrain_normal;
 
 #ifdef BLT_ROTATED_QUAD
 	ov_emitRotatedBillboard(mv_pos.xyz, bb_half_width, bb_height);
@@ -414,7 +418,7 @@ void main(void)
 #if 0
 	//Hack to support VPB terrain-tiles geometry that use scaling to get terrain vertices from normalized space. 
 	//We extract the scale factor and use the inverse to scale the billboard vectors  
-	vec3 inv_terrain_scale = vec3(1.0 / length(gl_ModelViewMatrix[0].xyz), 1.0 / length(gl_ModelViewMatrix[1].xyz), 1.0 / length(gl_ModelViewMatrix[2].xyz));
+	vec3 inv_terrain_scale = vec3(1.0 / length(osg_ModelViewMatrix[0].xyz), 1.0 / length(osg_ModelViewMatrix[1].xyz), 1.0 / length(osg_ModelViewMatrix[2].xyz));
 	mat3 scale_mat = mat3(inv_terrain_scale.x, 0,                   0,   // first column
 	                      0,                   inv_terrain_scale.y, 0,
 	                      0,                   0,                   inv_terrain_scale.z);

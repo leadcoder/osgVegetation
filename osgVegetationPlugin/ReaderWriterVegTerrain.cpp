@@ -40,11 +40,10 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
     if (fileName.empty())
         return ReadResult::FILE_NOT_FOUND;
 
-	osgVegetation::TerrainConfiguration terrain_data;
-	osgVegetation::XMLSerializer::ReadTerrainData(fileName, terrain_data);
+	osgVegetation::TerrainShadingConfiguration terrain_data = osgVegetation::XMLSerializer::ReadTerrainData(fileName);
 
-	terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
-	terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
+	//terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
+	//terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
 
 	const std::string file_path = osgDB::getFilePath(fileName);
 	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path);
@@ -54,7 +53,7 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
 	//else if (terrain_data.Type == osgVegetation::Terrain::TT_PLOD_GEODE)
 	//	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::GeodePLODInjection(terrain_data));
 
-	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(terrain_data.Filename);
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("hejsan");//terrain_data.Filename);
 	
 	//Setup shadow defines
 	osg::StateSet::DefineList& defineList = terrain_node->getOrCreateStateSet()->getDefineList();

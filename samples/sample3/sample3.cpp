@@ -57,16 +57,18 @@ int main(int argc, char** argv)
 
 	//setup vegetation layers
 	std::vector<osgVegetation::BillboardLayer> layers;
-	osgVegetation::BillboardLayer grass_data(140, 0.2, 1.0, 0.3, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data(140, 0.2, 1.0, 1.0, 0.1, 5);
 	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	grass_data.SplatColorThreshold = osg::Vec3(0.1, 0.0, 0.0);
+
 	layers.push_back(grass_data);
 
 	osgVegetation::BillboardLayer tree_data(740, 0.004, 0.5, 0.7, 0.1, 2);
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 2.5, 1.0));
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.0, 1.0));
 	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
 	layers.push_back(tree_data);
 
@@ -76,9 +78,8 @@ int main(int argc, char** argv)
 	osgVegetation::TerrainTextureUnitSettings terrain_tu;
 	terrain_tu.ColorTextureUnit = 0;
 	terrain_tu.SplatTextureUnit = 1;
-	terrain_tu.DetailTextureUnit = 2;
 
-	osgVegetation::BillboardNodeGeneratorConfig bbconfig(layers, terrain_tu,-1);
+	osgVegetation::BillboardNodeGeneratorConfig bbconfig(layers, terrain_tu,12);
 
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(bbconfig));
 #if 0
@@ -87,14 +88,30 @@ int main(int argc, char** argv)
 	//osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osgb");
 	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");
 #endif
-	root_node->addChild(terrain_node);
 	
-	osgVegetation::TerrainShadingConfiguration terrain_shading(terrain_tu);
-	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
-	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
-	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
-	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
-	osgVegetation::ApplyTerrainShading(terrain_node, terrain_shading);
+	
+	osgVegetation::TerrainShadingConfiguration terrain_shading;
+	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
+	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
+	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
+	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
+	//terrain_shading.DetailTextureUnit = 2;
+
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading.NoiseTexture = "terrain/detail/noise.png";
+	terrain_shading.NoiseTextureUnit = 4;
+	terrain_shading.DetailTextureUnit = 3;
+
+	
+	osg::ref_ptr<osgVegetation::TerrainShadingEffect> terrain_shading_effect = new osgVegetation::TerrainShadingEffect(terrain_shading);
+	terrain_shading_effect->addChild(terrain_node);
+	terrain_shading_effect->setTerrainTextures(terrain_tu);
+
+	root_node->addChild(terrain_shading_effect);
+	//osgVegetation::ApplyTerrainShading(terrain_node, terrain_shading);
 
 	if (!terrain_node)
 	{
@@ -136,7 +153,7 @@ int main(int argc, char** argv)
 	viewer.setSceneData(root_node.get());
 	viewer.setUpViewInWindow(100, 100, 800, 600);
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
-
+	viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
 	// run the viewers main loop
 	while (!viewer.done())
 	{

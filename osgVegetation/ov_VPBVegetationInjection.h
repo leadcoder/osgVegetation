@@ -11,6 +11,48 @@
 
 namespace osgVegetation
 {
+	class BillboardNodeGenerator
+	{
+	public:
+		BillboardNodeGenerator(const BillboardNodeGeneratorConfig &config, osg::ref_ptr <osg::StateSet> terrain_state_set) : m_Config(config),
+			m_TerrainStateSet(terrain_state_set)
+		{
+			for (size_t i = 0; i < config.Layers.size(); i++)
+			{
+				m_Layers.push_back(new BillboardLayerStateSet(config.Layers[i], config.BillboardTexUnit));
+			}
+		}
+
+		osg::ref_ptr<osg::Node> CreateNode(osg::Node* terrain) const
+		{
+			osg::ref_ptr<osg::Group> layers = new osg::Group();
+			//layers->getOrCreateStateSet()->setDefine("OV_TERRAIN_TESSELLATION");
+			if (m_TerrainStateSet)
+				layers->getOrCreateStateSet()->merge(*m_TerrainStateSet);
+
+			for (size_t i = 0; i < m_Layers.size(); i++)
+			{
+				osg::ref_ptr<osg::Group> layer_node = new osg::Group();
+				layer_node->setStateSet(m_Layers[i]);
+				layer_node->addChild(terrain);
+
+				//Disable shadow casting for grass, TODO make this optional
+				if (m_Config.Layers[i].Type == BillboardLayer::BLT_GRASS)
+					layer_node->setNodeMask(m_Config.ReceivesShadowTraversalMask);
+				else
+					layer_node->setNodeMask(m_Config.ReceivesShadowTraversalMask | m_Config.CastShadowTraversalMask);
+
+				layers->addChild(layer_node);
+			}
+			return layers;
+		}
+	private:
+		std::vector<osg::ref_ptr<osg::StateSet> > m_Layers;
+		BillboardNodeGeneratorConfig m_Config;
+		osg::ref_ptr <osg::StateSet> m_TerrainStateSet;
+	};
+
+
 	//Inject vegetation layers into VirtualPlanetBuilder (VPB) PLOD terrains,
 	//ie terrain created with --PagedLOD, --POLYGONAL or --TERRAIN.
 	//Both flat and geocentric terrains should work.
@@ -119,7 +161,7 @@ namespace osgVegetation
 			{
 				BillboardNodeGeneratorConfig lod_config = config;
 				lod_config.Layers = iter->second;
-				m_LODLayers.insert(std::pair<int, BillboardNodeGenerator>(iter->first, BillboardNodeGenerator(lod_config)));
+				m_LODLayers.insert(std::pair<int, BillboardNodeGenerator>(iter->first, BillboardNodeGenerator(lod_config, osg::ref_ptr <osg::StateSet>())));
 			}
 		}
 	

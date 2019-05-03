@@ -42,21 +42,24 @@
 std::vector<osgVegetation::BillboardLayer> GetVegetationLayers()
 {
 	std::vector<osgVegetation::BillboardLayer> layers;
-	osgVegetation::BillboardLayer grass_data(100, 0.1, 1.0, 0.4, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data(100, 0.1, 1.0, 1.0, 0.1, 5);
 	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	grass_data.SplatColorThreshold = osg::Vec3(0.0, 0.5, 0.0);
 	//grass_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.1, 1.0));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data);
 
-	osgVegetation::BillboardLayer grass_data2(30, 0.4, 1.0, 0.4, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data2(30, 0.4, 1.0, 1.0, 0.1, 5);
 	grass_data2.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	grass_data2.SplatColorThreshold = osg::Vec3(0.0, 0.5, 0.0);
 	grass_data2.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data2);
 
 	//osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
 	osgVegetation::BillboardLayer tree_data(740, 0.01, 0.5, 0.7, 0.1, 2);
+	tree_data.SplatColorThreshold = osg::Vec3(0.0, 0.5, 0.0);
 	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.5, 1.0));
@@ -87,7 +90,7 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 	osgVegetation::TerrainTextureUnitSettings tex_units;
 	tex_units.ColorTextureUnit = 0;
 	tex_units.SplatTextureUnit = 1;
-	tex_units.DetailTextureUnit = 2;
+	
 
 	//Create main node for both terrain and vegetation
 	osg::ref_ptr<osg::Group> root = new osg::Group();
@@ -114,30 +117,57 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 	}
 
 	//Create terrain layer node
-	{
+	
 		//add some detail mapping based on landcover
-		osgVegetation::TerrainShadingConfiguration tsc(tex_units);
-		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
+		osgVegetation::TerrainShadingConfiguration tsc;// (tex_units);
+		/*tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
 		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
 		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
 		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
+*/
+		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
+		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+		tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+		tsc.NoiseTexture = "terrain/detail/noise.png";
+		tsc.NoiseTextureUnit = 2;
+		tsc.DetailTextureUnit = 3;
+
 		tsc.UseTessellation = share_terrain_geometry;
 	
-		osg::ref_ptr<osg::Group> terrain_layer = new osg::Group();
-		terrain_layer->addChild(terrain_geometry);
-		osgVegetation::ApplyTerrainShading(terrain_layer, tsc);
+		//osg::ref_ptr<osg::Group> terrain_layer = new osg::Group();
+		//terrain_layer->addChild(terrain_geometry);
+
+		osg::ref_ptr<osgVegetation::TerrainShadingEffect> terrain_shading_effect = new osgVegetation::TerrainShadingEffect(tsc);
+		terrain_shading_effect->addChild(terrain_geometry);
+		terrain_shading_effect->setTerrainTextures(tex_units);
+		//osgVegetation::ApplyTerrainShading(terrain_layer, tsc);
+		//terrain_state_set = terrain_shading_effect->getStateSet();
 		
 		//Disable terrain self shadowning
-		terrain_layer->setNodeMask(ReceivesShadowTraversalMask);
+		terrain_shading_effect->setNodeMask(ReceivesShadowTraversalMask);
 		//add terrain layer to top node
-		root->addChild(terrain_layer);
-	}
-
+		root->addChild(terrain_shading_effect);
+	
 	//Create vegetation layer node
 	{
-		osgVegetation::BillboardNodeGeneratorConfig config(GetVegetationLayers(), tex_units);
-		osgVegetation::BillboardNodeGenerator node_generator(config);
-		root->addChild(node_generator.CreateNode(terrain_geometry_vegetation));
+
+		int billboard_tex_unit = 5;
+		for (size_t i = 0; i < GetVegetationLayers().size(); i++)
+		{
+			osgVegetation::BillboardLayer layer_config = GetVegetationLayers().at(i);
+			osg::ref_ptr<osgVegetation::BillboardLayerEffect> bb_layer = new osgVegetation::BillboardLayerEffect(layer_config, billboard_tex_unit);
+			bb_layer->addChild(terrain_geometry_vegetation);
+			if (layer_config.Type == osgVegetation::BillboardLayer::BLT_GRASS)
+				bb_layer->setNodeMask(ReceivesShadowTraversalMask);
+			else
+				bb_layer->setNodeMask(ReceivesShadowTraversalMask | CastsShadowTraversalMask);
+			terrain_shading_effect->addChild(bb_layer);
+		}
+
+		//osgVegetation::BillboardNodeGeneratorConfig config(GetVegetationLayers(), tex_units,-1);
+		//osgVegetation::BillboardNodeGenerator node_generator(config, terrain_state_set);
+		//root->addChild(node_generator.CreateNode(terrain_geometry_vegetation));
 		
 	}
 	return root;
@@ -237,6 +267,7 @@ int main(int argc, char** argv)
 	viewer.setUpViewInWindow(100, 100, 800, 600);
 
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
+	viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
 
 	// run the viewers main loop
 	while (!viewer.done())
