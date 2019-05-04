@@ -6,38 +6,17 @@
 #include <osg/AlphaFunc>
 #include <osg/BlendFunc>
 #include <osg/Texture2D>
-#include <osg/Multisample>
 #include <osg/CullFace>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osg/PatchParameter>
-#include <osgDB/ReadFile>
+//#include <osgDB/ReadFile>
+
 #include "ov_Utils.h"
 #include "ov_BillboardLayer.h"
 
 namespace osgVegetation
 {
-
-	class BillboardNodeGeneratorConfig
-	{
-	public:
-		BillboardNodeGeneratorConfig(const std::vector<BillboardLayer> &layers,
-			TerrainTextureUnitSettings terrrain_texture_units = TerrainTextureUnitSettings(),
-			int billboard_texture_unit = 2,
-			int receives_shadow_mask = 0x1,
-			int cast_shadow_mask = 0x2) : Layers(layers),
-			TerrainTextureUnits(terrrain_texture_units),
-			BillboardTexUnit(billboard_texture_unit),
-			ReceivesShadowTraversalMask(receives_shadow_mask),
-			CastShadowTraversalMask(cast_shadow_mask)
-		{}
-		std::vector<BillboardLayer> Layers;
-		TerrainTextureUnitSettings TerrainTextureUnits;
-		int BillboardTexUnit;
-		int ReceivesShadowTraversalMask;
-		int CastShadowTraversalMask;
-	};
-
 	class BillboardLayerStateSet : public osg::StateSet
 	{
 	public:
@@ -159,6 +138,14 @@ namespace osgVegetation
 			setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
 		}
 
+		BillboardLayerStateSet(const BillboardLayerStateSet& rhs, const osg::CopyOp& copyop = osg::CopyOp::SHALLOW_COPY) : osg::StateSet(rhs, copyop)
+		{
+
+		}
+		virtual Object* cloneType() const { return new osg::StateSet(); }
+		virtual Object* clone(const osg::CopyOp& copyop) const { return new BillboardLayerStateSet(*this, copyop); }
+private:
+
 		osg::ref_ptr<osg::Texture2DArray> _CreateTextureArray(const std::vector<BillboardLayer::Billboard> &textrues)
 		{
 			//Load textures
@@ -192,12 +179,20 @@ namespace osgVegetation
 		{
 			setStateSet(new BillboardLayerStateSet(config, tex_unit));
 		}
+		BillboardLayerEffect(const BillboardLayerEffect& rhs, const osg::CopyOp& copyop = osg::CopyOp::SHALLOW_COPY) : osg::Group(rhs, copyop)
+		{
+
+		}
+		virtual Object* cloneType() const { return new osg::Group(); }
+		virtual Object* clone(const osg::CopyOp& copyop) const { return new BillboardLayerEffect(*this, copyop); }
 
 		void setTerrainTextures(TerrainTextureUnitSettings tex_units)
 		{
 			tex_units.Apply(getStateSet());
 		}
 	};
+
+#if 0	
 
 	class BillboardEffectFactory
 	{
@@ -222,4 +217,5 @@ namespace osgVegetation
 			return layers;
 		}
 	};
+#endif
 }

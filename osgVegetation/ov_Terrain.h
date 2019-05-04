@@ -288,7 +288,6 @@ namespace osgVegetation
 	public:
 		TerrainShadingEffect(const TerrainShadingConfiguration& config)
 		{
-			//SharedTerrainState factory;
 			osg::ref_ptr<osg::StateSet> state_set = new TerrainStateSet(config);
 			setStateSet(state_set);
 		}

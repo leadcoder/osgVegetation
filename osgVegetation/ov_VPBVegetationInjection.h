@@ -3,7 +3,7 @@
 #include "ov_BillboardLayer.h"
 #include "ov_Utils.h"
 #include "ov_TerrainHelper.h"
-#include "ov_BillboardNodeGenerator.h"
+#include "ov_BillboardLayerStateSet.h"
 #include <osg/PagedLOD>
 #include <osgTerrain/Terrain>
 #include <osgTerrain/TerrainTile>
@@ -11,6 +11,27 @@
 
 namespace osgVegetation
 {
+
+	class BillboardNodeGeneratorConfig
+	{
+	public:
+		BillboardNodeGeneratorConfig(const std::vector<BillboardLayer> &layers,
+			//TerrainTextureUnitSettings terrrain_texture_units = TerrainTextureUnitSettings(),
+			int billboard_texture_unit = 2,
+			int receives_shadow_mask = 0x1,
+			int cast_shadow_mask = 0x2) : Layers(layers),
+			//TerrainTextureUnits(terrrain_texture_units),
+			BillboardTexUnit(billboard_texture_unit),
+			ReceivesShadowTraversalMask(receives_shadow_mask),
+			CastShadowTraversalMask(cast_shadow_mask)
+		{}
+		std::vector<BillboardLayer> Layers;
+		//TerrainTextureUnitSettings TerrainTextureUnits;
+		int BillboardTexUnit;
+		int ReceivesShadowTraversalMask;
+		int CastShadowTraversalMask;
+	};
+
 	class BillboardNodeGenerator
 	{
 	public:
@@ -26,7 +47,6 @@ namespace osgVegetation
 		osg::ref_ptr<osg::Node> CreateNode(osg::Node* terrain) const
 		{
 			osg::ref_ptr<osg::Group> layers = new osg::Group();
-			//layers->getOrCreateStateSet()->setDefine("OV_TERRAIN_TESSELLATION");
 			if (m_TerrainStateSet)
 				layers->getOrCreateStateSet()->merge(*m_TerrainStateSet);
 
@@ -47,10 +67,48 @@ namespace osgVegetation
 			return layers;
 		}
 	private:
-		std::vector<osg::ref_ptr<osg::StateSet> > m_Layers;
+		std::vector<osg::ref_ptr<BillboardLayerStateSet> > m_Layers;
 		BillboardNodeGeneratorConfig m_Config;
 		osg::ref_ptr <osg::StateSet> m_TerrainStateSet;
 	};
+
+	class BillboardMultiLayerEffect : public osg::Group
+	{
+	public:
+		BillboardMultiLayerEffect(const std::vector<BillboardLayer> &layers, int tex_unit)
+		{
+			for (size_t i = 0; i < layers.size(); i++)
+			{
+				osg::ref_ptr<BillboardLayerEffect> layer = new BillboardLayerEffect(layers[i], tex_unit);
+				layer->setNodeMask(0x1);
+				addChild(layer);
+			}
+		}
+
+		BillboardMultiLayerEffect(const BillboardMultiLayerEffect& rhs, const osg::CopyOp& copyop = osg::CopyOp::SHALLOW_COPY) : osg::Group(rhs, copyop)
+		{
+
+		}
+
+		virtual Object* cloneType() const { return new Group(); }
+		virtual Object* clone(const osg::CopyOp& copyop) const { return new BillboardMultiLayerEffect(*this, copyop); }
+
+		osg::ref_ptr<BillboardMultiLayerEffect> createInstance(osg::ref_ptr<osg::Node> terrain_geometry) const
+		{
+			osg::ref_ptr<BillboardMultiLayerEffect>  effect = dynamic_cast<BillboardMultiLayerEffect*>(clone(osg::CopyOp::DEEP_COPY_NODES));
+			effect->insertTerrain(terrain_geometry);
+			return effect;
+		}
+	
+		void insertTerrain(osg::ref_ptr<osg::Node> terrain_geometry)
+		{
+			for (int i = 0; i < getNumChildren(); i++)
+			{
+				getChild(i)->asGroup()->addChild(terrain_geometry);
+			}
+		}
+	};
+
 
 
 	//Inject vegetation layers into VirtualPlanetBuilder (VPB) PLOD terrains,
@@ -161,7 +219,7 @@ namespace osgVegetation
 			{
 				BillboardNodeGeneratorConfig lod_config = config;
 				lod_config.Layers = iter->second;
-				m_LODLayers.insert(std::pair<int, BillboardNodeGenerator>(iter->first, BillboardNodeGenerator(lod_config, osg::ref_ptr <osg::StateSet>())));
+				m_LODLayers.insert(std::pair<int, osg::ref_ptr<BillboardMultiLayerEffect> >(iter->first, new BillboardMultiLayerEffect(lod_config.Layers, lod_config.BillboardTexUnit)));
 			}
 		}
 	
@@ -225,7 +283,7 @@ namespace osgVegetation
 #else
 			const int lod_level = ExtractLODLevelFromFileName(filename);
 #endif
-			std::map<int, BillboardNodeGenerator>::const_iterator iter = m_LODLayers.find(lod_level);
+			std::map<int, osg::ref_ptr<BillboardMultiLayerEffect> >::const_iterator iter = m_LODLayers.find(lod_level);
 			if (iter != m_LODLayers.end())
 			{
 				osg::Group* root_node = dynamic_cast<osg::Group*>(rr.getNode());
@@ -235,7 +293,7 @@ namespace osgVegetation
 				{
 					//Create/clone terrain geometry
 					osg::Group* terrain_geometry = CreateTerrainGeometry(root_node);
-					osg::ref_ptr<osg::Node> veg_node = iter->second.CreateNode(terrain_geometry);
+					osg::ref_ptr<BillboardMultiLayerEffect> veg_node = iter->second->createInstance(terrain_geometry);
 					root_node->addChild(veg_node);
 				}
 			}
@@ -243,6 +301,6 @@ namespace osgVegetation
 		}
 	protected:
 		virtual ~VPBVegetationInjection() {}
-		std::map<int, BillboardNodeGenerator> m_LODLayers;
+		std::map<int, osg::ref_ptr<BillboardMultiLayerEffect> > m_LODLayers;
 	};
 }
