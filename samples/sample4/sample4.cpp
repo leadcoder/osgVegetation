@@ -17,7 +17,7 @@
 */
 
 #include "ov_BillboardLayer.h"
-#include "ov_BillboardNodeGenerator.h"
+#include "ov_BillboardLayerStateSet.h"
 #include "ov_Utils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
@@ -156,7 +156,7 @@ osg::ref_ptr<osg::Group> CreateTerrainAndVegetation()
 		for (size_t i = 0; i < GetVegetationLayers().size(); i++)
 		{
 			osgVegetation::BillboardLayer layer_config = GetVegetationLayers().at(i);
-			osg::ref_ptr<osgVegetation::BillboardLayerEffect> bb_layer = new osgVegetation::BillboardLayerEffect(layer_config, billboard_tex_unit);
+			osg::ref_ptr<osg::Group> bb_layer = new osgVegetation::BillboardLayerEffect(layer_config, billboard_tex_unit);
 			bb_layer->addChild(terrain_geometry_vegetation);
 			if (layer_config.Type == osgVegetation::BillboardLayer::BLT_GRASS)
 				bb_layer->setNodeMask(ReceivesShadowTraversalMask);

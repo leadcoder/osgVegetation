@@ -79,7 +79,7 @@ int main(int argc, char** argv)
 	terrain_tu.ColorTextureUnit = 0;
 	terrain_tu.SplatTextureUnit = 1;
 
-	osgVegetation::BillboardNodeGeneratorConfig bbconfig(layers, terrain_tu,12);
+	osgVegetation::BillboardNodeGeneratorConfig bbconfig(layers,12);
 
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(bbconfig));
 #if 0
@@ -88,7 +88,6 @@ int main(int argc, char** argv)
 	//osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osgb");
 	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");
 #endif
-	
 	
 	osgVegetation::TerrainShadingConfiguration terrain_shading;
 	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
@@ -104,15 +103,13 @@ int main(int argc, char** argv)
 	terrain_shading.NoiseTexture = "terrain/detail/noise.png";
 	terrain_shading.NoiseTextureUnit = 4;
 	terrain_shading.DetailTextureUnit = 3;
-
 	
 	osg::ref_ptr<osgVegetation::TerrainShadingEffect> terrain_shading_effect = new osgVegetation::TerrainShadingEffect(terrain_shading);
 	terrain_shading_effect->addChild(terrain_node);
 	terrain_shading_effect->setTerrainTextures(terrain_tu);
 
 	root_node->addChild(terrain_shading_effect);
-	//osgVegetation::ApplyTerrainShading(terrain_node, terrain_shading);
-
+	
 	if (!terrain_node)
 	{
 		osg::notify(osg::NOTICE) << "Warning: no valid data loaded, please specify a database on the command line." << std::endl;
