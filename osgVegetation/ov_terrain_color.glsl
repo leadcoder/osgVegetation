@@ -18,7 +18,7 @@ uniform sampler2DArray ov_detail_texture;
 uniform vec4 ov_detail_scale;
 uniform int ov_num_detail_textures;
 
-vec4 ov_getSplatColor(vec2 splat_tex_coord,vec2 terrain_pos)
+vec4 ov_getSplatColor(vec2 splat_tex_coord, vec2 terrain_pos)
 {
 	vec4 splat_color = texture(ov_splat_texture, splat_tex_coord);
 
@@ -26,13 +26,11 @@ vec4 ov_getSplatColor(vec2 splat_tex_coord,vec2 terrain_pos)
 	splat_color = clamp(splat_color, 0, 1);
 
 #ifdef OV_NOISE_TEXTURE
-	//float noise = texture2D(ov_noise_texture, terrain_pos * 0.10).x*(1.0 -  texture2D(ov_noise_texture, terrain_pos*0.0010).x);
 	float noise = texture2D(ov_noise_texture, terrain_pos * 0.001).x;
 	noise = noise * noise;
 	noise = 1.0 - clamp(noise * 2.0, 0.0, 1.0);
 	splat_color = splat_color * noise;
 #endif
-	
 	return splat_color;
 }
 

@@ -10,6 +10,60 @@
 
 namespace osgVegetation
 {
+
+	class TerrainLandcoverMapping
+	{
+	public:
+		TerrainLandcoverMapping() {}
+		std::map<std::string, int> m_NameToID;
+	};
+
+	class TerrainLandcoverShader
+	{
+	public:
+		TerrainLandcoverShader() {}
+
+		std::string GenerateSplatLandcover(osg::Vec4f color_threshold, osg::Vec4i color_landcover)
+		{
+			std::string splat_func = GenerateSplatToLandcover(color_threshold, color_landcover);
+			std::stringstream ss;
+			ss << "int lc = getLandcoverFromSplatmap(splat_color)";
+			ss << "bool pass = passFilter(lc)";
+
+		}
+
+		std::string GenerateSplatToLandcover(osg::Vec4f color_threshold, osg::Vec4i color_landcover)
+		{
+			std::stringstream ss;
+			ss << "int getLandcoverFromSplatmap(vec3 splat_color)";
+			ss << "{";
+			ss << " if(splat_color.z > 0.9)";
+			ss << "    return 3;";
+			ss << " if(splat_color.y > 0.9)";
+			ss << "    return 2;";
+			ss << " if(splat_color.x > 0.9)";
+			ss << "    return 1;";
+			ss << "  return 0;";
+			ss << "}";
+			return ss.str();
+		}
+
+		std::string GenerateLancoverFilter(std::vector<int> landcovers)
+		{
+			std::stringstream ss;
+			ss << "bool passFilter(int landcover)";
+			ss << "{";
+			for (size_t i = 0; i < landcovers.size(); i++)
+			{
+				ss << " if(landcover == " << landcovers[i] << ")";
+				ss << "    return true";
+			}
+			ss << "  return false";
+			ss << "}";
+			return ss.str();
+		}
+	};
+
 	class TerrainTextureUnitSettings
 	{
 	public:
@@ -21,7 +75,7 @@ namespace osgVegetation
 		int SplatTextureUnit;
 		int ElevationTextureUnit;
 
-		void Apply(osg::ref_ptr<osg::StateSet> state_set) const
+		/*void Apply(osg::ref_ptr<osg::StateSet> state_set) const
 		{
 			if (ColorTextureUnit > -1)
 			{
@@ -40,7 +94,7 @@ namespace osgVegetation
 				state_set->addUniform(new osg::Uniform("ov_elevation_texture", ElevationTextureUnit));
 				state_set->setDefine("OV_TERRAIN_ELEVATION_TEXTURE");
 			}
-		}
+		}*/
 	};
 
 	class DetailLayer
@@ -66,130 +120,33 @@ namespace osgVegetation
 		int NoiseTextureUnit;
 		bool UseTessellation;
 	};
-#if 0
-	class SharedTerrainState
-	{
-	public:
-		static osg::Program* _CreateProgram(bool use_tesselation)
-		{
-			osg::Program* program = new osg::Program;
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_terrain_elevation.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_common_vertex.glsl")));
-			if (use_tesselation)
-			{
-				program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_common_vertex.glsl")));
-				//program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_terrain_tess_eval.glsl")));
-				program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_terrain_elevation.glsl")));
-			}
-			//else
-			//	program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_common_vertex.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_common_fragment.glsl")));
-			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_terrain_color.glsl")));
-			return program;
-		}
-
-		SharedTerrainState()
-		{
-
-		}
-
-		static osg::ref_ptr<osg::StateSet> CreateState(const TerrainShadingConfiguration& config)
-		{
-			osg::ref_ptr<osg::StateSet> state_set = new osg::StateSet();
-			//_SetupTerrainTextures(state_set, config.TextureUnits);
-			if(config.UseTessellation)
-				state_set->setDefine("OV_TERRAIN_TESSELLATION");
-
-			if (config.NoiseTexture != "" && config.NoiseTextureUnit > -1)
-			{
-				osg::ref_ptr<osg::Image> noise_image = osgDB::readRefImageFile(config.NoiseTexture);
-				if (noise_image)
-				{
-					osg::Texture2D* noise_tex = new osg::Texture2D;
-					noise_tex->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::REPEAT);
-					noise_tex->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::REPEAT);
-					noise_tex->setImage(noise_image);
-					state_set->setTextureAttributeAndModes(config.NoiseTextureUnit, noise_tex, osg::StateAttribute::ON);
-					state_set->addUniform(new osg::Uniform("ov_noise_texture", config.NoiseTextureUnit));
-					state_set->setDefine("OV_NOISE_TEXTURE");
-				}
-			}
-
-			//osg::Program* program = _CreateProgram(config.UseTessellation);
-			//m_StateSet->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
-			
-			const bool has_detail = config.DetailLayers.size() > 0;
-			if (has_detail && config.DetailTextureUnit > 0)
-			{
-				//state_set->addUniform(new osg::Uniform("ov_splat_texture", config.TextureUnits.SplatTextureUnit));
-				state_set->setDefine("OV_TERRAIN_DETAIL_TEXTURING");
-				osg::Vec4 scale(1, 1, 1, 1);
-				osg::ref_ptr<osg::Texture2DArray> tex = _CreateTextureArray(config.DetailLayers);
-				state_set->setTextureAttributeAndModes(config.DetailTextureUnit, tex, osg::StateAttribute::ON);
-				state_set->addUniform(new osg::Uniform("ov_detail_texture", config.DetailTextureUnit));
-				int num_detail_textures = config.DetailLayers.size();
-				state_set->addUniform(new osg::Uniform("ov_num_detail_textures", num_detail_textures));
-				for (size_t i = 0; i < config.DetailLayers.size(); i++)
-				{
-					if (i < 4)
-						scale[i] = config.DetailLayers[i].Scale;
-				}
-				state_set->addUniform(new osg::Uniform("ov_detail_scale", scale));
-			}
-			return state_set;
-		}
-
-		static void _SetupTerrainTextures(osg::ref_ptr<osg::StateSet> state_set, const TerrainTextureUnitSettings &config)
-		{
-			if (config.ColorTextureUnit > -1)
-			{
-				state_set->addUniform(new osg::Uniform("ov_color_texture", config.ColorTextureUnit));
-				state_set->setDefine("OV_TERRAIN_COLOR_TEXTURE");
-			}
-
-			if (config.SplatTextureUnit > -1)
-			{
-				state_set->addUniform(new osg::Uniform("ov_splat_texture", config.SplatTextureUnit));
-				state_set->setDefine("OV_TERRAIN_SPLAT_TEXTURE");
-			}
-
-			if (config.ElevationTextureUnit > -1)
-			{
-				state_set->addUniform(new osg::Uniform("ov_elevation_texture", config.ElevationTextureUnit));
-				state_set->setDefine("OV_TERRAIN_ELEVATION_TEXTURE");
-			}
-		}
-
-		static osg::ref_ptr<osg::Texture2DArray> _CreateTextureArray(const std::vector<DetailLayer> &detail_layers)
-		{
-			const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options();
-			osg::ref_ptr<osg::Texture2DArray> tex = new osg::Texture2DArray();
-
-			tex->setWrap(osg::Texture::WRAP_S, osg::Texture::REPEAT);
-			tex->setWrap(osg::Texture::WRAP_T, osg::Texture::REPEAT);
-			tex->setUseHardwareMipMapGeneration(true);
-			tex->setFilter(osg::Texture2DArray::MIN_FILTER, osg::Texture2DArray::LINEAR_MIPMAP_LINEAR);
-			tex->setMaxAnisotropy(4.0f);
-
-			for (size_t i = 0; i < detail_layers.size(); i++)
-			{
-				const std::string texture_name = detail_layers[i].DetailTexture;
-				//options->setOptionString("dds_flip");
-				//osg::Image* image = osgDB::readImageFile(texture_name, options);
-				osg::Image* image = osgDB::readImageFile(texture_name);
-				if (image == NULL)
-					OSGV_EXCEPT(std::string("TerrainShading::_CreateTextureArray - Failed to load texture:" + texture_name).c_str());
-				tex->setImage(i, image);
-			}
-			return tex;
-		}
-	};
-#endif
 
 	class TerrainStateSet : public osg::StateSet
 	{
 	public:
-		TerrainStateSet(const TerrainShadingConfiguration& config)
+		void SetColorTextureUnit(int unit)
+		{
+			if (unit >= 0)
+			{
+				addUniform(new osg::Uniform("ov_color_texture", unit));
+				setDefine("OV_TERRAIN_COLOR_TEXTURE");
+			}
+		}
+
+		void SetElevationTextureUnit(int unit)
+		{
+			if (unit >= 0)
+			{
+				addUniform(new osg::Uniform("ov_elevation_texture", unit));
+				setDefine("OV_TERRAIN_ELEVATION_TEXTURE");
+			}
+		}
+	};
+
+	class TerrainShadingStateSet : public TerrainStateSet
+	{
+	public:
+		TerrainShadingStateSet(const TerrainShadingConfiguration& config)
 		{
 			if (config.UseTessellation)
 				setDefine("OV_TERRAIN_TESSELLATION");
@@ -198,6 +155,15 @@ namespace osgVegetation
 
 			osg::Program* program = _CreateProgram(config);
 			setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
+		}
+
+		void SetSplatTextureUnit(int unit)
+		{
+			if (unit >= 0)
+			{
+				addUniform(new osg::Uniform("ov_splat_texture", unit));
+				setDefine("OV_TERRAIN_SPLAT_TEXTURE");
+			}
 		}
 
 	private:
@@ -241,7 +207,6 @@ namespace osgVegetation
 			const bool has_detail = config.DetailLayers.size() > 0;
 			if (has_detail && config.DetailTextureUnit > 0)
 			{
-				//state_set->addUniform(new osg::Uniform("ov_splat_texture", config.TextureUnits.SplatTextureUnit));
 				setDefine("OV_TERRAIN_DETAIL_TEXTURING");
 				osg::Vec4 scale(1, 1, 1, 1);
 				osg::ref_ptr<osg::Texture2DArray> tex = _CreateTextureArray(config.DetailLayers);
@@ -288,13 +253,13 @@ namespace osgVegetation
 	public:
 		TerrainShadingEffect(const TerrainShadingConfiguration& config)
 		{
-			osg::ref_ptr<osg::StateSet> state_set = new TerrainStateSet(config);
+			osg::ref_ptr<osg::StateSet> state_set = new TerrainShadingStateSet(config);
 			setStateSet(state_set);
 		}
 
-		void setTerrainTextures(TerrainTextureUnitSettings tex_units)
+		/*void setTerrainTextures(TerrainTextureUnitSettings tex_units)
 		{
 			tex_units.Apply(getStateSet());
-		}
+		}*/
 	};
 }

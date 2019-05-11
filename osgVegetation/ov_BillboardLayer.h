@@ -1,5 +1,6 @@
 #pragma once
 #include "ov_Common.h"
+#include "ov_PassFilter.h"
 #include <osg/Texture2DArray>
 #include <osg/Multisample>
 #include <osg/Program>
@@ -15,6 +16,7 @@
 
 namespace osgVegetation
 {
+
 	class BillboardLayer
 	{
 	public:
@@ -49,15 +51,17 @@ namespace osgVegetation
 		private:
 		};
 
-		BillboardLayer(float max_dist = 150, float density = 8, float color_threshold = 0.2, float color_impact = 1.0, float lc_id = -1, int lod_level = -1) : MaxDistance(max_dist),
+
+
+		BillboardLayer(float max_dist = 150, float density = 8, float color_impact = 1.0, float lc_id = -1, int lod_level = -1) : MaxDistance(max_dist),
 			Density(density), 
-			ColorThreshold(color_threshold),
 			ColorImpact(color_impact),
 			LandCoverID(lc_id),
 			AlphaRejectValue(0.1),
 			LODLevel(lod_level),
 			Type(BLT_ROTATED_QUAD)
 		{
+
 		}
 
 		~BillboardLayer()
@@ -67,15 +71,13 @@ namespace osgVegetation
 
 		float MaxDistance;
 		float Density;
-		float ColorThreshold;
 		float ColorImpact;
 		float LandCoverID;
 		float AlphaRejectValue;
 		int LODLevel;
 		BillboardLayerType Type;
-		std::vector<float> Filter;
 		std::string SplatFilter;
-		osg::Vec3 SplatColorThreshold;
+		PassFilter Filter;
 		std::vector<Billboard> Billboards;
 	private:
 	};

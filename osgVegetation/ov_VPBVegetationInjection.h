@@ -8,7 +8,6 @@
 #include <osgTerrain/Terrain>
 #include <osgTerrain/TerrainTile>
 
-
 namespace osgVegetation
 {
 
@@ -102,7 +101,7 @@ namespace osgVegetation
 	
 		void insertTerrain(osg::ref_ptr<osg::Node> terrain_geometry)
 		{
-			for (int i = 0; i < getNumChildren(); i++)
+			for (unsigned int i = 0; i < getNumChildren(); i++)
 			{
 				getChild(i)->asGroup()->addChild(terrain_geometry);
 			}

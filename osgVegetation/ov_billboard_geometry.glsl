@@ -3,7 +3,7 @@
 //compatibility
 //#version 400
 #extension GL_ARB_geometry_shader4 : enable
-#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS, OV_TERRAIN_COLOR_TEXTURE, OV_LANDCOVER_FILTER(v), OV_SPLAT_FILTER(splat_color))
+#pragma import_defines (BLT_ROTATED_QUAD, BLT_CROSS_QUADS, BLT_GRASS)
 
 #ifdef BLT_GRASS
 	#define MAX_NUM_VERTS 16
@@ -39,26 +39,19 @@ uniform mat3 osg_NormalMatrix;
 
 uniform float osg_SimulationTime;
 
-#ifdef OV_TERRAIN_COLOR_TEXTURE
-uniform sampler2D ov_color_texture;
-#endif
-
 #ifdef OV_NOISE_TEXTURE
 uniform sampler2D ov_noise_texture;
 #endif
 uniform int ov_num_billboards;
 uniform vec4 ov_billboard_data[10];
 uniform float ov_billboard_max_distance;
-uniform float ov_billboard_color_threshold;
 
 //forward declaration
 void ov_setShadowTexCoords(vec4 mv_pos);
 vec4 ov_applyTerrainElevation(vec4 pos, vec2 tex_coords);
 vec3 ov_applyTerrainNormal(vec3 normal, vec2 tex_coords);
-//vec3 ov_getTerrainNormal(vec2 tex_coords);
-
-vec4 ov_getTerrainColor(float depth,vec2 tex_coord0, vec2 terrain_pos);
-vec4 ov_getSplatColor(vec2 splat_tex_coord, vec2 terrain_pos);
+vec4 ov_getTerrainColor(float depth, vec2 tex_coord0, vec2 terrain_pos);
+bool ov_passFilter(vec3 terrain_pos, vec3 terrain_normal, vec2 terrain_texcoord);
 
 float ov_random(vec2 co)
 {
@@ -350,27 +343,14 @@ void main(void)
 	terrain_pos = ov_applyTerrainElevation(terrain_pos, terrain_texcoord.xy);
 	terrain_normal = ov_applyTerrainNormal(terrain_normal, terrain_texcoord.xy);
 
-#ifdef OV_SPLAT_FILTER
-	vec4 lc_color = ov_getSplatColor(terrain_texcoord, terrain_pos.xy);
-	OV_SPLAT_FILTER(lc_color)
-#endif
-
-	//sample terrain color
-#ifdef OV_TERRAIN_COLOR_TEXTURE
-	vec3 terrain_color = texture2D(ov_color_texture, terrain_texcoord).xyz;
-	if(length(terrain_color) > ov_billboard_color_threshold)
-		return;
-#else
-	vec3 terrain_color = vec3(1,1,1);
-#endif
-	//Slope filter
-	if(dot(normalize(terrain_normal), vec3(0,0,1)) < 0.9)
+	//check if this is valid location
+	if(!ov_passFilter(terrain_pos.xyz, terrain_normal, terrain_texcoord))
 		return;
 	
 	vec4 mv_pos = osg_ModelViewMatrix * terrain_pos;
 	ov_bb_out.Depth = -mv_pos.z;
 
-	terrain_color =  ov_getTerrainColor(ov_bb_out.Depth, terrain_texcoord.xy, terrain_pos.xy).xyz;
+	vec3 terrain_color =  ov_getTerrainColor(ov_bb_out.Depth, terrain_texcoord.xy, terrain_pos.xy).xyz;
 	terrain_color += ov_getTerrainColor(ov_bb_out.Depth, terrain_texcoord.xy, terrain_pos.xy + vec2(0.4,0.4)).xyz;
 	terrain_color += ov_getTerrainColor(ov_bb_out.Depth, terrain_texcoord.xy, terrain_pos.xy + vec2(-0.4,-0.4)).xyz;
 	terrain_color = terrain_color*0.33;

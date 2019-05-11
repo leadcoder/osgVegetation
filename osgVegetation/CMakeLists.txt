@@ -15,6 +15,7 @@ SET(H_FILES
 	ov_Terrain.h
 	ov_Scene.h
 	ov_BillboardLayerStateSet.h
+	ov_PassFilter.h
 )
 
 SET(SHADERS_FILES
@@ -34,6 +35,7 @@ SET(SHADERS_FILES
 	ov_terrain_tess_ctrl.glsl
 	ov_terrain_fragment.glsl
 	ov_terrain_detail_texturing.glsl
+	ov_terrain_pass_filter.glsl
 )
 
 include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})

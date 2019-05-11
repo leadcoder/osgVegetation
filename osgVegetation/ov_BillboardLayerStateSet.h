@@ -10,8 +10,6 @@
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 #include <osg/PatchParameter>
-//#include <osgDB/ReadFile>
-
 #include "ov_Utils.h"
 #include "ov_BillboardLayer.h"
 
@@ -24,23 +22,8 @@ namespace osgVegetation
 		{
 			setDefine("OV_TERRAIN_TESSELLATION");
 
-			std::stringstream ss;
-			if (data.SplatColorThreshold.x() > 0)
-			{
-				ss << "if((splat_color.x) < " << data.SplatColorThreshold.x() << ") return;";
-			}
-			if (data.SplatColorThreshold.y() > 0)
-			{
-				ss << "if((splat_color.y) < " << data.SplatColorThreshold.y() << ") return;";
-			}
-			if (data.SplatColorThreshold.z() > 0)
-			{
-				ss << "if((splat_color.z) < " << data.SplatColorThreshold.z() << ") return;";
-			}
-			if (ss.str() != "")
-			{
-				setDefine("OV_SPLAT_FILTER(splat_color)", ss.str());
-			}
+			//apply filters
+			data.Filter.Apply(this);
 
 			addUniform(new osg::Uniform("ov_billboard_texture", billboard_tex_unit));
 			addUniform(new osg::Uniform("ov_billboard_max_distance", data.MaxDistance));
@@ -49,7 +32,6 @@ namespace osgVegetation
 			const float target_tri_side_lenght = static_cast<float>(GetEquilateralTriangleSideLengthFromArea(target_instance_area));
 
 			addUniform(new osg::Uniform("ov_billboard_density", target_tri_side_lenght));
-			addUniform(new osg::Uniform("ov_billboard_color_threshold", data.ColorThreshold));
 			addUniform(new osg::Uniform("ov_billboard_color_impact", data.ColorImpact));
 
 			const int num_billboards = static_cast<int>(data.Billboards.size());
@@ -96,7 +78,7 @@ namespace osgVegetation
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_terrain_fragment.glsl")));
 #else	
 
-			osg::Program* program = new osg::Program();// SharedTerrainState::_CreateProgram(true);
+			osg::Program* program = new osg::Program();
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_terrain_vertex.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_terrain_elevation.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_common_vertex.glsl")));
@@ -105,6 +87,7 @@ namespace osgVegetation
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_common_vertex.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_terrain_elevation.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_terrain_color.glsl")));
+			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_terrain_pass_filter.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_billboard_geometry.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_common_fragment.glsl")));
 			program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_billboard_fragment.glsl")));
@@ -186,10 +169,10 @@ private:
 		virtual Object* cloneType() const { return new osg::Group(); }
 		virtual Object* clone(const osg::CopyOp& copyop) const { return new BillboardLayerEffect(*this, copyop); }
 
-		void setTerrainTextures(TerrainTextureUnitSettings tex_units)
+		/*void setTerrainTextures(TerrainTextureUnitSettings tex_units)
 		{
 			tex_units.Apply(getStateSet());
-		}
+		}*/
 	};
 
 #if 0	
