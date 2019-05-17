@@ -57,17 +57,20 @@ int main(int argc, char** argv)
 
 	//setup vegetation layers
 	std::vector<osgVegetation::BillboardLayer> layers;
-	osgVegetation::BillboardLayer grass_data(140, 0.2, 1.0, 1.0, 0.1, 5);
+	osgVegetation::BillboardLayer grass_data(140, 0.2, 1.0, 0.1, 5);
 	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
-	grass_data.SplatColorThreshold = osg::Vec3(0.1, 0.0, 0.0);
+	osg::Vec4 grass_splat_color_filter(0.1, -1, -1, -1);
+	grass_data.Filter.SplatFilter = osgVegetation::PassFilter::GenerateSplatFilter(grass_splat_color_filter, "<");
 
 	layers.push_back(grass_data);
 
-	osgVegetation::BillboardLayer tree_data(740, 0.004, 0.5, 0.7, 0.1, 2);
+	
+	osgVegetation::BillboardLayer tree_data(740, 0.004, 0.7, 0.1, 2);
 	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
+	tree_data.Filter.ColorFilter = "if(length(base_color.xyz) > 0.5) return false;";
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.0, 1.0));
 	//tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
 	layers.push_back(tree_data);
@@ -75,9 +78,9 @@ int main(int argc, char** argv)
 	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.ShadowMode);
 
 	//Setup texture units
-	osgVegetation::TerrainTextureUnitSettings terrain_tu;
-	terrain_tu.ColorTextureUnit = 0;
-	terrain_tu.SplatTextureUnit = 1;
+	//osgVegetation::TerrainTextureUnitSettings terrain_tu;
+	//terrain_tu.ColorTextureUnit = 0;
+	//terrain_tu.SplatTextureUnit = 1;
 
 	osgVegetation::BillboardNodeGeneratorConfig bbconfig(layers,12);
 
@@ -90,6 +93,8 @@ int main(int argc, char** argv)
 #endif
 	
 	osgVegetation::TerrainShadingConfiguration terrain_shading;
+	terrain_shading.ColorTexture.TexUnit = 0;
+	terrain_shading.SplatTexture.TexUnit = 1;
 	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
 	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
 	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
@@ -100,13 +105,14 @@ int main(int argc, char** argv)
 	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
-	terrain_shading.NoiseTexture = "terrain/detail/noise.png";
-	terrain_shading.NoiseTextureUnit = 4;
 	terrain_shading.DetailTextureUnit = 3;
-	
-	osg::ref_ptr<osgVegetation::TerrainShadingEffect> terrain_shading_effect = new osgVegetation::TerrainShadingEffect(terrain_shading);
+	terrain_shading.NoiseTexture = osgVegetation::TextureConfig("terrain/detail/noise.png", 4);
+
+	osg::ref_ptr <osgVegetation::TerrainShadingStateSet> terrain_shading_ss = new osgVegetation::TerrainShadingStateSet(terrain_shading);
+	osg::ref_ptr<osg::Group> terrain_shading_effect = new osg::Group();
+	terrain_shading_effect->setStateSet(terrain_shading_ss);
 	terrain_shading_effect->addChild(terrain_node);
-	terrain_shading_effect->setTerrainTextures(terrain_tu);
+	
 
 	root_node->addChild(terrain_shading_effect);
 	

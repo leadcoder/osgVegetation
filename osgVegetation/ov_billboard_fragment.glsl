@@ -18,13 +18,6 @@ in ov_BillboardVertexData
 
 out vec4 fragColor;
 
-//varying vec2 ov_geometry_texcoord;
-//varying vec4 ov_geometry_color;
-//flat varying int ov_geometry_tex_index;
-//varying vec3 ov_geometry_normal;
-//varying float ov_depth;
-//flat varying float ov_fade;
-
 //forward declarations
 vec3 ov_directionalLight(vec3 normal);
 vec3 ov_directionalLightShadow(vec3 normal);

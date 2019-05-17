@@ -3,6 +3,7 @@
 #extension GL_EXT_texture_array : enable
 
 #pragma import_defines (OV_TERRAIN_COLOR_TEXTURE, OV_TERRAIN_DETAIL_TEXTURING, OV_NOISE_TEXTURE)
+
 #ifdef OV_TERRAIN_COLOR_TEXTURE
 uniform sampler2D ov_color_texture;
 #endif

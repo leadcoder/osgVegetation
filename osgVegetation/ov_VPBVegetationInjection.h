@@ -80,6 +80,7 @@ namespace osgVegetation
 			{
 				osg::ref_ptr<BillboardLayerEffect> layer = new BillboardLayerEffect(layers[i], tex_unit);
 				layer->setNodeMask(0x1);
+				//layer_node->setNodeMask(0x1 | m_Config.CastShadowTraversalMask);
 				addChild(layer);
 			}
 		}
