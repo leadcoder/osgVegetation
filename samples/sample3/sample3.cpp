@@ -1,5 +1,6 @@
 #include "ov_VPBVegetationInjection.h"
 #include "ov_Utils.h"
+#include "ov_TerrainShadingStateSet.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
 #include <osgViewer/Viewer>

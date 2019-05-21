@@ -18,6 +18,7 @@
 
 #include "ov_BillboardLayer.h"
 #include "ov_BillboardLayerStateSet.h"
+#include "ov_TerrainShadingStateSet.h"
 #include "ov_Utils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>

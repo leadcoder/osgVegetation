@@ -18,6 +18,7 @@
 
 #include "ov_BillboardLayer.h"
 #include "ov_BillboardLayerStateSet.h"
+#include "ov_TerrainShadingStateSet.h"
 #include "ov_Utils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
@@ -109,6 +110,28 @@ osg::ref_ptr<osg::Node> createFlatTerrainPatch(double terrain_size, int samples)
 	osg::Vec3d(terrain_size / 2.0, terrain_size / 2.0, 1000))));
 	geode->addDrawable(sd);
 	osgVegetation::ConvertToPatches(geode);
+	return geode;
+}
+
+osg::ref_ptr<osg::Node> createTerrainPatch(double terrain_size, osg::ref_ptr<osg::Image> elevation_image)
+{
+	osg::ref_ptr <osg::HeightField> heightField = new osg::HeightField();
+	heightField->allocate(elevation_image->s(), elevation_image->t());
+	heightField->setOrigin(osg::Vec3(-terrain_size / 2.0, -terrain_size / 2.0, 0));
+	heightField->setXInterval(terrain_size / double(elevation_image->s() - 1));
+	heightField->setYInterval(terrain_size / double(elevation_image->t() - 1));
+	heightField->setSkirtHeight(0.0f);
+
+	for (unsigned int r = 0; r < heightField->getNumRows(); r++)
+	{
+		for (unsigned int c = 0; c < heightField->getNumColumns(); c++)
+		{
+			heightField->setHeight(c, r, elevation_image->getColor(c, r).r());
+		}
+	}
+
+	osg::ref_ptr<osg::Geode> geode = new osg::Geode();
+	geode->addDrawable(new osg::ShapeDrawable(heightField));
 	return geode;
 }
 
@@ -303,9 +326,10 @@ int main(int argc, char** argv)
 	double TERRAIN_SIZE = 4000;
 	osg::ref_ptr<osg::Image> elev_image = LoadElevationImage(HEIGHT_MAP, HEIGHT_MAP_SCALE);
 	osg::ref_ptr<osg::Texture2D> elev_tex =  CreateElevationTexture(elev_image);
-	osg::ref_ptr<osg::Node> terrain = createFlatTerrainPatch(TERRAIN_SIZE, 50);//new Terrain(LoadElevationImage(HEIGHT_MAP, HEIGHT_MAP_SCALE));
+	osg::ref_ptr<osg::Node> terrain = createFlatTerrainPatch(TERRAIN_SIZE, 50);
 	terrain->setNodeMask(ReceivesShadowTraversalMask);
-	osgVegetation::ConvertToPatches(terrain);
+	
+	//osgVegetation::ConvertToPatches(terrain);
 
 	osgVegetation::TerrainShadingConfiguration terrain_shading_config;
 	
@@ -323,11 +347,21 @@ int main(int argc, char** argv)
 	osg::ref_ptr<osgVegetation::TerrainShadingEffect> terrain_shading_effect = new osgVegetation::TerrainShadingEffect(terrain_shading_config);
 	terrain_shading_effect->addChild(terrain);
 	root_node->addChild(terrain_shading_effect);
+
+	//Add invisible collision geometry for camera manipulator intersection tests
+	{
+		const int COLLSION_TERRAIN_MASK = 0x4;
+		osg::ref_ptr<osg::Node> collision_terrain = createTerrainPatch(TERRAIN_SIZE, elev_image);
+		collision_terrain->setNodeMask(COLLSION_TERRAIN_MASK);
+		root_node->addChild(collision_terrain);
+		viewer.getCamera()->setCullMask(~COLLSION_TERRAIN_MASK);
+	}
 	
 	//Add vegetation to terrain
 #if 1
 	osg::ref_ptr<osg::Node> terrain_geometry = createFlatTerrainPatch(TERRAIN_SIZE, 100);
-	osgVegetation::ConvertToPatches(terrain_geometry);
+	
+	//osgVegetation::ConvertToPatches(terrain_geometry);
 	//terrain_geometry->setNodeMask(ReceivesShadowTraversalMask | CastsShadowTraversalMask);
 	//Add all billboard layers
 	int billboard_tex_unit = 12;
@@ -389,7 +423,7 @@ int main(int argc, char** argv)
 		
 		viewer.getCamera()->setClearColor(fog_color);
 	}
-	
+
 	viewer.setSceneData(root_node);
 	viewer.setUpViewInWindow(100, 100, 800, 600);
 
