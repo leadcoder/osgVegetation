@@ -1,4 +1,4 @@
-#version 400
+#version 400 compatibility //we use gl_Fog
 #extension GL_EXT_gpu_shader4 : enable
 #extension GL_EXT_texture_array : enable
 
@@ -19,7 +19,8 @@ vec4 ov_getTerrainColor(float depth,vec2 tex_coord0, vec2 terrain_pos);
 
 void main(void)
 {
-	float depth = length(osg_ModelViewMatrix * ov_in.Position);
+	vec4 mvpos = osg_ModelViewMatrix * ov_in.Position;
+	float depth = length(mvpos);
 	//vec4 terrain_color = ov_getTerrainColor(depth);
 	vec4 terrain_color = ov_getTerrainColor(depth, ov_in.TexCoord0, ov_in.Position.xy);
 	//apply lighting and fog

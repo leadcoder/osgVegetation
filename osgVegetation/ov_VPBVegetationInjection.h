@@ -1,5 +1,5 @@
 #pragma once
-#include "ov_Terrain.h"
+#include "ov_TerrainShadingStateSet.h"
 #include "ov_BillboardLayer.h"
 #include "ov_Utils.h"
 #include "ov_TerrainHelper.h"
@@ -79,7 +79,12 @@ namespace osgVegetation
 			for (size_t i = 0; i < layers.size(); i++)
 			{
 				osg::ref_ptr<BillboardLayerEffect> layer = new BillboardLayerEffect(layers[i], tex_unit);
-				layer->setNodeMask(0x1);
+				if(layers[i].Type == BillboardLayer::BLT_GRASS)
+					layer->setNodeMask(0x1);
+				else
+					layer->setNodeMask(0x1 | 0x2);
+
+				//layer->setNodeMask(0x1);
 				//layer_node->setNodeMask(0x1 | m_Config.CastShadowTraversalMask);
 				addChild(layer);
 			}
@@ -242,6 +247,14 @@ namespace osgVegetation
 					level = level.substr(0, found);
 					lod_level = atoi(level.c_str());
 				}
+			}
+			else //Trian tile
+			{
+				int x1, x2, y1, y2;
+				int lod = -1;
+				int num_args = sscanf(clean_filename.c_str(), "tile_%dx%d_%d_%dx%d", &x1, &y1, &lod, &x2, &y2);
+				if (num_args == 5)
+					lod_level = lod;
 			}
 			return lod_level;
 		}

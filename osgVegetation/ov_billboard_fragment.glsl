@@ -1,4 +1,4 @@
-#version 400
+#version 400 compatibility
 #extension GL_EXT_gpu_shader4 : enable
 #extension GL_EXT_texture_array : enable
 #pragma import_defines (BLT_ROTATED_QUAD)

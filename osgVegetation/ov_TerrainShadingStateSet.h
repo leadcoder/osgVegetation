@@ -1,33 +1,17 @@
 #pragma once
 #include "ov_Common.h"
+#include "ov_TerrainStateSet.h"
 #include <osg/Vec2>
 #include <osg/Program>
 #include <osg/Texture2D>
 #include <osg/Texture2DArray>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
+
 #include <vector>
 
 namespace osgVegetation
 {
-	class TextureConfig
-	{
-	public:
-		TextureConfig(int tex_unit = -1) : TexUnit(tex_unit) {}
-		TextureConfig(std::string filename, int tex_unit) : File(filename), TexUnit(tex_unit) {}
-		TextureConfig(osg::ref_ptr<osg::Texture2D> texture, int tex_unit) : Texture(texture), TexUnit(tex_unit) {}
-		int TexUnit;
-		std::string File;
-		osg::ref_ptr<osg::Texture2D> Texture;
-	};
-
-	class TerrainStateSetConfig
-	{
-	public:
-		TextureConfig ColorTexture;
-		TextureConfig SplatTexture;
-		TextureConfig ElevationTexture;
-	};
 
 	class DetailLayer
 	{
@@ -49,65 +33,6 @@ namespace osgVegetation
 		int DetailTextureUnit;
 		TextureConfig NoiseTexture;
 		bool UseTessellation;
-	};
-
-	class TerrainStateSet : public osg::StateSet
-	{
-	public:
-		TerrainStateSet(const TerrainStateSetConfig& config)
-		{
-			SetColorTexture(config.ColorTexture);
-			SetElevationTexture(config.ElevationTexture);
-			SetSplatTexture(config.SplatTexture);
-		}
-
-		void _ApplyTextureConfig(TextureConfig config)
-		{
-			if (config.File != "")
-			{
-				osg::ref_ptr<osg::Image> color_image = osgDB::readRefImageFile(config.File);
-				if (color_image)
-				{
-					osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D;
-					texture->setImage(color_image);
-					setTextureAttributeAndModes(config.TexUnit, texture, osg::StateAttribute::ON);
-				}
-			}
-			else if(config.Texture)
-			{
-				setTextureAttributeAndModes(config.TexUnit, config.Texture, osg::StateAttribute::ON);
-			}
-		}
-
-		void SetColorTexture(TextureConfig config)
-		{
-			_ApplyTextureConfig(config);
-			if (config.TexUnit >= 0)
-			{
-				addUniform(new osg::Uniform("ov_color_texture", config.TexUnit));
-				setDefine("OV_TERRAIN_COLOR_TEXTURE");
-			}
-		}
-
-		void SetElevationTexture(TextureConfig config)
-		{
-			_ApplyTextureConfig(config);
-			if (config.TexUnit >= 0)
-			{
-				addUniform(new osg::Uniform("ov_elevation_texture", config.TexUnit));
-				setDefine("OV_TERRAIN_ELEVATION_TEXTURE");
-			}
-		}
-
-		void SetSplatTexture(TextureConfig config)
-		{
-			_ApplyTextureConfig(config);
-			if (config.TexUnit >= 0)
-			{
-				addUniform(new osg::Uniform("ov_splat_texture", config.TexUnit));
-				setDefine("OV_TERRAIN_SPLAT_TEXTURE");
-			}
-		}
 	};
 
 	class TerrainShadingStateSet : public TerrainStateSet
@@ -157,22 +82,6 @@ namespace osgVegetation
 
 		void _SetupDetailTextures(const TerrainShadingConfiguration& config)
 		{
-			
-			/*if (config.NoiseTexture != "" && config.NoiseTextureUnit > -1)
-			{
-				osg::ref_ptr<osg::Image> noise_image = osgDB::readRefImageFile(config.NoiseTexture);
-				if (noise_image)
-				{
-					osg::Texture2D* noise_tex = new osg::Texture2D;
-					noise_tex->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::REPEAT);
-					noise_tex->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::REPEAT);
-					noise_tex->setImage(noise_image);
-					setTextureAttributeAndModes(config.NoiseTextureUnit, noise_tex, osg::StateAttribute::ON);
-					addUniform(new osg::Uniform("ov_noise_texture", config.NoiseTextureUnit));
-					setDefine("OV_NOISE_TEXTURE");
-				}
-			}*/
-
 			const bool has_detail = config.DetailLayers.size() > 0;
 			if (has_detail && config.DetailTextureUnit > 0)
 			{

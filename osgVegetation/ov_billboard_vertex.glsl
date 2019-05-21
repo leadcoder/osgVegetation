@@ -1,4 +1,4 @@
-#version 400
+#version 400 compatibility
 
 uniform mat4 osg_ModelViewMatrix;
 uniform mat4 osg_ModelViewProjectionMatrix;

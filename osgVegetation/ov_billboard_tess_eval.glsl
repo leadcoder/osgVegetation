@@ -1,4 +1,4 @@
-#version 400
+#version 400 compatibility
 layout(triangles, equal_spacing, ccw) in;
 
 in ov_VertexData

@@ -1,4 +1,4 @@
-#version 400
+#version 400 compatibility
 #pragma import_defines (OV_TERRAIN_ELEVATION_TEXTURE)
 
 #ifdef OV_TERRAIN_ELEVATION_TEXTURE

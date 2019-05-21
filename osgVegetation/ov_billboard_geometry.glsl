@@ -1,5 +1,5 @@
 //#version 120
-#version 330 
+#version 330 compatibility
 //compatibility
 //#version 400
 #extension GL_ARB_geometry_shader4 : enable

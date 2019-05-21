@@ -1,4 +1,4 @@
-#version 400
+#version 400 compatibility
 layout(vertices = 3) out;
 
 in ov_VertexData

@@ -23,14 +23,14 @@ vec4 ov_getSplatColor()
 
 vec4 ov_detailTexturing(vec4 base_color, float depth)
 {
-	vec4 lc = ov_getSplatColor();
+	vec4 splat_color = ov_getSplatColor();
 
 	vec4 detail_color = texture(ov_detail_texture, vec3(gl_TexCoord[1].xy * ov_detail_scale.x, 0));
 
 	for(int i = 1 ; i < ov_num_detail_textures; i++)
 	{
 		vec4 di = texture(ov_detail_texture, vec3(gl_TexCoord[1].xy * ov_detail_scale[i], i));
-		detail_color = mix(detail_color, di, lc.y);
+		detail_color = mix(detail_color, di, splat_color[i-1]);
 	}
 
 	//modulate with base color
