@@ -18,7 +18,7 @@
 
 #include "ov_BillboardLayer.h"
 #include "ov_BillboardLayerStateSet.h"
-#include "ov_TerrainShadingStateSet.h"
+#include "ov_TerrainSplatShadingStateSet.h"
 #include "ov_Utils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
@@ -69,16 +69,16 @@ std::vector<osgVegetation::BillboardLayer> GetVegetationLayers()
 	return layers;
 }
 
-osgVegetation::TerrainShadingConfiguration GetTerrainShaderConfig(bool tess)
+osgVegetation::TerrainSplatShadingConfig GetTerrainShaderConfig(bool tess)
 {
 	//Create terrain layer node
-	osgVegetation::TerrainShadingConfiguration tsc;
+	osgVegetation::TerrainSplatShadingConfig tsc;
 	tsc.ColorTexture = osgVegetation::TextureConfig("Images/lz.rgb", 0);
 	tsc.SplatTexture = osgVegetation::TextureConfig("Images/lz_coverage.png", 1);
-	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
-	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
-	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
-	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.08));
+	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.08));
+	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.08));
+	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.08));
 	tsc.DetailTextureUnit = 3;
 
 	tsc.NoiseTexture = osgVegetation::TextureConfig("terrain/detail/noise.png", 2);
@@ -123,8 +123,8 @@ osg::ref_ptr<osg::Group> CreateTerrain(double terrain_size)
 	//Create terrain geometry used for both terrain layer and  vegetation layers
 	osg::ref_ptr<osg::Node> terrain_geometry = CreateDemoTerrain(terrain_size);
 
-	const bool apply_shader = false;
-	osg::ref_ptr<osg::Group> terrain_shading_effect = apply_shader ? new osgVegetation::TerrainShadingEffect(GetTerrainShaderConfig(false)) : new osg::Group();
+	const bool apply_shader = true;
+	osg::ref_ptr<osg::Group> terrain_shading_effect = apply_shader ? new osgVegetation::TerrainSplatShadingEffect(GetTerrainShaderConfig(false)) : new osg::Group();
 	//Disable terrain self shadowning
 	//terrain_shading_effect->setNodeMask(ReceivesShadowTraversalMask);
 	terrain_shading_effect->addChild(terrain_geometry);

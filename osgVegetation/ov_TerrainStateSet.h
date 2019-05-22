@@ -15,7 +15,7 @@ namespace osgVegetation
 	{
 	public:
 		TextureConfig ColorTexture;
-		TextureConfig SplatTexture;
+		TextureConfig NormalTexture;
 		TextureConfig ElevationTexture;
 	};
 
@@ -26,7 +26,7 @@ namespace osgVegetation
 		{
 			SetColorTexture(config.ColorTexture);
 			SetElevationTexture(config.ElevationTexture);
-			SetSplatTexture(config.SplatTexture);
+			SetNormalTexture(config.NormalTexture);
 		}
 
 		void _ApplyTextureConfig(TextureConfig config)
@@ -69,13 +69,13 @@ namespace osgVegetation
 			}
 		}
 
-		void SetSplatTexture(TextureConfig config)
+		void SetNormalTexture(TextureConfig config)
 		{
 			_ApplyTextureConfig(config);
 			if (config.TexUnit >= 0)
 			{
-				addUniform(new osg::Uniform("ov_splat_texture", config.TexUnit));
-				setDefine("OV_TERRAIN_SPLAT_TEXTURE");
+				addUniform(new osg::Uniform("ov_normal_texture", config.TexUnit));
+				setDefine("OV_TERRAIN_NORMAL_TEXTURE");
 			}
 		}
 	};

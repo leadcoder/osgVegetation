@@ -1,8 +1,12 @@
 #version 400 compatibility
-#pragma import_defines (OV_TERRAIN_ELEVATION_TEXTURE)
+#pragma import_defines (OV_TERRAIN_ELEVATION_TEXTURE, OV_TERRAIN_NORMAL_TEXTURE)
 
 #ifdef OV_TERRAIN_ELEVATION_TEXTURE
 uniform sampler2D ov_elevation_texture;
+#endif
+
+#ifdef OV_TERRAIN_NORMAL_TEXTURE
+uniform sampler2D ov_normal_texture;
 #endif
 
 float ov_getTerrainElevation(vec2 tex_coords)
@@ -30,7 +34,11 @@ vec4 ov_applyTerrainElevation(vec4 pos, vec2 tex_coords)
 vec3 ov_getTerrainNormal(vec2 tex_coords)
 {
 	vec3 normal = vec3(0,0,1);
-	#ifdef OV_TERRAIN_ELEVATION_TEXTURE
+	#ifdef OV_TERRAIN_NORMAL_TEXTURE
+		normal = texture(ov_normal_texture, tex_coords).xyz;
+		//unpack
+		normal = normal*2.0 - 1.0;
+	#elif defined OV_TERRAIN_ELEVATION_TEXTURE
 		ivec2 elev_texture_size = textureSize(ov_elevation_texture,0);
 		vec2 elev_texel_size = vec2(1.0/ float(elev_texture_size.x), 1.0/float(elev_texture_size.y)); 
 		vec2 tex_coord_scale = vec2(1.0, 1.0) - elev_texel_size; //strech texture by on texel
@@ -46,7 +54,7 @@ vec3 ov_getTerrainNormal(vec2 tex_coords)
 		float v1 = texture(ov_elevation_texture, tex_coords_final + pixel_size.zx).x;
 		vec3 tangent = normalize(vec3(quad_size, 0, u1 - u0));
 		vec3 binormal = normalize(vec3(0, quad_size, v1 - v0));
-		normal = normalize(cross(tangent, binormal));
+		//normal = normalize(cross(tangent, binormal));
 
 	#endif
 	return normal;
@@ -54,7 +62,7 @@ vec3 ov_getTerrainNormal(vec2 tex_coords)
 
 vec3 ov_applyTerrainNormal(vec3 normal, vec2 tex_coords)
 {
-	#ifdef OV_TERRAIN_ELEVATION_TEXTURE
+	#if defined(OV_TERRAIN_ELEVATION_TEXTURE) || defined(OV_TERRAIN_NORMAL_TEXTURE)
 	normal = ov_getTerrainNormal(tex_coords);
 	#endif
 	return normal;

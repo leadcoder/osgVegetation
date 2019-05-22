@@ -1,6 +1,6 @@
 #include "ov_VPBVegetationInjection.h"
 #include "ov_Utils.h"
-#include "ov_TerrainShadingStateSet.h"
+#include "ov_TerrainSplatShadingStateSet.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
 #include <osgViewer/Viewer>
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
 	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");
 #endif
 	
-	osgVegetation::TerrainShadingConfiguration terrain_shading;
+	osgVegetation::TerrainSplatShadingConfig terrain_shading;
 	terrain_shading.ColorTexture.TexUnit = 0;
 	terrain_shading.SplatTexture.TexUnit = 1;
 	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 	terrain_shading.DetailTextureUnit = 3;
 	terrain_shading.NoiseTexture = osgVegetation::TextureConfig("terrain/detail/noise.png", 4);
 
-	osg::ref_ptr <osgVegetation::TerrainShadingStateSet> terrain_shading_ss = new osgVegetation::TerrainShadingStateSet(terrain_shading);
+	osg::ref_ptr <osgVegetation::TerrainSplatShadingStateSet> terrain_shading_ss = new osgVegetation::TerrainSplatShadingStateSet(terrain_shading);
 	osg::ref_ptr<osg::Group> terrain_shading_effect = new osg::Group();
 	terrain_shading_effect->setStateSet(terrain_shading_ss);
 	terrain_shading_effect->addChild(terrain_node);

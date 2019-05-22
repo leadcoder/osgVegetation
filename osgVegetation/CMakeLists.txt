@@ -14,6 +14,7 @@ SET(H_FILES
 	ov_VPBVegetationInjection.h
 	ov_TextureConfig.h
 	ov_TerrainShadingStateSet.h
+	ov_TerrainSplatShadingStateSet.h
 	ov_TerrainStateSet.h
 	ov_Scene.h
 	ov_BillboardLayerStateSet.h
@@ -30,13 +31,10 @@ SET(SHADERS_FILES
 	ov_common_fragment.glsl
 	ov_terrain_color.glsl
 	ov_terrain_elevation.glsl
-	ov_terrain_detail_fragment.glsl
-	ov_terrain_detail_vertex.glsl
 	ov_terrain_vertex.glsl
 	ov_terrain_tess_eval.glsl
 	ov_terrain_tess_ctrl.glsl
 	ov_terrain_fragment.glsl
-	ov_terrain_detail_texturing.glsl
 	ov_terrain_pass_filter.glsl
 )
 

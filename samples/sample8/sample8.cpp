@@ -1,24 +1,6 @@
-/* OpenSceneGraph example, osgterrain.
-*
-*  Permission is hereby granted, free of charge, to any person obtaining a copy
-*  of this software and associated documentation files (the "Software"), to deal
-*  in the Software without restriction, including without limitation the rights
-*  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-*  copies of the Software, and to permit persons to whom the Software is
-*  furnished to do so, subject to the following conditions:
-*
-*  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-*  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-*  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-*  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-*  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-*  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-*  THE SOFTWARE.
-*/
-
 #include "ov_BillboardLayer.h"
 #include "ov_BillboardLayerStateSet.h"
-#include "ov_TerrainShadingStateSet.h"
+#include "ov_TerrainSplatShadingStateSet.h"
 #include "ov_Utils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
@@ -164,123 +146,6 @@ std::vector<osgVegetation::BillboardLayer> GetVegetationLayers()
 	return layers;
 }
 
-class Terrain : public osg::Group
-{
-private:
-	osg::Node* _createGrid(double terrain_size, int res)
-	{
-		osg::HeightField* heightField = new osg::HeightField();
-		heightField->allocate(res, res);
-		heightField->setOrigin(osg::Vec3(-terrain_size / 2.0, -terrain_size / 2.0, 0));
-		heightField->setXInterval(terrain_size / double(res - 1));
-		heightField->setYInterval(terrain_size / double(res - 1));
-		heightField->setSkirtHeight(0.0f);
-
-		for (unsigned int r = 0; r < heightField->getNumRows(); r++)
-		{
-			for (unsigned int c = 0; c < heightField->getNumColumns(); c++)
-			{
-				heightField->setHeight(c, r, 0);
-			}
-		}
-
-		osg::Geode* geode = new osg::Geode();
-		osg::ShapeDrawable* sd = new osg::ShapeDrawable(heightField);
-		sd->setComputeBoundingBoxCallback(new BoundingBoxCB(osg::BoundingBox(osg::Vec3d(-terrain_size / 2.0, -terrain_size / 2.0, 0),
-			osg::Vec3d(terrain_size / 2.0, terrain_size / 2.0, 1000))));
-		//sd->setComputeBoundingSphereCallback(new BoundingSphereCB());
-		geode->addDrawable(sd);
-		//geode->setComputeBoundingBoxCallback(new BoundingBoxCB());
-		//geode->setComputeBoundingSphereCallback(new BoundingSphereCB());
-		//geode->setInitialBound(osg::BoundingSphere(osg::Vec3(-terrain_size / 2.0, -terrain_size / 2.0, 0),));
-		return geode;
-	}
-
-	osg::Node* _createTerrainGeometry(osg::ref_ptr<osg::Image> elevation_image, double terrain_size, int res)
-	{
-		osg::HeightField* heightField = new osg::HeightField();
-		heightField->allocate(elevation_image->s(), elevation_image->t());
-		heightField->setOrigin(osg::Vec3(-terrain_size / 2.0, -terrain_size / 2.0, 0));
-		heightField->setXInterval(terrain_size / double(elevation_image->s() - 1));
-		heightField->setYInterval(terrain_size / double(elevation_image->t() - 1));
-		heightField->setSkirtHeight(0.0f);
-
-		for (unsigned int r = 0; r < heightField->getNumRows(); r++) {
-			for (unsigned int c = 0; c < heightField->getNumColumns(); c++) {
-				heightField->setHeight(c, r, elevation_image->getColor(c, r).r());
-			}
-		}
-
-		osg::Geode* geode = new osg::Geode();
-		geode->addDrawable(new osg::ShapeDrawable(heightField));
-		return geode;
-	}
-
-	/*osg::ref_ptr<osg::Image> _loadElevationImage(const std::string &heightFile, float height_scale)
-	{
-		osg::ref_ptr <osg::Image> heightMap = osgDB::readImageFile(heightFile);
-		osg::ref_ptr <osg::Image> terrainImage = new osg::Image;
-		terrainImage->allocateImage(heightMap->s(), heightMap->t(), 1, GL_LUMINANCE, GL_FLOAT);
-		terrainImage->setInternalTextureFormat(GL_LUMINANCE_FLOAT32_ATI);
-
-		for (int r = 0; r < heightMap->t(); ++r)
-		{
-			for (int c = 0; c < heightMap->s(); ++c)
-			{
-				*((float*)(terrainImage->data(c, r))) = heightMap->getColor(c, r).r() * height_scale;
-			}
-		}
-		return terrainImage;
-	}*/
-
-	 void _SetupElevationTexture(osg::ref_ptr<osg::Image> elevation_image)
-	{
-		if (elevation_image)
-		{
-			m_ElevationTexture = new osg::Texture2D;
-			m_ElevationTexture->setImage(elevation_image);
-			m_ElevationTexture->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::LINEAR);
-			m_ElevationTexture->setFilter(osg::Texture2D::MAG_FILTER, osg::Texture2D::LINEAR);
-			m_ElevationTexture->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::CLAMP_TO_EDGE);
-			m_ElevationTexture->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::CLAMP_TO_EDGE);
-			m_ElevationTexture->setResizeNonPowerOfTwoHint(false);
-		}
-	}
-
-	std::string HEIGHT_MAP = "terrain/hm/heightmap.png";
-	double HEIGHT_MAP_SCALE = (1386.67 - 607.0);
-	double TERRAIN_SIZE = 4000;
-	osg::Texture2D* m_ElevationTexture = NULL;
-	bool m_UseTessellation;
-public:
-	osg::Texture2D*  GetElevationTexture() const
-	{
-		return m_ElevationTexture;
-	}
-
-	double GetSize() const
-	{
-		return TERRAIN_SIZE;
-	}
-
-	/*osg::ref_ptr<osg::Node> GetTerrainGeometry()
-	{
-		return m_ElevationTexture ? _createGrid(TERRAIN_SIZE, 100) : _createTerrainGeometry(HEIGHT_MAP, TERRAIN_SIZE, 8, HEIGHT_MAP_SCALE);
-	}*/
-
-	Terrain(osg::ref_ptr<osg::Image> elevation_image) : m_UseTessellation(false)
-	{
-		_SetupElevationTexture(elevation_image);
-		osg::ref_ptr<osg::Node> terrain_geometry = _createTerrainGeometry(elevation_image, TERRAIN_SIZE, 1);
-		if (m_UseTessellation)
-			osgVegetation::ConvertToPatches(terrain_geometry);
-		addChild(terrain_geometry);
-		terrain_geometry->setNodeMask(ReceivesShadowTraversalMask);
-	}
-};
-
-//Create ID mapping
-
 int main(int argc, char** argv)
 {
 	osgVegetation::SceneConfiguration config;
@@ -328,23 +193,24 @@ int main(int argc, char** argv)
 	osg::ref_ptr<osg::Texture2D> elev_tex =  CreateElevationTexture(elev_image);
 	osg::ref_ptr<osg::Node> terrain = createFlatTerrainPatch(TERRAIN_SIZE, 50);
 	terrain->setNodeMask(ReceivesShadowTraversalMask);
-	
-	//osgVegetation::ConvertToPatches(terrain);
 
-	osgVegetation::TerrainShadingConfiguration terrain_shading_config;
+	osgVegetation::TerrainSplatShadingConfig terrain_shading_config;
 	
 	terrain_shading_config.UseTessellation = true;
-	terrain_shading_config.ColorTexture = osgVegetation::TextureConfig("terrain/hm/colormap.png", 0);
-	terrain_shading_config.SplatTexture = osgVegetation::TextureConfig("terrain/hm/splatmap.png", 1);
+	
+	//terrain_shading_config.ColorTexture = osgVegetation::TextureConfig("terrain/hm/colormap.png", 0);
+	terrain_shading_config.NormalTexture = osgVegetation::TextureConfig("terrain/hm/normalmap.png", 0);
 	terrain_shading_config.ElevationTexture = osgVegetation::TextureConfig(elev_tex, 2);
+
+	terrain_shading_config.SplatTexture = osgVegetation::TextureConfig("terrain/hm/splatmap.png", 1);
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.DetailTextureUnit = 3;
 	terrain_shading_config.NoiseTexture = osgVegetation::TextureConfig("terrain/detail/noise.png", 4);
-	
-	osg::ref_ptr<osgVegetation::TerrainShadingEffect> terrain_shading_effect = new osgVegetation::TerrainShadingEffect(terrain_shading_config);
+	terrain_shading_config.MaxDistance = 10;
+	osg::ref_ptr<osgVegetation::TerrainSplatShadingEffect> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(terrain_shading_config);
 	terrain_shading_effect->addChild(terrain);
 	root_node->addChild(terrain_shading_effect);
 

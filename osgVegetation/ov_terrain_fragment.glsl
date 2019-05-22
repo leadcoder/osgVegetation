@@ -26,5 +26,5 @@ void main(void)
 	//apply lighting and fog
 	terrain_color.xyz *= ov_directionalLightShadow(normalize(ov_in.Normal));
 	terrain_color.xyz = ov_applyFog(terrain_color.xyz, depth);
-	fragColor = terrain_color;	
+	fragColor = terrain_color;
 }
