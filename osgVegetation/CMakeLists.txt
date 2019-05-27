@@ -19,6 +19,10 @@ SET(H_FILES
 	ov_Scene.h
 	ov_BillboardLayerStateSet.h
 	ov_PassFilter.h
+	AggregateGeometryVisitor.h 
+	ov_MeshTileGenerator.h 
+	ov_MeshTileGeneratorConfig.h 
+	ov_GPUCullData.h
 )
 
 SET(SHADERS_FILES
@@ -36,6 +40,13 @@ SET(SHADERS_FILES
 	ov_terrain_tess_ctrl.glsl
 	ov_terrain_fragment.glsl
 	ov_terrain_pass_filter.glsl
+	ov_mesh_cull_vertex.glsl
+	ov_mesh_cull_tess_eval.glsl
+	ov_mesh_cull_tess_ctrl.glsl
+	ov_mesh_cull_geometry.glsl
+	ov_mesh_cull_fragment.glsl
+	ov_mesh_render_vertex.glsl
+	ov_mesh_render_fragment.glsl
 )
 
 include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})
