@@ -89,10 +89,14 @@ namespace osgVegetation
 	public:
 		MeshTileGenerator(const MeshTileGeneratorConfig &mesh_data)
 		{
-			const bool useMultiDrawArraysIndirect = true;
-			m_GpuData.setUseMultiDrawArraysIndirect(useMultiDrawArraysIndirect);
-			_SetupGPUData(mesh_data);
-			_terrainSS = _CreateTerrainStateSet();
+			//const bool useMultiDrawArraysIndirect = true;
+			//m_GpuData.setUseMultiDrawArraysIndirect(useMultiDrawArraysIndirect);
+			//_SetupGPUData(mesh_data);
+			GPUCullData* gpuData = _CreateGPUData(mesh_data);
+			_terrainSS = _CreateTerrainStateSet(gpuData);
+			osg::BoundingSphere bs;
+			m_InstanceGroup = _CreateInstanceGroup(gpuData);
+			delete gpuData;
 		}
 
 		osg::Group* CreateMeshTile(osg::Geometry* terrain_geometry)
@@ -101,15 +105,19 @@ namespace osgVegetation
 			group->getOrCreateStateSet()->setRenderBinDetails(1, "TraversalOrderBin", osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);
 			osg::Geode* terrain_geode = new osg::Geode();
 			terrain_geode->addDrawable(terrain_geometry);
-			osg::BoundingSphere bs = terrain_geode->getBound();
-			terrain_geometry->setStateSet(_terrainSS);
+			terrain_geode->setStateSet(_terrainSS);
 			terrain_geometry->setDrawCallback(new TerrainGeometryDrawCB(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
 			group->addChild(terrain_geode);
-			osg::ref_ptr<osg::Group> instance_group = _CreateInstanceGroup(bs);
-			group->addChild(instance_group);
+			group->addChild(m_InstanceGroup);
+			//osg::BoundingSphere bs = terrain_geode->getBound();
+			//osg::ref_ptr<osg::Group> instance_group = _CreateInstanceGroup(bs);
+			//group->addChild(instance_group);
+			
+			
 			return group;
 		}
 	private:
+#if 0
 		void _SetupGPUData(const MeshTileGeneratorConfig &mesh_data)
 		{
 			osg::ref_ptr < osg::Program> drawProgram = new osg::Program;
@@ -144,25 +152,72 @@ namespace osgVegetation
 			for (it = m_GpuData.targets.begin(), eit = m_GpuData.targets.end(); it != eit; ++it)
 			{
 				//it->second.geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InvokeMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
-				it->second.geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InstanceGeometryDrawCB(it->second.indirectCommandTextureBuffer, it->second.indirectCommandImageBinding));
-				it->second.geometryAggregator->getAggregatedGeometry()->setComputeBoundingBoxCallback(new BoundingBoxCB());
-				it->second.geometryAggregator->getAggregatedGeometry()->setCullingActive(false);
+				it->second._geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InstanceGeometryDrawCB(it->second._indirectCommandTextureBuffer, it->second._indirectCommandImageBinding));
+				it->second._geometryAggregator->getAggregatedGeometry()->setComputeBoundingBoxCallback(new BoundingBoxCB());
+				it->second._geometryAggregator->getAggregatedGeometry()->setCullingActive(false);
 			}
 		}
+#endif
 
-		osg::Group*  _CreateInstanceGroup(osg::BoundingSphere terrain_bs)
+		GPUCullData* _CreateGPUData(const MeshTileGeneratorConfig &mesh_data)
+		{
+			GPUCullData* gpuData = new GPUCullData();
+			const bool useMultiDrawArraysIndirect = true;
+			gpuData->setUseMultiDrawArraysIndirect(useMultiDrawArraysIndirect);
+
+			osg::ref_ptr < osg::Program> drawProgram = new osg::Program;
+			//stateset->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
+			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_mesh_render_vertex.glsl")));
+			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_mesh_render_fragment.glsl")));
+			gpuData->registerIndirectTarget(0, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
+			//m_GpuData.registerIndirectTarget(1, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
+
+			for (size_t i = 0; i < mesh_data.MeshTypes.size(); i++)
+			{
+				for (size_t j = 0; j < mesh_data.MeshTypes[i].MeshLODs.size(); j++)
+				{
+#if 1
+					osg::ref_ptr<osg::Node> mesh = osgDB::readNodeFile(mesh_data.MeshTypes[i].MeshLODs[j].Mesh);
+#else
+					osg::ref_ptr<osg::Node> mesh;
+					if (mesh_data[i].MeshLODs[j].Mesh == "LOD0") mesh = createConiferTree(0.75f, osg::Vec4(1.0, 1.0, 1.0, 1.0), osg::Vec4(0.0, 1.0, 0.0, 1.0));
+					else if (mesh_data[i].MeshLODs[j].Mesh == "LOD1") mesh = createConiferTree(0.45f, osg::Vec4(0.0, 0.0, 1.0, 1.0), osg::Vec4(1.0, 1.0, 0.0, 1.0));
+					else if (mesh_data[i].MeshLODs[j].Mesh == "LOD2") mesh = createConiferTree(0.15f, osg::Vec4(1.0, 0.0, 0.0, 1.0), osg::Vec4(0.0, 0.0, 1.0, 1.0));
+					else mesh = osgDB::readNodeFile(mesh_data[i].MeshLODs[j].Mesh);
+#endif
+					gpuData->registerType(i, 0, mesh.get(), mesh_data.MeshTypes[i].MeshLODs[j].Distance, mesh_data.Density);
+				}
+			}
+
+			// every target will store 6 rows of data in GL_RGBA32F_ARB format ( the whole StaticInstance structure )
+			gpuData->endRegister(6, GL_RGBA, GL_FLOAT, GL_RGBA32F_ARB);
+
+			// in the end - we create OSG objects that draw instances using indirect targets and commands.
+			std::map<unsigned int, IndirectTarget>::iterator it, eit;
+			for (it = gpuData->targets.begin(), eit = gpuData->targets.end(); it != eit; ++it)
+			{
+				//it->second.geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InvokeMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
+				it->second._geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InstanceGeometryDrawCB(it->second._indirectCommandTextureBuffer, it->second._indirectCommandImageBinding));
+				it->second._geometryAggregator->getAggregatedGeometry()->setComputeBoundingBoxCallback(new BoundingBoxCB());
+				it->second._geometryAggregator->getAggregatedGeometry()->setCullingActive(false);
+			}
+			return gpuData;
+		}
+
+
+		osg::Group* _CreateInstanceGroup(GPUCullData* gpuData)
 		{
 			osg::Group* group = new osg::Group();
 			// in the end - we create OSG objects that draw instances using indirect targets and commands.
 			std::map<unsigned int, IndirectTarget>::iterator it, eit;
-			for (it = m_GpuData.targets.begin(), eit = m_GpuData.targets.end(); it != eit; ++it)
+			for (it = gpuData->targets.begin(), eit = gpuData->targets.end(); it != eit; ++it)
 			{
 				osg::ref_ptr<osg::Geode> drawGeode = new osg::Geode;
-				drawGeode->addDrawable(it->second.geometryAggregator->getAggregatedGeometry());
+				drawGeode->addDrawable(it->second._geometryAggregator->getAggregatedGeometry());
 				//drawGeode->setCullingActive(false);
-				drawGeode->setComputeBoundingSphereCallback(new BoundingSphereCB(terrain_bs));
+				//drawGeode->setComputeBoundingSphereCallback(new BoundingSphereCB(terrain_bs));
 				it->second.addIndirectTargetData(false, "ov_indirectTarget", it->first, drawGeode->getOrCreateStateSet());
-				drawGeode->getOrCreateStateSet()->setAttributeAndModes(m_GpuData.instanceTypesUBB.get());
+				drawGeode->getOrCreateStateSet()->setAttributeAndModes(gpuData->instanceTypesUBB.get());
 				it->second.addDrawProgram("ov_instanceTypesData", drawGeode->getOrCreateStateSet());
 				drawGeode->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(osg::CullFace::BACK));
 				//it->second.geometryAggregator->getAggregatedGeometry()->setComputeBoundingBoxCallback(new StaticBoundingBox());
@@ -171,7 +226,7 @@ namespace osgVegetation
 			return group;
 		}
 
-		osg::StateSet* _CreateTerrainStateSet()
+		osg::StateSet* _CreateTerrainStateSet(GPUCullData* gpuData)
 		{
 			osg::StateSet* terrain_ss = new osg::StateSet();
 			// instance OSG tree is connected to cull shader with all necessary data ( all indirect commands, all
@@ -190,10 +245,10 @@ namespace osgVegetation
 #endif
 				cullProgram->addBindUniformBlock("ov_instanceTypesData", 1);
 				terrain_ss->setAttributeAndModes(cullProgram.get(), osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
-				terrain_ss->setAttributeAndModes(m_GpuData.instanceTypesUBB.get());
+				terrain_ss->setAttributeAndModes(gpuData->instanceTypesUBB.get());
 
 				std::map<unsigned int, IndirectTarget>::iterator it, eit;
-				for (it = m_GpuData.targets.begin(), eit = m_GpuData.targets.end(); it != eit; ++it)
+				for (it = gpuData->targets.begin(), eit = gpuData->targets.end(); it != eit; ++it)
 				{
 					it->second.addIndirectCommandData("ov_indirectCommand", it->first, terrain_ss);
 					//resetTexturesCallback->addTextureDirty(it->first);
@@ -208,7 +263,7 @@ namespace osgVegetation
 				terrain_ss->addUniform(indirectCommandSize);
 
 				osg::Uniform* numInstanceTypesUniform = new osg::Uniform(osg::Uniform::INT, "ov_numInstanceTypes");
-				int num_instance_types = static_cast<int>(m_GpuData.instanceTypes->getData().size());
+				int num_instance_types = static_cast<int>(gpuData->instanceTypes->getData().size());
 				numInstanceTypesUniform->set(num_instance_types);
 				terrain_ss->addUniform(numInstanceTypesUniform);
 				//terrain_ss->setUpdateCallback(resetTexturesCallback.get());
@@ -217,6 +272,7 @@ namespace osgVegetation
 		}
 	private:
 		osg::ref_ptr<osg::StateSet>  _terrainSS;
-		GPUCullData m_GpuData;
+		//GPUCullData m_GpuData;
+		osg::ref_ptr<osg::Group> m_InstanceGroup;
 	};
 }

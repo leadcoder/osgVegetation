@@ -216,7 +216,7 @@ namespace osgVegetation
 
 			for (size_t i = 0; i < ttv.Tiles.size(); i++)
 			{
-				osgVegetation::PrepareTerrainForDetailMapping(ttv.Tiles[i]);
+			//	osgVegetation::PrepareTerrainForDetailMapping(ttv.Tiles[i]);
 			}
 
 			for (size_t i = 0; i < m_VegData.size(); i++)

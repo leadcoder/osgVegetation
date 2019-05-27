@@ -142,69 +142,69 @@ namespace osgVegetation
 	struct IndirectTarget
 	{
 		IndirectTarget()
-			: maxTargetQuantity(0)
+			: _maxTargetQuantity(0)
 		{
-			indirectCommands = new osg::DefaultIndirectCommandDrawArrays;
-			indirectCommands->getBufferObject()->setUsage(GL_DYNAMIC_DRAW);
+			_indirectCommands = new osg::DefaultIndirectCommandDrawArrays;
+			_indirectCommands->getBufferObject()->setUsage(GL_DYNAMIC_DRAW);
 		}
 		IndirectTarget(AggregateGeometryVisitor* agv, osg::Program* program)
-			: geometryAggregator(agv), drawProgram(program), maxTargetQuantity(0)
+			: _geometryAggregator(agv), _drawProgram(program), _maxTargetQuantity(0)
 		{
-			indirectCommands = new osg::DefaultIndirectCommandDrawArrays;
-			indirectCommands->getBufferObject()->setUsage(GL_DYNAMIC_DRAW);
+			_indirectCommands = new osg::DefaultIndirectCommandDrawArrays;
+			_indirectCommands->getBufferObject()->setUsage(GL_DYNAMIC_DRAW);
 		}
 		void endRegister(unsigned int index, unsigned int rowsPerInstance, GLenum pixelFormat, GLenum type, GLint internalFormat, bool useMultiDrawArraysIndirect)
 		{
-			indirectCommandTextureBuffer = new osg::TextureBuffer(indirectCommands.get());
-			indirectCommandTextureBuffer->setInternalFormat(GL_R32I);
-			indirectCommandTextureBuffer->setUnRefImageDataAfterApply(false);
+			_indirectCommandTextureBuffer = new osg::TextureBuffer(_indirectCommands.get());
+			_indirectCommandTextureBuffer->setInternalFormat(GL_R32I);
+			_indirectCommandTextureBuffer->setUnRefImageDataAfterApply(false);
 
-			indirectCommandImageBinding = new osg::BindImageTexture(index, indirectCommandTextureBuffer.get(), osg::BindImageTexture::READ_WRITE, GL_R32I);
+			_indirectCommandImageBinding = new osg::BindImageTexture(index, _indirectCommandTextureBuffer.get(), osg::BindImageTexture::READ_WRITE, GL_R32I);
 
 			// add proper primitivesets to geometryAggregators
 			if (!useMultiDrawArraysIndirect) // use glDrawArraysIndirect()
 			{
 				std::vector<osg::DrawArraysIndirect*> newPrimitiveSets;
 
-				for (unsigned int j = 0; j < indirectCommands->size(); ++j)
+				for (unsigned int j = 0; j < _indirectCommands->size(); ++j)
 				{
 					osg::DrawArraysIndirect *ipr = new osg::DrawArraysIndirect(GL_TRIANGLES, j);
-					ipr->setIndirectCommandArray(indirectCommands.get());
+					ipr->setIndirectCommandArray(_indirectCommands.get());
 					newPrimitiveSets.push_back(ipr);
 				}
 
-				geometryAggregator->getAggregatedGeometry()->removePrimitiveSet(0, geometryAggregator->getAggregatedGeometry()->getNumPrimitiveSets());
+				_geometryAggregator->getAggregatedGeometry()->removePrimitiveSet(0, _geometryAggregator->getAggregatedGeometry()->getNumPrimitiveSets());
 
-				for (unsigned int j = 0; j < indirectCommands->size(); ++j)
-					geometryAggregator->getAggregatedGeometry()->addPrimitiveSet(newPrimitiveSets[j]);
+				for (unsigned int j = 0; j < _indirectCommands->size(); ++j)
+					_geometryAggregator->getAggregatedGeometry()->addPrimitiveSet(newPrimitiveSets[j]);
 
 
 			}
 			else // use glMultiDrawArraysIndirect()
 			{
 				osg::MultiDrawArraysIndirect *ipr = new osg::MultiDrawArraysIndirect(GL_TRIANGLES);
-				ipr->setIndirectCommandArray(indirectCommands.get());
-				geometryAggregator->getAggregatedGeometry()->removePrimitiveSet(0, geometryAggregator->getAggregatedGeometry()->getNumPrimitiveSets());
-				geometryAggregator->getAggregatedGeometry()->addPrimitiveSet(ipr);
+				ipr->setIndirectCommandArray(_indirectCommands.get());
+				_geometryAggregator->getAggregatedGeometry()->removePrimitiveSet(0, _geometryAggregator->getAggregatedGeometry()->getNumPrimitiveSets());
+				_geometryAggregator->getAggregatedGeometry()->addPrimitiveSet(ipr);
 			}
 
-			geometryAggregator->getAggregatedGeometry()->setUseDisplayList(false);
-			geometryAggregator->getAggregatedGeometry()->setUseVertexBufferObjects(true);
+			_geometryAggregator->getAggregatedGeometry()->setUseDisplayList(false);
+			_geometryAggregator->getAggregatedGeometry()->setUseVertexBufferObjects(true);
 
 
 			osg::Image* instanceTargetImage = new osg::Image;
-			instanceTargetImage->allocateImage(maxTargetQuantity*rowsPerInstance, 1, 1, pixelFormat, type);
+			instanceTargetImage->allocateImage(_maxTargetQuantity*rowsPerInstance, 1, 1, pixelFormat, type);
 
 			osg::VertexBufferObject * instanceTargetImageBuffer = new osg::VertexBufferObject();
 			instanceTargetImageBuffer->setUsage(GL_DYNAMIC_DRAW);
 			instanceTargetImage->setBufferObject(instanceTargetImageBuffer);
 
-			instanceTarget = new osg::TextureBuffer(instanceTargetImage);
-			instanceTarget->setInternalFormat(internalFormat);
+			_instanceTarget = new osg::TextureBuffer(instanceTargetImage);
+			_instanceTarget->setInternalFormat(internalFormat);
 
-			instanceTargetimagebinding = new osg::BindImageTexture(OV_MAXIMUM_INDIRECT_TARGET_NUMBER + index, instanceTarget.get(), osg::BindImageTexture::READ_WRITE, internalFormat);
+			_instanceTargetimagebinding = new osg::BindImageTexture(OV_MAXIMUM_INDIRECT_TARGET_NUMBER + index, _instanceTarget.get(), osg::BindImageTexture::READ_WRITE, internalFormat);
 
-			geometryAggregator->generateTextureArray();
+			_geometryAggregator->generateTextureArray();
 		}
 
 		void addIndirectCommandData(const std::string& uniformNamePrefix, int index, osg::StateSet* stateset)
@@ -212,8 +212,8 @@ namespace osgVegetation
 			std::string uniformName = uniformNamePrefix + char('0' + index);
 			osg::Uniform* uniform = new osg::Uniform(uniformName.c_str(), (int)index);
 			stateset->addUniform(uniform);
-			stateset->setAttribute(indirectCommandImageBinding);
-			stateset->setTextureAttribute(index, indirectCommandTextureBuffer.get());
+			stateset->setAttribute(_indirectCommandImageBinding);
+			stateset->setTextureAttribute(index, _indirectCommandTextureBuffer.get());
 		}
 
 		void addIndirectTargetData(bool cullPhase, const std::string& uniformNamePrefix, int index, osg::StateSet* stateset)
@@ -227,24 +227,24 @@ namespace osgVegetation
 			osg::Uniform* uniform = new osg::Uniform(uniformName.c_str(), (int)(OV_MAXIMUM_INDIRECT_TARGET_NUMBER + index));
 			stateset->addUniform(uniform);
 
-			stateset->setAttribute(instanceTargetimagebinding);
-			stateset->setTextureAttribute(OV_MAXIMUM_INDIRECT_TARGET_NUMBER + index, instanceTarget.get());
+			stateset->setAttribute(_instanceTargetimagebinding);
+			stateset->setTextureAttribute(OV_MAXIMUM_INDIRECT_TARGET_NUMBER + index, _instanceTarget.get());
 		}
 
 		void addDrawProgram(const std::string& uniformBlockName, osg::StateSet* stateset)
 		{
-			drawProgram->addBindUniformBlock(uniformBlockName, 1);
-			stateset->setAttributeAndModes(drawProgram.get(), osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
+			_drawProgram->addBindUniformBlock(uniformBlockName, 1);
+			stateset->setAttributeAndModes(_drawProgram.get(), osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 		}
 
-		osg::ref_ptr< osg::DefaultIndirectCommandDrawArrays >        indirectCommands;
-		osg::ref_ptr<osg::TextureBuffer>                                indirectCommandTextureBuffer;
-		osg::ref_ptr<osg::BindImageTexture>                             indirectCommandImageBinding;
-		osg::ref_ptr< AggregateGeometryVisitor >                        geometryAggregator;
-		osg::ref_ptr<osg::Program>                                      drawProgram;
-		osg::ref_ptr< osg::TextureBuffer >                              instanceTarget;
-		osg::ref_ptr<osg::BindImageTexture>                             instanceTargetimagebinding;
-		unsigned int                                                    maxTargetQuantity;
+		osg::ref_ptr< osg::DefaultIndirectCommandDrawArrays >        _indirectCommands;
+		osg::ref_ptr<osg::TextureBuffer>                                _indirectCommandTextureBuffer;
+		osg::ref_ptr<osg::BindImageTexture>                             _indirectCommandImageBinding;
+		osg::ref_ptr< AggregateGeometryVisitor >                        _geometryAggregator;
+		osg::ref_ptr<osg::Program>                                      _drawProgram;
+		osg::ref_ptr< osg::TextureBuffer >                              _instanceTarget;
+		osg::ref_ptr<osg::BindImageTexture>                             _instanceTargetimagebinding;
+		unsigned int                                                    _maxTargetQuantity;
 	};
 	// This is the main structure holding all information about particular 2-phase instance rendering
 	// ( instance types, indirect targets, etc ).
@@ -288,9 +288,9 @@ namespace osgVegetation
 				return false;
 
 			// AggregateGeometryVisitor creates single osg::Geometry from all objects used by specific indirect target
-			AggregateGeometryVisitor::AddObjectResult aoResult = target->second.geometryAggregator->addObject(node, typeID, lodNumber);
+			AggregateGeometryVisitor::AddObjectResult aoResult = target->second._geometryAggregator->addObject(node, typeID, lodNumber);
 			// Information about first vertex and a number of vertices is stored for later primitiveset creation
-			target->second.indirectCommands->push_back(osg::DrawArraysIndirectCommand(aoResult.count, 1, aoResult.first));
+			target->second._indirectCommands->push_back(osg::DrawArraysIndirectCommand(aoResult.count, 1, aoResult.first));
 
 			osg::ComputeBoundsVisitor cbv;
 			node->accept(cbv);
@@ -301,8 +301,8 @@ namespace osgVegetation
 			// calculate max quantity of objects in lodArea using maximum density per square kilometer
 			unsigned int maxQuantity = (unsigned int)ceil(lodArea * maxDensityPerSquareKilometer);
 
-			itd.setLodDefinition(lodNumber, targetID, aoResult.index, lodDistances, target->second.maxTargetQuantity, maxQuantity, cbv.getBoundingBox());
-			target->second.maxTargetQuantity += maxQuantity;
+			itd.setLodDefinition(lodNumber, targetID, aoResult.index, lodDistances, target->second._maxTargetQuantity, maxQuantity, cbv.getBoundingBox());
+			target->second._maxTargetQuantity += maxQuantity;
 			return true;
 		}
 
@@ -333,13 +333,13 @@ namespace osgVegetation
 			std::map<unsigned int, IndirectTarget>::iterator it, eit;
 			for (it = targets.begin(), eit = targets.end(); it != eit; ++it)
 			{
-				for (unsigned j = 0; j < it->second.indirectCommands->size(); ++j)
+				for (unsigned j = 0; j < it->second._indirectCommands->size(); ++j)
 				{
-					osg::DrawArraysIndirectCommand& iComm = it->second.indirectCommands->at(j);
+					osg::DrawArraysIndirectCommand& iComm = it->second._indirectCommands->at(j);
 					OSG_INFO << "(" << iComm.first << " " << iComm.instanceCount << " " << iComm.count << ") ";
 				}
-				unsigned int sizeInBytes = (unsigned int)it->second.maxTargetQuantity * sizeof(osg::Vec4);
-				OSG_INFO << " => Maximum elements in target : " << it->second.maxTargetQuantity << " ( " << sizeInBytes << " bytes, " << sizeInBytes / 1024 << " kB )" << std::endl;
+				unsigned int sizeInBytes = (unsigned int)it->second._maxTargetQuantity * sizeof(osg::Vec4);
+				OSG_INFO << " => Maximum elements in target : " << it->second._maxTargetQuantity << " ( " << sizeInBytes << " bytes, " << sizeInBytes / 1024 << " kB )" << std::endl;
 			}
 
 			instanceTypesUBB->setSize(instanceTypes->getTotalDataSize());
