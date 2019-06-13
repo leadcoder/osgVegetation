@@ -1,5 +1,6 @@
 #pragma once
-#include "ov_TerrainShadingStateSet.h"
+//#include "ov_TerrainSplatShadingStateSet.h"
+//#include "ov_TerrainShadingStateSet.h"
 #include "ov_BillboardLayer.h"
 #include "ov_Utils.h"
 #include "ov_TerrainHelper.h"
@@ -14,7 +15,7 @@ namespace osgVegetation
 	class BillboardNodeGeneratorConfig
 	{
 	public:
-		BillboardNodeGeneratorConfig(const std::vector<BillboardLayer> &layers,
+		BillboardNodeGeneratorConfig(const std::vector<BillboardLayer> &layers = std::vector<BillboardLayer>(),
 			//TerrainTextureUnitSettings terrrain_texture_units = TerrainTextureUnitSettings(),
 			int billboard_texture_unit = 2,
 			int receives_shadow_mask = 0x1,
@@ -24,6 +25,7 @@ namespace osgVegetation
 			ReceivesShadowTraversalMask(receives_shadow_mask),
 			CastShadowTraversalMask(cast_shadow_mask)
 		{}
+		
 		std::vector<BillboardLayer> Layers;
 		//TerrainTextureUnitSettings TerrainTextureUnits;
 		int BillboardTexUnit;
