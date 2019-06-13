@@ -45,11 +45,18 @@ namespace osgVegetation
 		
 		bbl_elem->QueryFloatAttribute("AlphaRejectValue", &layer.AlphaRejectValue);
 		bbl_elem->QueryFloatAttribute("ColorImpact", &layer.ColorImpact);
-		bbl_elem->QueryFloatAttribute("ColorThreshold", &layer.ColorThreshold);
 		bbl_elem->QueryFloatAttribute("Density", &layer.Density);
-		bbl_elem->QueryFloatAttribute("LandCoverID", &layer.LandCoverID);
 		bbl_elem->QueryIntAttribute("LODLevel", &layer.LODLevel);
 		bbl_elem->QueryFloatAttribute("MaxDistance", &layer.MaxDistance);
+	
+		if(bbl_elem->Attribute("ColorFilter"))
+			layer.Filter.ColorFilter = bbl_elem->Attribute("ColorFilter");
+
+		if (bbl_elem->Attribute("SplatFilter"))
+			layer.Filter.SplatFilter = bbl_elem->Attribute("SplatFilter");
+
+		if (bbl_elem->Attribute("NormalFilter"))
+			layer.Filter.NormalFilter = bbl_elem->Attribute("NormalFilter");
 		
 		TiXmlElement *bb_elem = bbl_elem->FirstChildElement("Billboard");
 		while (bb_elem)
@@ -61,17 +68,21 @@ namespace osgVegetation
 		return layer;
 	}
 
-	std::vector<BillboardLayer> loadBillboardLayers(TiXmlElement *bblv_elem)
+	BillboardNodeGeneratorConfig loadBillboardLayers(TiXmlElement *bblv_elem)
 	{
-		std::vector<osgVegetation::BillboardLayer> layers;
+		BillboardNodeGeneratorConfig config;
+		bblv_elem->QueryIntAttribute("BillboardTexUnit", &config.BillboardTexUnit);
+		bblv_elem->QueryIntAttribute("CastShadowTraversalMask", &config.CastShadowTraversalMask);
+		bblv_elem->QueryIntAttribute("ReceivesShadowTraversalMask", &config.ReceivesShadowTraversalMask);
+
 		TiXmlElement *bbl_elem = bblv_elem->FirstChildElement("BillboardLayer");
 		while (bbl_elem)
 		{
 			BillboardLayer bbl = loadBillboardLayer(bbl_elem);
-			layers.push_back(bbl);
+			config.Layers.push_back(bbl);
 			bbl_elem = bbl_elem->NextSiblingElement("BillboardLayer");
 		}
-		return layers;
+		return config;
 	}
 
 
@@ -101,8 +112,35 @@ namespace osgVegetation
 		return layers;
 	}
 
-	TerrainShadingConfiguration XMLSerializer::ReadTerrainData(const std::string &filename)
+
+	TerrainSplatShadingConfig loadSplatShading(TiXmlElement *splat_shading_elem)
 	{
+		TerrainSplatShadingConfig splat_config;
+
+		splat_shading_elem->QueryFloatAttribute("MaxDistance", &splat_config.MaxDistance);
+		splat_shading_elem->QueryFloatAttribute("ColorModulateRatio", &splat_config.ColorModulateRatio);
+
+		//set some defaults
+		splat_config.ColorTexture.TexUnit = 0;
+		splat_config.SplatTexture.TexUnit = 1;
+		splat_config.DetailTextureUnit = 2;
+
+		splat_shading_elem->QueryIntAttribute("ColorTextureUnit", &splat_config.ColorTexture.TexUnit);
+		splat_shading_elem->QueryIntAttribute("SplatTextureUnit", &splat_config.SplatTexture.TexUnit);
+		splat_shading_elem->QueryIntAttribute("DetailTextureUnit", &splat_config.DetailTextureUnit);
+		
+
+		TiXmlElement *dlv_elem = splat_shading_elem->FirstChildElement("DetailLayers");
+		if (dlv_elem)
+			splat_config.DetailLayers = loadDetailLayers(dlv_elem);
+		return splat_config;
+	}
+
+	
+
+	osgVegetation::TerrainConfig  XMLSerializer::ReadTerrainData(const std::string &filename)
+	{
+		TerrainConfig terrain;
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())
 		{
@@ -113,10 +151,10 @@ namespace osgVegetation
 		{
 			throw std::runtime_error(std::string("Failed to find tag: Terrain").c_str());
 		}
-
+		 
 		if (!terrain_elem->Attribute("File"))
 			throw std::runtime_error(std::string("Failed to find attribute: File").c_str());
-		//terrain.Filename = terrain_elem->Attribute("File");
+		terrain.Filename = terrain_elem->Attribute("File");
 
 		/*if (terrain_elem->Attribute("Type"))
 		{
@@ -145,18 +183,21 @@ namespace osgVegetation
 				throw std::runtime_error(std::string("Serializer::GetTerrainData - Unknown ShadowMode:" + sm_str).c_str());
 		}*/
 
-		TerrainTextureUnitSettings tex_units;
-		TerrainShadingConfiguration config(tex_units);
-		TiXmlElement *dlv_elem = terrain_elem->FirstChildElement("DetailLayers");
-		if (dlv_elem)
-			config.DetailLayers = loadDetailLayers(dlv_elem);
+		//TerrainTextureUnitSettings tex_units;
+		//TerrainShadingConfiguration config(tex_units);
+		TiXmlElement *sc_elem = terrain_elem->FirstChildElement("SplatShading");
+		if (sc_elem)
+			terrain.SplatConfig = loadSplatShading(sc_elem);
 
 		TiXmlElement *bblv_elem = terrain_elem->FirstChildElement("BillboardLayers");
-		//if(bblv_elem)
-			//terrain.BillboardLayers = loadBillboardLayers(bblv_elem);
+		if(bblv_elem)
+			terrain.BillboardConfig = loadBillboardLayers(bblv_elem);
+
+		//terrain.BillboardConfig.BillboardTexUnit = 12;
+
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
 		delete xmlDoc;
-		return config;
+		return terrain;
 	}
 }

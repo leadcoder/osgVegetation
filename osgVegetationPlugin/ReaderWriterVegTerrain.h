@@ -1,5 +1,5 @@
-#ifndef __READERWRITER_VBSP_H_
-#define __READERWRITER_VBSP_H_
+#ifndef __READERWRITER_OVT_H_
+#define __READERWRITER_OVT_H_
 
 
 #include <osgDB/Registry>

@@ -4,11 +4,11 @@
 #include <osgDB/Registry>
 #include <osgDB/FileUtils>
 #include <osgDB/ReadFile>
-#include "ov_Serializer.h"
+
 #include <osg/PagedLOD>
 #include "ov_Utils.h"
-#include "ov_VPBVegetationInjection.h"
-
+//#include "ov_VPBVegetationInjection.h"
+#include "ov_Serializer.h"
 using namespace osg;
 using namespace osgDB;
 
@@ -40,20 +40,26 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
     if (fileName.empty())
         return ReadResult::FILE_NOT_FOUND;
 
-	osgVegetation::TerrainShadingConfiguration terrain_data = osgVegetation::XMLSerializer::ReadTerrainData(fileName);
+	osgVegetation::TerrainConfig terrain_config = osgVegetation::XMLSerializer::ReadTerrainData(fileName);
 
-	//terrain_data.VertexShader = "ov_terrain_detail_vertex.glsl";
-	//terrain_data.FragmentShader = "ov_terrain_detail_fragment.glsl";
-
+	
 	const std::string file_path = osgDB::getFilePath(fileName);
 	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path);
+
+	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(terrain_config.BillboardConfig));
 
 	//if(terrain_data.Type == osgVegetation::Terrain::TT_PLOD_TERRAIN)
 	//	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::PLODTerrainTileInjection(terrain_data));
 	//else if (terrain_data.Type == osgVegetation::Terrain::TT_PLOD_GEODE)
 	//	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::GeodePLODInjection(terrain_data));
 
-	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("hejsan");//terrain_data.Filename);
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(terrain_config.Filename);
+
+	osg::ref_ptr <osgVegetation::TerrainSplatShadingStateSet> terrain_shading_ss = new osgVegetation::TerrainSplatShadingStateSet(terrain_config.SplatConfig);
+	osg::ref_ptr<osg::Group> root_node = new osg::Group();
+	root_node->setStateSet(terrain_shading_ss);
+	root_node->addChild(terrain_node);
+
 	
 	//Setup shadow defines
 	osg::StateSet::DefineList& defineList = terrain_node->getOrCreateStateSet()->getDefineList();
@@ -77,7 +83,8 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
 
 	defineList["FM_EXP2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 	*/
-	return terrain_node;
+	
+	return root_node;
 }
 
 REGISTER_OSGPLUGIN(ovt, ReaderWriterOVT)
