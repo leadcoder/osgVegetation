@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ov_Common.h"
-//#include "ov_Terrain.h"
 #include <osg/Program>
 #include <osg/Texture2D>
 #include <osgDB/ReadFile>
@@ -9,42 +8,11 @@
 
 namespace osgVegetation
 {
-	
 
-	void PrepareTerrainForTesselation(osg::ref_ptr<osg::Node> terrain)
-	{
-		osg::Program* program = new osg::Program;
-		terrain->getOrCreateStateSet()->setAttribute(program);
-
-		program->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_terrain_vertex.glsl")));
-		
-		program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("ov_terrain_tess_ctrl.glsl")));
-		program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_terrain_tess_eval.glsl")));
-		program->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_common_vertex.glsl")));
-		program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_common_fragment.glsl")));
-		program->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_terrain_fragment.glsl")));
-		
-		terrain->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_color_texture", 0));
-	}
-
-	//Setup terrain for simple detail mapping. Note: Sample data path must be added!
-	/*void PrepareTerrainForDetailMapping(osg::Node* terrain)
-	{
-		TerrainShadingConfiguration tsc;
-		//tdm.VertexShader = "ov_terrain_detail_vertex.glsl";
-		//tdm.FragmentShader = "ov_terrain_detail_fragment.glsl";
-		tsc.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"),0.1));
-		tsc.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
-		tsc.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.1));
-		tsc.DetailLayers.push_back(DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.1));
-		ApplyTerrainShading(terrain, tsc);
-	}*/
-
-	double GetEquilateralTriangleSideLengthFromArea(double area)
+	inline double GetEquilateralTriangleSideLengthFromArea(double area)
 	{
 		return  sqrt(area / (sqrt(3.0) / 4.0));
 	}
-	
 
 	class ConvertToPatchesVisitor : public osg::NodeVisitor
 	{
@@ -72,13 +40,13 @@ namespace osgVegetation
 		}
 	};
 
-	void ConvertToPatches(osg::Node* node)
+	inline void ConvertToPatches(osg::Node* node)
 	{
 		ConvertToPatchesVisitor visitor;
 		node->accept(visitor);
 	}
 
-	osg::Geometry* CreateGeometryFromHeightField(osg::HeightField* hf)
+	inline osg::Geometry* CreateGeometryFromHeightField(osg::HeightField* hf)
 	{
 		unsigned int numColumns = hf->getNumColumns();
 		unsigned int numRows = hf->getNumRows();
