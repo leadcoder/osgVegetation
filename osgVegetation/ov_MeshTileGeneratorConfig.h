@@ -25,10 +25,10 @@ namespace osgVegetation
 	private:
 	};
 
-	class MeshTileGeneratorConfig
+	class MeshLayerConfig
 	{
 	public:
-		MeshTileGeneratorConfig(float density = 2, int lod_level = -1) : Density(density),
+		MeshLayerConfig(float density = 2, int lod_level = -1) : Density(density),
 			TargetLODLevel(lod_level)
 		{
 

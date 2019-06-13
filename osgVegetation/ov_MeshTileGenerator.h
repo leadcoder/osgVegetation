@@ -7,17 +7,18 @@
 
 namespace osgVegetation
 {
+
 	//Hack to avoid gl-crash on first update
 	static bool _firstTerrainDrawDone = false;
 
-	class MeshTileGenerator
+	class MeshLayerGenerator
 	{
 	private:
-		
+
 		// We must ensure that cull shader finished filling indirect commands and indirect targets, before draw shader
-	// starts using them. We use glMemoryBarrier() barrier to achieve that.
-	// It is also possible that we should use glMemoryBarrier() after resetting textures, but i implemented that only for
-	// dynamic rendering.
+		// starts using them. We use glMemoryBarrier() barrier to achieve that.
+		// It is also possible that we should use glMemoryBarrier() after resetting textures, but i implemented that only for
+		// dynamic rendering.
 		struct TerrainGeometryDrawCB : public osg::Drawable::DrawCallback
 		{
 			TerrainGeometryDrawCB(GLbitfield barriers)
@@ -39,6 +40,7 @@ namespace osgVegetation
 		{
 			InstanceGeometryDrawCB(osg::TextureBuffer* tex, osg::BindImageTexture* binding) : _texture(tex), _binding(binding)
 			{
+
 			}
 
 			virtual void drawImplementation(osg::RenderInfo& renderInfo, const osg::Drawable* drawable) const
@@ -69,6 +71,29 @@ namespace osgVegetation
 			osg::BindImageTexture* _binding;
 		};
 
+		class DrawCallbackVisitor : public osg::NodeVisitor
+		{
+		public:
+			DrawCallbackVisitor() :
+				osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
+			}
+
+			void apply(osg::Node& node)
+			{
+				osg::Geometry* geom = dynamic_cast<osg::Geometry*>(&node);
+				if (geom)
+				{
+					if (!geom->getDrawCallback())
+						geom->setDrawCallback(new TerrainGeometryDrawCB(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
+				}
+				else
+				{
+					traverse(node);
+				}
+			}
+		};
+
+
 		struct BoundingBoxCB : public osg::Drawable::ComputeBoundingBoxCallback
 		{
 			BoundingBoxCB() {}
@@ -87,13 +112,13 @@ namespace osgVegetation
 			osg::BoundingSphere _bounds;
 		};
 	public:
-		MeshTileGenerator(const MeshTileGeneratorConfig &mesh_data)
+		MeshLayerGenerator(const MeshLayerConfig &mesh_data)
 		{
 			//const bool useMultiDrawArraysIndirect = true;
 			//m_GpuData.setUseMultiDrawArraysIndirect(useMultiDrawArraysIndirect);
 			//_SetupGPUData(mesh_data);
 			GPUCullData* gpuData = _CreateGPUData(mesh_data);
-			_terrainSS = _CreateTerrainStateSet(gpuData);
+			m_TerrainStateSet = _CreateTerrainStateSet(gpuData);
 			osg::BoundingSphere bs;
 			m_InstanceGroup = _CreateInstanceGroup(gpuData);
 			delete gpuData;
@@ -105,15 +130,34 @@ namespace osgVegetation
 			group->getOrCreateStateSet()->setRenderBinDetails(1, "TraversalOrderBin", osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);
 			osg::Geode* terrain_geode = new osg::Geode();
 			terrain_geode->addDrawable(terrain_geometry);
-			terrain_geode->setStateSet(_terrainSS);
-			terrain_geometry->setDrawCallback(new TerrainGeometryDrawCB(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
+			terrain_geode->setStateSet(m_TerrainStateSet);
+			DrawCallbackVisitor scbv;
+			terrain_geometry->accept(scbv);
+			//terrain_geometry->setDrawCallback(new TerrainGeometryDrawCB(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
 			group->addChild(terrain_geode);
 			group->addChild(m_InstanceGroup);
 			//osg::BoundingSphere bs = terrain_geode->getBound();
 			//osg::ref_ptr<osg::Group> instance_group = _CreateInstanceGroup(bs);
 			//group->addChild(instance_group);
-			
-			
+
+
+			return group;
+		}
+
+		osg::Group* CreateMeshNode(osg::Node* terrain_geometry)
+		{
+			osg::Group* group = new osg::Group();
+			group->getOrCreateStateSet()->setRenderBinDetails(1, "TraversalOrderBin", osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);
+			osg::Group* terrain_geode = new osg::Group();
+			terrain_geode->addChild(terrain_geometry);
+			terrain_geode->setStateSet(m_TerrainStateSet);
+			DrawCallbackVisitor scbv;
+			terrain_geometry->accept(scbv);
+			group->addChild(terrain_geode);
+			group->addChild(m_InstanceGroup);
+			//osg::BoundingSphere bs = terrain_geode->getBound();
+			//osg::ref_ptr<osg::Group> instance_group = _CreateInstanceGroup(bs);
+			//group->addChild(instance_group);
 			return group;
 		}
 	private:
@@ -159,7 +203,7 @@ namespace osgVegetation
 		}
 #endif
 
-		GPUCullData* _CreateGPUData(const MeshTileGeneratorConfig &mesh_data)
+		GPUCullData* _CreateGPUData(const MeshLayerConfig &mesh_data)
 		{
 			GPUCullData* gpuData = new GPUCullData();
 			const bool useMultiDrawArraysIndirect = true;
@@ -203,7 +247,6 @@ namespace osgVegetation
 			}
 			return gpuData;
 		}
-
 
 		osg::Group* _CreateInstanceGroup(GPUCullData* gpuData)
 		{
@@ -271,8 +314,7 @@ namespace osgVegetation
 			return terrain_ss;
 		}
 	private:
-		osg::ref_ptr<osg::StateSet>  _terrainSS;
-		//GPUCullData m_GpuData;
+		osg::ref_ptr<osg::StateSet>  m_TerrainStateSet;
 		osg::ref_ptr<osg::Group> m_InstanceGroup;
 	};
 }
