@@ -34,7 +34,7 @@ namespace osgVegetation
 	class VegetationTile : public osg::PositionAttitudeTransform
 	{
 	public:
-		VegetationTile(MeshTileGenerator& gen, osgTerrain::TerrainTile* tile)
+		VegetationTile(MeshLayerGenerator& gen, osgTerrain::TerrainTile* tile)
 		{
 			osgTerrain::HeightFieldLayer* layer = dynamic_cast<osgTerrain::HeightFieldLayer*>(tile->getElevationLayer());
 			if (layer)
@@ -151,7 +151,7 @@ namespace osgVegetation
 	class VegetationReadFileCallback : public osgDB::ReadFileCallback
 	{
 	public:
-		VegetationReadFileCallback(const std::vector<MeshTileGeneratorConfig> &data) : m_VegData(data), m_Generator(data[0])
+		VegetationReadFileCallback(const std::vector<MeshLayerConfig> &data) : m_VegData(data), m_Generator(data[0])
 		{
 
 		}
@@ -240,8 +240,8 @@ namespace osgVegetation
 		}
 	protected:
 		virtual ~VegetationReadFileCallback() {}
-		std::vector<MeshTileGeneratorConfig> m_VegData;
-		MeshTileGenerator m_Generator;
+		std::vector<MeshLayerConfig> m_VegData;
+		MeshLayerGenerator m_Generator;
 	};
 }
 
@@ -305,7 +305,7 @@ int main(int argc, char **argv)
 	pLightSource->setLight(pLight);
 	root->addChild(pLightSource);
 
-	osgVegetation::MeshTileGeneratorConfig layer(10000, 5);
+	osgVegetation::MeshLayerConfig layer(10000, 5);
 	osgVegetation::MeshTypeConfig mesh_data1;
 	mesh_data1.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l0.osg", osg::Vec4(0.0f, 0.0f, 100.0f, 110.0f)));
 	mesh_data1.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1.osg", osg::Vec4(100.0f, 110.0f, 2500.0f, 2510.0f)));
@@ -316,7 +316,7 @@ int main(int argc, char **argv)
 	mesh_data2.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/test.osg", osg::Vec4(0.0f, 0.0f, 2000.0f, 2500.0f)));
 	layer.MeshTypes.push_back(mesh_data2);
 
-	std::vector<osgVegetation::MeshTileGeneratorConfig> layers;
+	std::vector<osgVegetation::MeshLayerConfig> layers;
 	layers.push_back(layer);
 
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VegetationReadFileCallback(layers));
