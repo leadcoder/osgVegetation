@@ -198,18 +198,18 @@ int main(int argc, char** argv)
 	
 	terrain_shading_config.UseTessellation = true;
 	
-	//terrain_shading_config.ColorTexture = osgVegetation::TextureConfig("terrain/hm/colormap.png", 0);
-	terrain_shading_config.NormalTexture = osgVegetation::TextureConfig("terrain/hm/normalmap.png", 0);
+	terrain_shading_config.ColorTexture = osgVegetation::TextureConfig("terrain/hm/colormap.png", 0);
+	terrain_shading_config.NormalTexture = osgVegetation::TextureConfig("terrain/hm/normalmap.png", 1);
 	terrain_shading_config.ElevationTexture = osgVegetation::TextureConfig(elev_tex, 2);
 
-	terrain_shading_config.SplatTexture = osgVegetation::TextureConfig("terrain/hm/splatmap.png", 1);
+	terrain_shading_config.SplatTexture = osgVegetation::TextureConfig("terrain/hm/splatmap.png", 3);
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
-	terrain_shading_config.DetailTextureUnit = 3;
-	terrain_shading_config.NoiseTexture = osgVegetation::TextureConfig("terrain/detail/noise.png", 4);
-	terrain_shading_config.MaxDistance = 10;
+	terrain_shading_config.DetailTextureUnit = 4;
+	terrain_shading_config.NoiseTexture = osgVegetation::TextureConfig("terrain/detail/noise.png", 5);
+	terrain_shading_config.MaxDistance = 1000;
 	osg::ref_ptr<osgVegetation::TerrainSplatShadingEffect> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(terrain_shading_config);
 	terrain_shading_effect->addChild(terrain);
 	root_node->addChild(terrain_shading_effect);
