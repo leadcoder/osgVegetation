@@ -13,7 +13,7 @@ static int CastsShadowTraversalMask = 0x2;
 
 osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 {
-	int shadowTexUnit = 7;
+	int shadowTexUnit = 6;
 	if (type == osgVegetation::SM_LISPSM)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
@@ -65,9 +65,7 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 
 		sm->setMainFragmentShader(mainFragmentShader);
 		shadowedScene->setShadowTechnique(sm);
-		//osg::StateSet::DefineList& defineList = shadowedScene->getOrCreateStateSet()->getDefineList();
-		//defineList["SM_LISPSM"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-
+		
 		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
 		shadowTextureUnit->set(shadowTexUnit);
 		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit);
@@ -99,19 +97,19 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 		//settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
 		osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
 		shadowedScene->setShadowTechnique(vdsm.get());
-
-		osg::StateSet::DefineList& defineList = shadowedScene->getOrCreateStateSet()->getDefineList();
-		//if (numShadowMaps == 1)
-		//	defineList["SM_VDSM1"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-		//else
-		//	defineList["SM_VDSM2"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
-
+		
 		osg::Uniform* shadowTextureUnit0 = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit0");
 		shadowTextureUnit0->set(shadowTexUnit);
 		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit0);
-		osg::Uniform* shadowTextureUnit1 = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit1");
-		shadowTextureUnit1->set(shadowTexUnit + 1);
-		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit1);
+		
+		if (numShadowMaps > 1)
+		{
+			osg::Uniform* shadowTextureUnit1 = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit1");
+			int shadowTexUnit1 = shadowTexUnit + 1;
+			shadowTextureUnit1->set(shadowTexUnit1);
+			shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit1);
+		}
+
 		return shadowedScene;
 	}
 	else
