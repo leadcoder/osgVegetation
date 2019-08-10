@@ -12,11 +12,13 @@ SET(H_FILES
 	ov_Common.h
 	ov_Utils.h
 	ov_VPBVegetationInjection.h
+	ov_VPBVegetationInjectionConfig.h
 	ov_TextureConfig.h
 	ov_TerrainShadingStateSet.h
 	ov_TerrainSplatShadingStateSet.h
 	ov_TerrainStateSet.h
 	ov_Scene.h
+	ov_BillboardMultiLayerEffect.h
 	ov_BillboardLayerStateSet.h
 	ov_PassFilter.h
 	AggregateGeometryVisitor.h 
