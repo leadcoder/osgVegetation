@@ -48,14 +48,13 @@ namespace osgVegetation
 			if (config.TexUnit >= 0)
 			{
 				addUniform(new osg::Uniform("ov_splat_texture", config.TexUnit));
-				//setDefine("OV_TERRAIN_SPLAT_TEXTURE");
 			}
 		}
 
 		void _SetupSplatMapping(const TerrainSplatShadingConfig& config)
 		{
 			const bool has_detail = config.DetailLayers.size() > 0;
-			if (has_detail && config.DetailTextureUnit > 0)
+			if (has_detail && config.DetailTextureUnit >= 0)
 			{
 				setDefine("OV_TERRAIN_SPLAT_MAPPING");
 				_SetSplatTexture(config.SplatTexture);

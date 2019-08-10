@@ -12,25 +12,6 @@
 
 namespace osgVegetation
 {
-
-	/*class DetailLayer
-	{
-	public:
-		DetailLayer(const std::string &texture, float scale = 1) : DetailTexture(texture), Scale(scale) {}
-		std::string DetailTexture;
-		float Scale;
-	};
-
-	class SplatMappingConfig
-	{
-	public:
-		SplatMappingConfig() : MaxDistance(1000) , DetailTextureUnit(-1) {}
-		std::vector<DetailLayer> DetailLayers;
-		int DetailTextureUnit;
-		TextureConfig SplatTexture;
-		float MaxDistance;
-	};*/
-
 	class TerrainShadingStateSetConfig : public TerrainStateSetConfig
 	{
 	public:
@@ -38,7 +19,6 @@ namespace osgVegetation
 		{
 			
 		}
-		//SplatMappingConfig SplatMapping;
 		TextureConfig NoiseTexture;
 		bool UseTessellation;
 	};
@@ -52,7 +32,7 @@ namespace osgVegetation
 				setDefine("OV_TERRAIN_TESSELLATION");
 
 			_SetNoiseTexture(config.NoiseTexture);
-			//_SetupSplatMapping(config.SplatMapping);
+			
 
 			osg::Program* program = _CreateProgram(config);
 			setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
