@@ -14,6 +14,10 @@ uniform mat4 osg_ModelViewMatrix;
 uniform int ov_indirectCommandSize; // = sizeof(DrawArraysIndirectCommand) / sizeof(unsigned int) = 4
 uniform int ov_numInstanceTypes;
 
+bool ov_passFilter(vec3 terrain_pos, vec3 terrain_normal, vec2 terrain_texcoord);
+vec4 ov_getTerrainColor(float depth, vec2 tex_coord0, vec2 terrain_pos);
+
+
 layout(R32I) coherent uniform iimageBuffer ov_indirectCommand0;
 layout(R32I) coherent uniform iimageBuffer ov_indirectCommand1;
 
@@ -56,6 +60,7 @@ layout(std140) uniform ov_instanceTypesData
 {
     InstanceType instanceTypes[32];
 };
+
 
 bool ov_boundingBoxInViewFrustum( in mat4 matrix, in vec3 bb_min, in vec3 bb_max )
 {
@@ -101,7 +106,8 @@ int ov_getRandomMeshType(in vec2 seed)
 	float acc_probablity = 0;
 	for (int i = 0; i < ov_numInstanceTypes; i++)
 	{
-		float mesh_probablity = 1.0/float(ov_numInstanceTypes);
+		float mesh_probablity = instanceTypes[i].bbMin.w;
+		//float mesh_probablity = 1.0/float(ov_numInstanceTypes);
 		if (rand_val > acc_probablity && rand_val < acc_probablity + mesh_probablity)
 		{
 			mesh_index = i;
@@ -159,8 +165,8 @@ mat4 ov_getRotationMatrix(vec3 axis, float angle)
 mat4 ov_getTransformationMatrix(vec4 position)
 {
 	float rand_val = ov_rand(position.xy + vec2(10.2,3.5));
-	float rand_angle = rand_val*3.14;
-	float rand_scale = 0.5 + rand_val * (1.5 - 0.5);
+	float rand_angle = rand_val*3.14*0.5;
+	float rand_scale = 0.7 + rand_val * (0.6);
 	mat4 rand_rot_mat = ov_getRotationMatrix(vec3(0, 0, 1), rand_angle);
 	mat4 rand_scale_mat = mat4(rand_scale, 0, 0, 0,
 		                  0, rand_scale, 0, 0,
@@ -178,9 +184,14 @@ void main(void)
 	vec2 instance_tex_coords;
 	ov_getRandomPointInTriangle(ov_te_position, ov_te_texcoord, instance_position, instance_tex_coords);
 
-	vec4 land_cover_color = texture2D( ov_landCoverTexture, instance_tex_coords);
-	if(length(land_cover_color.xyz) > 0.2)
+	//check if this is valid location
+	vec3 terrain_normal = vec3(0,0,1); 
+	if(!ov_passFilter(instance_position.xyz, terrain_normal, instance_tex_coords))
 		return;
+
+	//vec4 land_cover_color = texture2D( ov_landCoverTexture, instance_tex_coords);
+	//if(length(land_cover_color.xyz) > 0.2)
+	//	return;
 
 	 
 	//get random mesh
@@ -214,14 +225,20 @@ void main(void)
 			//and override object distance to be inside lod-range
 			distance_to_object = instanceTypes[instance_type_id].lods[start_lod].distances.y + 0.1; //note that we add 0.1m to avoid problems with zero values
 		}
+		float rand_intensity = 0.8 + 0.4*ov_rand(instance_position.xy + vec2(20.1,6.5));
+
+		//vec3 terrain_color =  ov_getTerrainColor(-mv_pos.z, instance_tex_coords.xy, instance_position.xy).xyz;
+		//rand_intensity = 2*length(terrain_color); 
 
 		for(int i = start_lod ; i < instanceTypes[instance_type_id].params.x; ++i)
 	    {
             if(ov_boundingBoxInViewFrustum( mvpo_matrix, instanceTypes[instance_type_id].lods[i].bbMin.xyz, instanceTypes[instance_type_id].lods[i].bbMax.xyz ) &&
                 (distance_to_object >= instanceTypes[instance_type_id].lods[i].distances.x ) && ( distance_to_object < instanceTypes[instance_type_id].lods[i].distances.w ))
             {
+
                 //ov_color = vec4(1.0,1.0,0.0,1.0);
                 vec4 lod_dist = instanceTypes[instance_type_id].lods[i].distances;
+				float intensity = rand_intensity;// * instanceTypes[instance_type_id].lods[i].bbMin.w;
                 float fade_alpha  = ( clamp( (distance_to_object - lod_dist.x)/(lod_dist.y - lod_dist.x), 0.0, 1.0 ) 
                     -  clamp( (distance_to_object- lod_dist.z)/( lod_dist.w - lod_dist.z), 0.0, 1.0 ) );
                 
@@ -233,7 +250,7 @@ void main(void)
                 imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 1, instance_matrix[1] );
                 imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 2, instance_matrix[2] );
                 imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 3, instance_matrix[3] );
-				vec4 _ExtraParams = vec4(1,0,0,0);
+				vec4 _ExtraParams = vec4(intensity,i,0,0);
                 imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 4, _ExtraParams );
 				 vec4 _IdParams = vec4(instance_type_id,0,0,0);
                 imageStore( ov_getIndirectTarget(indirect_command_index), indirect_target_address + 5, vec4(_IdParams.x,_IdParams.y,float(fade_alpha),0.0) );

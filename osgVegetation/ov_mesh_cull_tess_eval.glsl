@@ -1,17 +1,24 @@
 #version 400
 layout(triangles, equal_spacing, ccw) in;
-in vec4 ov_tc_position[];
-in vec2 ov_tc_texcoord[];
+
+in ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_in[];
+
 out vec4 ov_te_position;
 out vec2 ov_te_texcoord;
 
-void main(){
-	ov_te_position = (gl_TessCoord.x * ov_tc_position[0]) +
-                 (gl_TessCoord.y * ov_tc_position[1]) +
-                 (gl_TessCoord.z * ov_tc_position[2]);
+void main()
+{
+	ov_te_position = (gl_TessCoord.x * ov_in[0].Position) +
+                 (gl_TessCoord.y * ov_in[1].Position) +
+                 (gl_TessCoord.z * ov_in[2].Position);
 				  
-	ov_te_texcoord  = (gl_TessCoord.x * ov_tc_texcoord[0]) +
-                (gl_TessCoord.y * ov_tc_texcoord[1]) +
-                (gl_TessCoord.z * ov_tc_texcoord[2]);
+	ov_te_texcoord  = (gl_TessCoord.x * ov_in[0].TexCoord0) +
+                (gl_TessCoord.y * ov_in[1].TexCoord0) +
+                (gl_TessCoord.z * ov_in[2].TexCoord0);
 	
 }

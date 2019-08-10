@@ -30,12 +30,15 @@ vec4 ov_getSplatColor(vec2 splat_tex_coord, vec2 terrain_pos)
 
 	//splat_color *= 2.0;
 	splat_color = clamp(splat_color, 0, 1);
-
+	
 #ifdef OV_NOISE_TEXTURE
-	float noise = texture2D(ov_noise_texture, terrain_pos * 0.002).x;
-	float noise_2 = 1 - texture2D(ov_noise_texture, terrain_pos * 0.0001).x;
-	noise =  noise_2*noise_2*noise * noise;
-	noise = 1.0 - clamp(noise * 2.0, 0.0, 1.0);
+	float noise = texture2D(ov_noise_texture, terrain_pos * 0.001).x;
+	noise = noise > 0.5 ? 1 : 0;
+	float noise_2 = texture2D(ov_noise_texture, terrain_pos * 0.0004).x;
+	noise_2 = noise_2 > 0.5 ? 1 : 0;
+	noise = 1 - noise*noise_2;
+	//noise =  2 * noise_2 * noise_2 * noise * noise;
+	//noise = 1.0 - clamp(noise * 2.0, 0.0, 1.0);
 	splat_color = splat_color * noise;
 #endif
 	return splat_color;

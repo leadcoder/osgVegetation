@@ -30,13 +30,18 @@ layout(std140) uniform ov_instanceTypesData
 };
     
 layout(RGBA32F) coherent uniform imageBuffer ov_indirectTarget;
+
+void ov_setShadowTexCoords(vec4 mv_pos);
     
 out vec3 ov_position;
+out vec3 ov_vPosition;
 out vec3 ov_normal;
 out vec2 ov_texCoord;
 out vec4 ov_color;
+flat out mat3 ov_texMat;
 flat out float ov_fade;
 flat out float ov_textureIndex;
+flat out int ov_type;
       
 void main()
 {
@@ -54,17 +59,24 @@ void main()
     vec4 id_params = imageLoad(ov_indirectTarget, indirect_target_address + 5);
     
 	ov_fade = id_params.z;
+	ov_type = instanceTypes[instance_type_index].lods[instance_lod_number].indirectTargetParams.w;
     
     mat4 mv_matrix = gl_ModelViewMatrix * instance_matrix;
        
     // Do fixed functionality vertex transform
     vec4  mv_pos  = mv_matrix * vec4(ov_vertexPosition.xyz,1.0);
     gl_Position = gl_ProjectionMatrix * mv_pos;
+	ov_setShadowTexCoords(mv_pos);
     
+	ov_vPosition = ov_vertexPosition.xyz;
     ov_position = mv_pos.xyz / mv_pos.w;
-    ov_normal = normalize( mat3(mv_matrix) * ov_vertexNormal.xyz );
+    ov_texMat = mat3(mv_matrix);
+	//ov_normal = normalize( mat3(mv_matrix) * ov_vertexNormal.xyz );
+	ov_normal = ov_vertexNormal.xyz;
+	
     ov_texCoord = ov_vertexTexCoord0.xy;
 	ov_textureIndex = ov_vertexTexCoord1.z;
-    ov_color.xyz = ov_vertexColor.xyz * extra_params.x;
+	
+	ov_color.xyz = ov_vertexColor.xyz * extra_params.x;
     ov_color.a = ov_vertexColor.a;
 }
