@@ -95,7 +95,8 @@ public:
 
 		//texture2D->apply( *( renderInfo.getState() ) ); 
 		//image->readImageFromCurrentTexture(renderInfo.getContextID(), true); 
-		osgDB::writeImageFile(*image, m_imageName); 
+		
+		//osgDB::writeImageFile(*image, m_imageName); 
 	} 
 
 private: 
@@ -238,7 +239,7 @@ osg::ref_ptr<osg::Geode> CreateGeometry(const osg::Vec3 &min_pos, const osg::Vec
 	osg::AlphaFunc* alphaFunction = new osg::AlphaFunc;
 	alphaFunction->setFunction(osg::AlphaFunc::GEQUAL,0.1f);
 	geometry->getOrCreateStateSet()->setAttributeAndModes( alphaFunction, osg::StateAttribute::ON );
-	osg::CullFace* cull = new osg::CullFace(); 
+	osg::CullFace*cull = new osg::CullFace(); 
 	cull->setMode(osg::CullFace::BACK); 
 	geometry->getOrCreateStateSet()->setAttributeAndModes(cull, osg::StateAttribute::ON); 
 
@@ -305,16 +306,32 @@ int main(int argc, char **argv)
 	mesh_node->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_color_texture", 0));
 	osg::Uniform* normal_uniform = new osg::Uniform("ov_normal_ouput", 0.0f);
 	mesh_node->getOrCreateStateSet()->addUniform(normal_uniform);
-	
 
+	osg::Uniform* height_uniform = new osg::Uniform("ov_height", 10.0f);
+	mesh_node->getOrCreateStateSet()->addUniform(height_uniform);
+
+	osg::Uniform* radius_uniform = new osg::Uniform("ov_radius", 10.0f);
+	mesh_node->getOrCreateStateSet()->addUniform(radius_uniform);
+
+	mesh_node->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
+	mesh_node->getOrCreateStateSet()->setAttributeAndModes(new osg::BlendFunc, osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
+	osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
+	alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.1);
+	mesh_node->getOrCreateStateSet()->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 	std::stringstream vertexShaderSource;
 	vertexShaderSource <<
 		"uniform mat4 osg_ModelViewProjectionMatrix;\n"
+		"uniform float ov_height;\n"
+		"uniform float ov_radius;\n"
 		"varying vec3 ov_normal;\n"
 		"varying vec2 ov_tex_coord0;\n"
 		"void main() {\n"
 		"gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\n"
-		"ov_normal = gl_Normal;//normalize(gl_NormalMatrix * gl_Normal);\n"
+		"//float sphere_dist = sqrt(ov_height*ov_height - gl_Vertex.z*gl_Vertex.z);\n"
+		"//float norm_height = gl_Vertex.z / ov_height;\n"
+		"//float sphere_dist = ov_radius * sqrt(1 - norm_height*norm_height);\n"
+		"ov_normal = normalize(vec3(gl_Vertex.xy,0));//gl_Normal;//normalize(gl_NormalMatrix * gl_Normal);\n"
+		"//ov_normal = normalize( vec3(0, 0, gl_Vertex.z) + (normalize(vec3(gl_Vertex.xy,0)) * sphere_dist));\n"
 		"ov_tex_coord0 = gl_MultiTexCoord0.xy;\n"
 		"} \n";
 
@@ -327,7 +344,7 @@ int main(int argc, char **argv)
 		"varying vec2 ov_tex_coord0; \n"
 		"void main(void)\n"
 		"{\n"
-		"   vec4 base_color = texture2D(ov_color_texture, ov_tex_coord0.xy); \n"
+		"   vec4 base_color = texture2D(ov_color_texture, ov_tex_coord0.xy); base_color.w *= 2;\n"
 		"   vec3 n = ov_normal; \n"
 		"   //n.x = -n.x; \n"
 		"   //n.xyz = n.xzy; \n"
@@ -402,6 +419,9 @@ int main(int argc, char **argv)
 
 	float minz = bb._min.z();
 	float maxz = bb._max.z();
+
+	height_uniform->set(maxy);
+	radius_uniform->set(sqrt(maxx * maxx + maxz * maxz));
 
 	
 
@@ -567,9 +587,14 @@ int main(int argc, char **argv)
 		out_transform->setDataVariance(osg::Object::STATIC);
 		out_group->addChild(out_transform);
 	}
-	osgDB::writeImageFile(*atlas, "c:/temp/atlas.tga");
 
-	atlas->setFileName(osgDB::getSimpleFileName("c:/temp/atlas.tga"));
+	std::stringstream ss;
+	ss << out_path << billboard_prefix << "_bb.tga";// << std::endl;
+	osgDB::writeImageFile(*atlas, ss.str());
+
+
+
+	atlas->setFileName(osgDB::getSimpleFileName(ss.str()));
 
 	// Add the texture to the geode
 	atlas_texture->setImage(atlas);
@@ -626,8 +651,8 @@ int main(int argc, char **argv)
 	sceneGraph->removeChild(geode);
 
 	osg::LOD* lod = new osg::LOD();
-	lod->addChild(osgDB::readNodeFile(filename) , 0, 150);
-	lod->addChild(out_group, 150, 20000);
+	lod->addChild(osgDB::readNodeFile(filename) , 0, 125);
+	lod->addChild(out_group, 125, 20000);
 	sceneGraph->addChild(lod);
 
 	{
@@ -677,6 +702,8 @@ int main(int argc, char **argv)
 	std::string out_file = osgDB::getStrippedName(filename);
 	out_file = out_path + out_file + "_bb.osg";
 	osgDB::writeNodeFile(*out_group,out_file);
+
+	return 0;
 
 	if (!arguments.read("--view"))
 	{
