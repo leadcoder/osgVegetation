@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ov_PassFilter.h"
 #include <string>
 #include <vector>
 
@@ -12,29 +13,39 @@ namespace osgVegetation
 		class MeshLODConfig
 		{
 		public:
-			MeshLODConfig(const std::string& mesh, const osg::Vec4 &distance) : Mesh(mesh), Distance(distance) {}
+			MeshLODConfig() :
+				Distance(0, 0, 0, 0),
+				Type(0),
+				Intensity(1.0) {}
+
+			MeshLODConfig(const std::string& mesh, const osg::Vec4 &distance, unsigned int type = 0, float intensity = 1.0) : Mesh(mesh),
+				Distance(distance),
+				Type(type),
+				Intensity(intensity) {}
 			std::string Mesh;
 			osg::Vec4 Distance;
+			int Type;
+			float Intensity;
 		};
 
-		MeshTypeConfig()
+		MeshTypeConfig() : Probability(0)
 		{
 
 		}
 		std::vector<MeshLODConfig> MeshLODs;
+		float Probability;
 	private:
 	};
 
 	class MeshLayerConfig
 	{
 	public:
-		MeshLayerConfig(float density = 2, int lod_level = -1) : Density(density),
-			TargetLODLevel(lod_level)
+		MeshLayerConfig(float density = 2) : Density(density)
 		{
 
 		}
 		float Density;
-		int TargetLODLevel;
+		PassFilter Filter;
 		std::vector<MeshTypeConfig> MeshTypes;
 	private:
 	};
