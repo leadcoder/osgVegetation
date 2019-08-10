@@ -121,25 +121,29 @@ std::vector<osgVegetation::BillboardLayer> GetVegetationLayers()
 {
 	osg::Vec4 grass_splat_threashold(0.5, 0.5, 0.5, 0.5);
 	std::vector<osgVegetation::BillboardLayer> layers;
-	osgVegetation::BillboardLayer grass_data(100, 0.1, 1.0, 1);
-	grass_data.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	osgVegetation::BillboardLayer grass_data(osgVegetation::BillboardLayer::BLT_GRASS);
+	grass_data.MaxDistance = 100;
+	grass_data.ColorImpact = 1.0;
+	grass_data.Density = 0.1;
 	grass_data.Filter.SplatFilter = "if (length(splat_color) < 0.5) return false;";
-	//grass_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 1.0, 0.008));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 1.0, 0.002));
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data);
 
-	osgVegetation::BillboardLayer grass_data2(30, 0.4, 1.0, 5);
-	grass_data2.Type = osgVegetation::BillboardLayer::BLT_GRASS;
+	osgVegetation::BillboardLayer grass_data2(osgVegetation::BillboardLayer::BLT_GRASS);
+	grass_data2.MaxDistance = 30;
+	grass_data2.Density = 0.4;
+	grass_data2.ColorImpact = 1.0;
 	grass_data2.Filter.SplatFilter = grass_data.Filter.SplatFilter;
 	grass_data2.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data2);
 
 	//osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
-	osgVegetation::BillboardLayer tree_data(740, 0.001, 0.7, 0.1, 2);
-	//tree_data.Type = osgVegetation::BillboardLayer::BLT_CROSS_QUADS;
-	tree_data.Type = osgVegetation::BillboardLayer::BLT_ROTATED_QUAD;
+	osgVegetation::BillboardLayer tree_data(osgVegetation::BillboardLayer::BLT_ROTATED_QUAD);
+	tree_data.MaxDistance = 740;
+	tree_data.Density = 0.001;
+	tree_data.ColorImpact = 0.7;
 	tree_data.Filter.SplatFilter = osgVegetation::PassFilter::GenerateSplatFilter(osg::Vec4(-1, -1, 0.5, -1), "<");
 	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.6, 1.0));
 	layers.push_back(tree_data);
@@ -149,7 +153,7 @@ std::vector<osgVegetation::BillboardLayer> GetVegetationLayers()
 int main(int argc, char** argv)
 {
 	osgVegetation::SceneConfiguration config;
-	config.ShadowMode = osgVegetation::SM_LISPSM;
+	config.Shadow.Mode = osgVegetation::SM_LISPSM;
 	config.FogMode = osgVegetation::FM_EXP2;
 
 	osg::ArgumentParser arguments(&argc, argv);
@@ -184,7 +188,7 @@ int main(int argc, char** argv)
 	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 	
-	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.ShadowMode);
+	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.Shadow.Mode);
 	
 	std::string HEIGHT_MAP = "terrain/hm/heightmap.png";
 	double HEIGHT_MAP_SCALE = (1386.67 - 607.0);

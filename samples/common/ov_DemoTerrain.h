@@ -1,3 +1,4 @@
+#include <osg/ShapeDrawable>
 #if defined(WIN32) && !(defined(__CYGWIN__) || defined(__MINGW32__))
     // disable the double to float errors.
     #pragma warning( disable : 4305 )
@@ -1656,6 +1657,47 @@ osg::Node* CreateDemoTerrain(float terrain_size, const osg::Vec3& center = osg::
 	//osg::Group* group = new osg::Group;
 	///group->addChild(geode);
 	return geode;
+}
+
+
+osg::Geometry* CreateDemoTerrain2(float terrain_size, const osg::Vec3& center = osg::Vec3(0, 0, 0))
+{
+	osg::Geode* geode = new osg::Geode;
+
+	osg::HeightField* grid = new osg::HeightField;
+	grid->allocate(38, 39);
+	grid->setOrigin(center + osg::Vec3(-terrain_size * 0.5, -terrain_size * 0.5, 0.0f));
+	grid->setXInterval(terrain_size / (float)(38 - 1));
+	grid->setYInterval(terrain_size / (float)(39 - 1));
+
+	float minHeight = FLT_MAX;
+	float maxHeight = -FLT_MAX;
+
+	unsigned int r;
+	for (r = 0; r < 39; ++r)
+	{
+		for (unsigned int c = 0; c < 38; ++c)
+		{
+			float h = vertex[r + c * 39][2];
+			if (h > maxHeight) maxHeight = h;
+			if (h < minHeight) minHeight = h;
+		}
+	}
+
+	float hieghtScale = terrain_size * 0.25 / (maxHeight - minHeight);
+	float hieghtOffset = -(minHeight + maxHeight)*0.5f;
+
+	for (r = 0; r < 39; ++r)
+	{
+		for (unsigned int c = 0; c < 38; ++c)
+		{
+			float h = vertex[r + c * 39][2];
+			grid->setHeight(c, r, (h + hieghtOffset)*hieghtScale);
+		}
+	}
+
+	osg::Geometry* geometry = _CreateGeometryFromHeightField(grid);
+	return geometry;
 }
 
 
