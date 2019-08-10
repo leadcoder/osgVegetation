@@ -51,15 +51,11 @@ namespace osgVegetation
 		private:
 		};
 
-
-
-		BillboardLayer(float max_dist = 150, float density = 8, float color_impact = 1.0, float lc_id = -1, int lod_level = -1) : MaxDistance(max_dist),
-			Density(density), 
-			ColorImpact(color_impact),
-			//LandCoverID(lc_id),
-			AlphaRejectValue(0.1),
-			LODLevel(lod_level),
-			Type(BLT_ROTATED_QUAD)
+		BillboardLayer(BillboardLayerType type = BLT_ROTATED_QUAD) : Type(type),
+			MaxDistance(150),
+			Density(0.02), 
+			ColorImpact(1.0),
+			AlphaRejectValue(0.1)
 		{
 
 		}
@@ -72,13 +68,13 @@ namespace osgVegetation
 		float MaxDistance;
 		float Density;
 		float ColorImpact;
-		//float LandCoverID;
 		float AlphaRejectValue;
-		int LODLevel;
 		BillboardLayerType Type;
-		//std::string SplatFilter;
 		PassFilter Filter;
 		std::vector<Billboard> Billboards;
 	private:
 	};
+
+
+
 }
