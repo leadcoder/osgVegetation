@@ -44,9 +44,15 @@ namespace osgVegetation
 
 			inline void setBoundingBox(const osg::BoundingBox& bbox)
 			{
-				bbMin = osg::Vec4f(bbox.xMin(), bbox.yMin(), bbox.zMin(), 1.0f);
-				bbMax = osg::Vec4f(bbox.xMax(), bbox.yMax(), bbox.zMax(), 1.0f);
+				bbMin = osg::Vec4f(bbox.xMin(), bbox.yMin(), bbox.zMin(), bbMin.w());
+				bbMax = osg::Vec4f(bbox.xMax(), bbox.yMax(), bbox.zMax(), bbMax.w());
 			}
+
+			inline void setIntensity(const float& intensity)
+			{
+				bbMin.w() = intensity;
+			}
+
 			inline osg::BoundingBox getBoundingBox()
 			{
 				return osg::BoundingBox(bbMin.x(), bbMin.y(), bbMin.z(), bbMax.x(), bbMax.y(), bbMax.z());
@@ -84,16 +90,25 @@ namespace osgVegetation
 			}
 			return *this;
 		}
-		inline void setLodDefinition(unsigned int i, unsigned int targetID, unsigned int indexInTarget, const osg::Vec4& distance, unsigned int offsetInTarget, unsigned int maxQuantity, const osg::BoundingBox& lodBBox)
+		inline void setLodDefinition(unsigned int i, 
+			unsigned int targetID, 
+			unsigned int indexInTarget, 
+			const osg::Vec4& distance, 
+			unsigned int offsetInTarget, 
+			unsigned int type, 
+			const osg::BoundingBox& lodBBox, 
+			float intensity)
 		{
 			if (i >= OV_MAXIMUM_LOD_NUMBER)
 				return;
 			params.x() = osg::maximum<int>(params.x(), i + 1);
-			lods[i].indirectTargetParams = osg::Vec4i(targetID, indexInTarget, offsetInTarget, maxQuantity);
+			lods[i].indirectTargetParams = osg::Vec4i(targetID, indexInTarget, offsetInTarget, type);
 			lods[i].distances = distance;
 			lods[i].setBoundingBox(lodBBox);
+			lods[i].setIntensity(intensity);
 			expandBy(lodBBox);
 		}
+
 		inline void expandBy(const osg::BoundingBox& bbox)
 		{
 			osg::BoundingBox myBBox = getBoundingBox();
@@ -102,12 +117,17 @@ namespace osgVegetation
 		}
 		inline void setBoundingBox(const osg::BoundingBox& bbox)
 		{
-			bbMin = osg::Vec4f(bbox.xMin(), bbox.yMin(), bbox.zMin(), 1.0f);
-			bbMax = osg::Vec4f(bbox.xMax(), bbox.yMax(), bbox.zMax(), 1.0f);
+			bbMin = osg::Vec4f(bbox.xMin(), bbox.yMin(), bbox.zMin(), bbMin.w());
+			bbMax = osg::Vec4f(bbox.xMax(), bbox.yMax(), bbox.zMax(), bbMax.w());
 		}
 		inline osg::BoundingBox getBoundingBox()
 		{
 			return osg::BoundingBox(bbMin.x(), bbMin.y(), bbMin.z(), bbMax.x(), bbMax.y(), bbMax.z());
+		}
+
+		inline void setProbability(float value)
+		{
+			bbMin.w() = value;
 		}
 
 		osg::Vec4f  bbMin;                              // bounding box that includes all LODs
@@ -274,7 +294,14 @@ namespace osgVegetation
 			targets[index] = IndirectTarget(agv, targetDrawProgram);
 		}
 
-		bool registerType(unsigned int typeID, unsigned int targetID, osg::Node* node, const osg::Vec4& lodDistances, float maxDensityPerSquareKilometer)
+		bool registerType(unsigned int typeID, 
+			unsigned int targetID, 
+			osg::Node* node, 
+			const osg::Vec4& lodDistances, 
+			float maxDensityPerSquareKilometer, 
+			int type, 
+			float intensity,
+			float probablity)
 		{
 			if (typeID >= instanceTypes->getData().size())
 				instanceTypes->getData().resize(typeID + 1);
@@ -301,7 +328,17 @@ namespace osgVegetation
 			// calculate max quantity of objects in lodArea using maximum density per square kilometer
 			unsigned int maxQuantity = (unsigned int)ceil(lodArea * maxDensityPerSquareKilometer);
 
-			itd.setLodDefinition(lodNumber, targetID, aoResult.index, lodDistances, target->second._maxTargetQuantity, maxQuantity, cbv.getBoundingBox());
+			itd.setLodDefinition(lodNumber, 
+				targetID, 
+				aoResult.index, 
+				lodDistances, 
+				target->second._maxTargetQuantity, 
+				type, 
+				cbv.getBoundingBox(),
+				intensity);
+			
+			itd.setProbability(probablity);
+
 			target->second._maxTargetQuantity += maxQuantity;
 			return true;
 		}
