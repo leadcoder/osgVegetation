@@ -1,5 +1,6 @@
 #pragma once
 #include "ov_Common.h"
+#include <osg/Fog>
 
 namespace osgVegetation
 {
@@ -20,17 +21,28 @@ namespace osgVegetation
 		FM_DISABLED = 4
 	};
 
+
+	class ShadowConfig
+	{
+	public:
+		ShadowConfig() : ReceivesShadowTraversalMask(0x1),
+			CastsShadowTraversalMask(0x2), Mode(SM_DISABLED){}
+		ShadowModeEnum Mode;
+		int ReceivesShadowTraversalMask;
+		int CastsShadowTraversalMask;
+	};
+
 	class SceneConfiguration
 	{
 	public:
-		ShadowModeEnum ShadowMode;
+		ShadowConfig Shadow;
 		FogModeEnum FogMode;
 	};
 
 	void SetSceneDefinitions(osg::StateSet* state_set, const SceneConfiguration &config)
 	{
 		std::string shadow_mode_str;
-		switch (config.ShadowMode)
+		switch (config.Shadow.Mode)
 		{
 		case SM_DISABLED:
 			//shadow_mode_str = "SM_DISABLED";
