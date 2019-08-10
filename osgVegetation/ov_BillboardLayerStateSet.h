@@ -12,15 +12,18 @@
 #include <osg/PatchParameter>
 #include "ov_Utils.h"
 #include "ov_BillboardLayer.h"
+#include "ov_TextureConfig.h"
 
 namespace osgVegetation
 {
 	class BillboardLayerStateSet : public osg::StateSet
 	{
 	public:
-		BillboardLayerStateSet(const BillboardLayer& data, int billboard_tex_unit)
+		BillboardLayerStateSet(const BillboardLayer& data)
 		{
 			setDefine("OV_TERRAIN_TESSELLATION");
+
+			const int billboard_tex_unit = TextureRegister.CreateOrGetUnit(OV_BILLBOARD_TEXTURE_ID);
 
 			//apply filters
 			data.Filter.Apply(this);
@@ -158,9 +161,9 @@ private:
 	class BillboardLayerEffect : public osg::Group
 	{
 	public:
-		BillboardLayerEffect(const BillboardLayer &config, int tex_unit)
+		BillboardLayerEffect(const BillboardLayer &config)
 		{
-			setStateSet(new BillboardLayerStateSet(config, tex_unit));
+			setStateSet(new BillboardLayerStateSet(config));
 		}
 		BillboardLayerEffect(const BillboardLayerEffect& rhs, const osg::CopyOp& copyop = osg::CopyOp::SHALLOW_COPY) : osg::Group(rhs, copyop)
 		{
@@ -168,11 +171,6 @@ private:
 		}
 		virtual Object* cloneType() const { return new osg::Group(); }
 		virtual Object* clone(const osg::CopyOp& copyop) const { return new BillboardLayerEffect(*this, copyop); }
-
-		/*void setTerrainTextures(TerrainTextureUnitSettings tex_units)
-		{
-			tex_units.Apply(getStateSet());
-		}*/
 	};
 
 #if 0	
