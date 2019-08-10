@@ -1,10 +1,11 @@
 #pragma once
-//#include "ov_TerrainSplatShadingStateSet.h"
-//#include "ov_TerrainShadingStateSet.h"
 #include "ov_BillboardLayer.h"
 #include "ov_Utils.h"
 #include "ov_TerrainHelper.h"
 #include "ov_BillboardLayerStateSet.h"
+#include "ov_VPBVegetationInjectionConfig.h"
+#include "ov_BillboardMultiLayerEffect.h"
+#include "ov_MeshTileGenerator.h"
 #include <osg/PagedLOD>
 #include <osgTerrain/Terrain>
 #include <osgTerrain/TerrainTile>
@@ -12,6 +13,7 @@
 namespace osgVegetation
 {
 
+#if 0
 	class BillboardNodeGeneratorConfig
 	{
 	public:
@@ -115,8 +117,39 @@ namespace osgVegetation
 			}
 		}
 	};
+#endif
 
 
+	class VPBInjectionLOD
+	{
+	public:
+		VPBInjectionLOD(VPBInjectionLODConfig config) :
+			TargetLevel(config.TargetLevel),
+			m_BBEffect(new BillboardMultiLayerEffect(config.Layers))
+		{
+			for (size_t i = 0; i < config.MeshLayers.size(); i++)
+			{
+				m_MeshGenerators.push_back(MeshLayerGenerator(config.MeshLayers[i]));
+			}
+		}
+
+		osg::ref_ptr<osg::Node> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry)
+		{
+			osg::ref_ptr<osg::Group> root = new osg::Group();
+			osg::ref_ptr<BillboardMultiLayerEffect> bb_effect = m_BBEffect->createInstance(terrain_geometry);
+			root->addChild(bb_effect);
+			for (size_t i = 0; i < m_MeshGenerators.size(); i++)
+			{
+				osg::Group* mesh_node = m_MeshGenerators[i].CreateMeshNode(terrain_geometry);
+				root->addChild(mesh_node);
+			}
+			return root;
+		}
+		int TargetLevel;
+	private:
+		osg::ref_ptr<BillboardMultiLayerEffect> m_BBEffect;
+		std::vector<MeshLayerGenerator> m_MeshGenerators;
+	};
 
 	//Inject vegetation layers into VirtualPlanetBuilder (VPB) PLOD terrains,
 	//ie terrain created with --PagedLOD, --POLYGONAL or --TERRAIN.
@@ -213,20 +246,12 @@ namespace osgVegetation
 			}
 		};
 	
-		VPBVegetationInjection(const BillboardNodeGeneratorConfig &config)
+		VPBVegetationInjection(const VPBVegetationInjectionConfig &config)
 		{
-			typedef std::map<int, std::vector<BillboardLayer> > LODBuckets;
-			LODBuckets lod_buckets;
-			for (size_t i = 0; i < config.Layers.size(); i++)
+			for (size_t i = 0; i < config.TerrainLODs.size(); i++)
 			{
-				lod_buckets[config.Layers[i].LODLevel].push_back(config.Layers[i]);
-			}
-
-			for (LODBuckets::const_iterator iter = lod_buckets.begin(); iter != lod_buckets.end(); iter++)
-			{
-				BillboardNodeGeneratorConfig lod_config = config;
-				lod_config.Layers = iter->second;
-				m_LODLayers.insert(std::pair<int, osg::ref_ptr<BillboardMultiLayerEffect> >(iter->first, new BillboardMultiLayerEffect(lod_config.Layers, lod_config.BillboardTexUnit)));
+				m_Levels.push_back(VPBInjectionLOD(config.TerrainLODs[i]));
+				//m_LODLayers.insert(std::pair<int, osg::ref_ptr<BillboardMultiLayerEffect> >(config.TerrainLODs[i].TargetLevel, new BillboardMultiLayerEffect(config.TerrainLODs[i].Layers, config.BillboardTexUnit)));
 			}
 		}
 	
@@ -298,8 +323,10 @@ namespace osgVegetation
 #else
 			const int lod_level = ExtractLODLevelFromFileName(filename);
 #endif
-			std::map<int, osg::ref_ptr<BillboardMultiLayerEffect> >::const_iterator iter = m_LODLayers.find(lod_level);
-			if (iter != m_LODLayers.end())
+			VPBInjectionLOD* injector = GetTargetLevel(lod_level);
+			//std::map<int, osg::ref_ptr<BillboardMultiLayerEffect> >::const_iterator iter = m_LODLayers.find(lod_level);
+			//if (iter != m_LODLayers.end())
+			if (injector)
 			{
 				osg::Group* root_node = dynamic_cast<osg::Group*>(rr.getNode());
 				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(root_node);
@@ -308,14 +335,24 @@ namespace osgVegetation
 				{
 					//Create/clone terrain geometry
 					osg::Group* terrain_geometry = CreateTerrainGeometry(root_node);
-					osg::ref_ptr<BillboardMultiLayerEffect> veg_node = iter->second->createInstance(terrain_geometry);
+					osg::ref_ptr<osg::Node> veg_node = injector->CreateVegetationNode(terrain_geometry);
 					root_node->addChild(veg_node);
 				}
 			}
 			return rr;
 		}
+		VPBInjectionLOD* GetTargetLevel(int level)
+		{
+			for (size_t i = 0; i < m_Levels.size(); i++)
+			{
+				if (m_Levels[i].TargetLevel == level)
+					return &m_Levels[i];
+			}
+			return NULL;
+		}
 	protected:
 		virtual ~VPBVegetationInjection() {}
-		std::map<int, osg::ref_ptr<BillboardMultiLayerEffect> > m_LODLayers;
+		std::vector<VPBInjectionLOD> m_Levels;
+		//std::map<int, osg::ref_ptr<BillboardMultiLayerEffect> > m_LODLayers;
 	};
 }
