@@ -304,6 +304,8 @@ public:
 		bool pushed = _ctOperator.pushNode(&node);
 		traverse(node);
 		if (pushed) _ctOperator.popNode();
+
+		
 	}
 
 	void apply(osg::Transform& transform)
@@ -333,11 +335,14 @@ public:
 		osg::Texture2D* tex = dynamic_cast<osg::Texture2D*>(geode.getOrCreateStateSet()->getTextureAttribute(0, osg::StateAttribute::TEXTURE));
 		if (tex)
 		{
-			osg::Image* image = dynamic_cast<osg::Image*>(tex->getImage()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
-			if (image)
+			tex_index = getOrAddImage(tex->getImage());
+		}
+		else
+		{
+			tex = dynamic_cast<osg::Texture2D*>(geode.getParent(0)->getOrCreateStateSet()->getTextureAttribute(0, osg::StateAttribute::TEXTURE));
+			if (tex)
 			{
-				tex_index = _images.size();
-				_images.push_back(image);
+				tex_index = getOrAddImage(tex->getImage());
 			}
 		}
 
@@ -347,22 +352,14 @@ public:
 
 			if (geom != NULL)
 			{
-
 				if (tex == NULL)
 				{
 					osg::Texture2D* geom_tex = dynamic_cast<osg::Texture2D*>(geom->getOrCreateStateSet()->getTextureAttribute(0, osg::StateAttribute::TEXTURE));
-
 					if (geom_tex)
 					{
-						osg::Image* image = dynamic_cast<osg::Image*>(geom_tex->getImage()->clone(osg::CopyOp::DEEP_COPY_STATESETS));
-						if (image)
-						{
-							tex_index = _images.size();
-							_images.push_back(image);
-						}
+						tex_index = getOrAddImage(geom_tex->getImage());
 					}
 				}
-
 				_ctOperator.setGeometryData(tex_index, matrix, geom, _aggregatedGeometry.get(), (float)_currentTypeID, (float)_currentLodNumber);
 				geom->accept(_ctOperator);
 			}
@@ -382,6 +379,25 @@ public:
 		return _aggregatedGeometry;
 	}
 
+	int getOrAddImage(osg::Image* image)
+	{
+		if (image->getFileName() != "")
+		{
+			for (size_t i = 0; i < _images.size(); i++)
+			{
+				if (image->getFileName() == _images[i]->getFileName())
+					return i;
+			}
+		}
+
+		osg::Image* new_image = dynamic_cast<osg::Image*>(image->clone(osg::CopyOp::DEEP_COPY_STATESETS));
+		if (new_image)
+		{
+			_images.push_back(new_image);
+		}
+		return _images.size()-1;
+	}
+
 	osg::ref_ptr<osg::Texture2DArray> generateTextureArray()
 	{
 		int tex_size = 1024;
@@ -390,23 +406,24 @@ public:
 		tex->setUseHardwareMipMapGeneration(true);
 		tex->setWrap(osg::Texture2D::WRAP_S, osg::Texture2D::REPEAT);
 		tex->setWrap(osg::Texture2D::WRAP_T, osg::Texture2D::REPEAT);
+		//tex->setFilter(osg::Texture2D::MIN_FILTER, osg::Texture2D::NEAREST);
 		for (size_t i = 0; i < _images.size(); i++)
 		{
 			_images[i]->scaleImage(tex_size, tex_size, 1);
 			tex->setImage(i, _images[i]);
 		}
-		int tex_unit = 3;
+		int tex_unit = 12;
 		_aggregatedGeometry->getOrCreateStateSet()->setTextureAttributeAndModes(tex_unit, tex, osg::StateAttribute::ON);
-		osg::Uniform* baseTextureSampler = new osg::Uniform("ov_color_texture", tex_unit);
+		osg::Uniform* baseTextureSampler = new osg::Uniform("ov_mesh_color_texture", tex_unit);
 		_aggregatedGeometry->getOrCreateStateSet()->addUniform(baseTextureSampler);
 
 		_aggregatedGeometry->getOrCreateStateSet()->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);
-		_aggregatedGeometry->getOrCreateStateSet()->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
+		//_aggregatedGeometry->getOrCreateStateSet()->setAttributeAndModes(new osg::BlendFunc(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO), osg::StateAttribute::OVERRIDE);
 
 		//need this for shadows to work
 		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
-		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.5);
-		_aggregatedGeometry->getOrCreateStateSet()->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
+		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.1);
+		//_aggregatedGeometry->getOrCreateStateSet()->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
 
 		return tex;
 	}
