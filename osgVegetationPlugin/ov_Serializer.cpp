@@ -46,7 +46,6 @@ namespace osgVegetation
 		bbl_elem->QueryFloatAttribute("AlphaRejectValue", &layer.AlphaRejectValue);
 		bbl_elem->QueryFloatAttribute("ColorImpact", &layer.ColorImpact);
 		bbl_elem->QueryFloatAttribute("Density", &layer.Density);
-		bbl_elem->QueryIntAttribute("LODLevel", &layer.LODLevel);
 		bbl_elem->QueryFloatAttribute("MaxDistance", &layer.MaxDistance);
 	
 		if(bbl_elem->Attribute("ColorFilter"))
@@ -68,19 +67,105 @@ namespace osgVegetation
 		return layer;
 	}
 
-	BillboardNodeGeneratorConfig loadBillboardLayers(TiXmlElement *bblv_elem)
+	MeshTypeConfig::MeshLODConfig loadMeshLOD(TiXmlElement *mesh_lod_elem)
 	{
-		BillboardNodeGeneratorConfig config;
-		bblv_elem->QueryIntAttribute("BillboardTexUnit", &config.BillboardTexUnit);
-		bblv_elem->QueryIntAttribute("CastShadowTraversalMask", &config.CastShadowTraversalMask);
-		bblv_elem->QueryIntAttribute("ReceivesShadowTraversalMask", &config.ReceivesShadowTraversalMask);
+		MeshTypeConfig::MeshLODConfig mesh_lod;
 
-		TiXmlElement *bbl_elem = bblv_elem->FirstChildElement("BillboardLayer");
-		while (bbl_elem)
+		if (!mesh_lod_elem->Attribute("MeshFile"))
+			throw std::runtime_error(std::string("Serializer::loadMeshLOD - Failed to find attribute: MeshFile").c_str());
+
+		mesh_lod.Mesh = mesh_lod_elem->Attribute("MeshFile");
+
+		float start_dist = 0;
+		float end_dist = 0;
+		float fade_in_dist = 0;
+		float fade_out_dist = 0;
+		mesh_lod_elem->QueryFloatAttribute("StartDistance", &start_dist);
+		mesh_lod_elem->QueryFloatAttribute("EndDistance", &end_dist);
+		mesh_lod_elem->QueryFloatAttribute("FadeInDistance", &fade_in_dist);
+		mesh_lod_elem->QueryFloatAttribute("FadeOutDistance", &fade_out_dist);
+		mesh_lod.Distance.set(start_dist, start_dist + fade_in_dist, end_dist - fade_out_dist, end_dist);
+		mesh_lod_elem->QueryFloatAttribute("Intensity", &mesh_lod.Intensity);
+		mesh_lod_elem->QueryIntAttribute("Type", &mesh_lod.Type);
+		return mesh_lod;
+	}
+
+	MeshTypeConfig loadMesh(TiXmlElement *mesh_elem)
+	{
+		MeshTypeConfig mesh;
+
+		mesh_elem->QueryFloatAttribute("Probability", &mesh.Probability);
+		TiXmlElement *mesh_lod_elem = mesh_elem->FirstChildElement("LOD");
+
+		while (mesh_lod_elem)
 		{
-			BillboardLayer bbl = loadBillboardLayer(bbl_elem);
+			MeshTypeConfig::MeshLODConfig mesh_lod = loadMeshLOD(mesh_lod_elem);
+			mesh.MeshLODs.push_back(mesh_lod);
+			mesh_lod_elem = mesh_lod_elem->NextSiblingElement("LOD");
+		}
+
+		return mesh;
+	}
+
+	MeshLayerConfig loadMeshLayer(TiXmlElement *mesh_layer_elem)
+	{
+		MeshLayerConfig layer;
+		mesh_layer_elem->QueryFloatAttribute("Density", &layer.Density);
+
+		if (mesh_layer_elem->Attribute("ColorFilter"))
+			layer.Filter.ColorFilter = mesh_layer_elem->Attribute("ColorFilter");
+
+		if (mesh_layer_elem->Attribute("SplatFilter"))
+			layer.Filter.SplatFilter = mesh_layer_elem->Attribute("SplatFilter");
+
+		if (mesh_layer_elem->Attribute("NormalFilter"))
+			layer.Filter.NormalFilter = mesh_layer_elem->Attribute("NormalFilter");
+
+		TiXmlElement *mesh_elem = mesh_layer_elem->FirstChildElement("Mesh");
+		while (mesh_elem)
+		{
+			MeshTypeConfig mesh = loadMesh(mesh_elem);
+			layer.MeshTypes.push_back(mesh);
+			mesh_elem = mesh_elem->NextSiblingElement("Mesh");
+		}
+		return layer;
+	}
+
+	VPBInjectionLODConfig loadLODConfig(TiXmlElement *lod_elem)
+	{
+		VPBInjectionLODConfig config;
+		lod_elem->QueryIntAttribute("TargetLevel", &config.TargetLevel);
+	
+		TiXmlElement *bblayers_elem = lod_elem->FirstChildElement("BillboardLayer");
+		while (bblayers_elem)
+		{
+			BillboardLayer bbl = loadBillboardLayer(bblayers_elem);
 			config.Layers.push_back(bbl);
-			bbl_elem = bbl_elem->NextSiblingElement("BillboardLayer");
+			bblayers_elem = bblayers_elem->NextSiblingElement("BillboardLayer");
+		}
+		TiXmlElement *mesh_layers_elem = lod_elem->FirstChildElement("MeshLayer");
+		while (mesh_layers_elem)
+		{
+			MeshLayerConfig mesh_layer = loadMeshLayer(mesh_layers_elem);
+			config.MeshLayers.push_back(mesh_layer);
+			mesh_layers_elem = mesh_layers_elem->NextSiblingElement("MeshLayer");
+		}
+		return config;
+	}
+
+	VPBVegetationInjectionConfig loadInjectionConfig(TiXmlElement *injection_elem)
+	{
+		VPBVegetationInjectionConfig config;
+		injection_elem->QueryIntAttribute("BillboardTexUnit", &config.BillboardTexUnit);
+		injection_elem->QueryIntAttribute("CastShadowTraversalMask", &config.CastShadowTraversalMask);
+		injection_elem->QueryIntAttribute("ReceivesShadowTraversalMask", &config.ReceivesShadowTraversalMask);
+
+		TiXmlElement *terrain_lod_elem = injection_elem->FirstChildElement("VPBInjectionLOD");
+		while (terrain_lod_elem)
+		{
+			VPBInjectionLODConfig lod_config = loadLODConfig(terrain_lod_elem);
+			config.TerrainLODs.push_back(lod_config);
+			terrain_lod_elem = terrain_lod_elem->NextSiblingElement("VPBInjectionLOD");
 		}
 		return config;
 	}
@@ -189,9 +274,9 @@ namespace osgVegetation
 		if (sc_elem)
 			terrain.SplatConfig = loadSplatShading(sc_elem);
 
-		TiXmlElement *bblv_elem = terrain_elem->FirstChildElement("BillboardLayers");
-		if(bblv_elem)
-			terrain.BillboardConfig = loadBillboardLayers(bblv_elem);
+		TiXmlElement *injection_elem = terrain_elem->FirstChildElement("VPBVegetationInjectionConfig");
+		if(injection_elem)
+			terrain.BillboardConfig = loadInjectionConfig(injection_elem);
 
 		//terrain.BillboardConfig.BillboardTexUnit = 12;
 

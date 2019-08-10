@@ -1,5 +1,5 @@
 #pragma once
-#include "ov_VPBVegetationInjection.h"
+#include "ov_VPBVegetationInjectionConfig.h"
 #include "ov_TerrainSplatShadingStateSet.h"
 #include <osg/Node>
 #include <vector>
@@ -13,7 +13,7 @@ namespace osgVegetation
 	public:
 		std::string Filename;
 		TerrainSplatShadingConfig SplatConfig;
-		BillboardNodeGeneratorConfig BillboardConfig;
+		VPBVegetationInjectionConfig BillboardConfig;
 	};
 	
 	class XMLSerializer
