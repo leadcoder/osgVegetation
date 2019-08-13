@@ -84,7 +84,7 @@ namespace osgVegetation
 		mesh_lod_elem->QueryFloatAttribute("EndDistance", &end_dist);
 		mesh_lod_elem->QueryFloatAttribute("FadeInDistance", &fade_in_dist);
 		mesh_lod_elem->QueryFloatAttribute("FadeOutDistance", &fade_out_dist);
-		mesh_lod.Distance.set(start_dist, start_dist + fade_in_dist, end_dist - fade_out_dist, end_dist);
+		mesh_lod.Distance.set(start_dist - fade_in_dist, start_dist, end_dist , end_dist + fade_out_dist);
 		mesh_lod_elem->QueryFloatAttribute("Intensity", &mesh_lod.Intensity);
 		mesh_lod_elem->QueryIntAttribute("Type", &mesh_lod.Type);
 		return mesh_lod;
@@ -128,6 +128,40 @@ namespace osgVegetation
 			layer.MeshTypes.push_back(mesh);
 			mesh_elem = mesh_elem->NextSiblingElement("Mesh");
 		}
+
+
+		//support override lod.settings
+		float lod0_dist = -1;
+		float lod1_dist = -1;
+		float lod0_fade_dist = -1;
+		float lod1_fade_dist = -1;
+		float intensity = -1;
+		mesh_layer_elem->QueryFloatAttribute("DefaultDistanceLOD0", &lod0_dist);
+		mesh_layer_elem->QueryFloatAttribute("DefaultFadeLOD0", &lod0_fade_dist);
+		mesh_layer_elem->QueryFloatAttribute("DefaultDistanceLOD1", &lod1_dist);
+		mesh_layer_elem->QueryFloatAttribute("DefaultFadeLOD0", &lod1_fade_dist);
+		mesh_layer_elem->QueryFloatAttribute("DefaultIntensity", &intensity);
+		
+		for (size_t i = 0; i < layer.MeshTypes.size(); i++)
+		{
+			for (size_t j = 0; j < layer.MeshTypes[i].MeshLODs.size(); j++)
+			{
+				if (layer.MeshTypes[i].MeshLODs[j].Distance.w() == 0)
+				{
+					if (j == 0 && lod0_dist > -1)
+					{
+						layer.MeshTypes[i].MeshLODs[j].Distance.set(0, 0, lod0_dist, lod0_dist + lod0_fade_dist);
+					}
+					if (j == 1 && lod0_dist > -1 && lod1_dist > -1)
+					{
+						layer.MeshTypes[i].MeshLODs[j].Distance.set(lod0_dist - lod0_fade_dist, lod0_dist, lod1_dist, lod1_dist + lod1_fade_dist);
+					}
+				}
+				if(intensity > -1)
+					layer.MeshTypes[i].MeshLODs[j].Intensity = intensity;
+			}
+		}
+
 		return layer;
 	}
 

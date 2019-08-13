@@ -4,18 +4,6 @@
 
 namespace osgVegetation
 {
-	/*class BillboardMultiLayerEffectConfig
-	{
-	public:
-		BillboardMultiLayerEffectConfig(const std::vector<BillboardLayer> &layers, int tex_unit) : Layers(layers),
-			TextureUnit(tex_unit)
-		{
-
-		}
-		std::vector<BillboardLayer> Layers;
-		int TextureUnit;
-	};*/
-
 	class BillboardMultiLayerEffect : public osg::Group
 	{
 	public:
