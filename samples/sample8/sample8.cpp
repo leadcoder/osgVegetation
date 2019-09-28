@@ -1,4 +1,4 @@
-#include "ov_BillboardLayer.h"
+#include "ov_BillboardLayerConfig.h"
 #include "ov_BillboardLayerStateSet.h"
 #include "ov_TerrainSplatShadingStateSet.h"
 #include "ov_Utils.h"
@@ -117,35 +117,37 @@ osg::ref_ptr<osg::Node> createTerrainPatch(double terrain_size, osg::ref_ptr<osg
 	return geode;
 }
 
-std::vector<osgVegetation::BillboardLayer> GetVegetationLayers()
+std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 {
 	osg::Vec4 grass_splat_threashold(0.5, 0.5, 0.5, 0.5);
-	std::vector<osgVegetation::BillboardLayer> layers;
-	osgVegetation::BillboardLayer grass_data(osgVegetation::BillboardLayer::BLT_GRASS);
+	std::vector<osgVegetation::BillboardLayerConfig> layers;
+	osgVegetation::BillboardLayerConfig grass_data(osgVegetation::BillboardLayerConfig::BLT_GRASS);
 	grass_data.MaxDistance = 100;
 	grass_data.ColorImpact = 1.0;
 	grass_data.Density = 0.1;
+	grass_data.CastShadow = false;
 	grass_data.Filter.SplatFilter = "if (length(splat_color) < 0.5) return false;";
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 1.0, 0.008));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 1.0, 0.002));
-	grass_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 1.0, 0.008));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 1.0, 0.002));
+	grass_data.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data);
 
-	osgVegetation::BillboardLayer grass_data2(osgVegetation::BillboardLayer::BLT_GRASS);
+	osgVegetation::BillboardLayerConfig grass_data2(osgVegetation::BillboardLayerConfig::BLT_GRASS);
 	grass_data2.MaxDistance = 30;
 	grass_data2.Density = 0.4;
 	grass_data2.ColorImpact = 1.0;
+	grass_data2.CastShadow = false;
 	grass_data2.Filter.SplatFilter = grass_data.Filter.SplatFilter;
-	grass_data2.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	grass_data2.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data2);
 
-	//osgVegetation::BillboardLayer tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
-	osgVegetation::BillboardLayer tree_data(osgVegetation::BillboardLayer::BLT_ROTATED_QUAD);
+	//osgVegetation::BillboardLayerConfig tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
+	osgVegetation::BillboardLayerConfig tree_data(osgVegetation::BillboardLayerConfig::BLT_ROTATED_QUAD);
 	tree_data.MaxDistance = 740;
 	tree_data.Density = 0.001;
-	tree_data.ColorImpact = 0.7;
+	tree_data.ColorImpact = 0.1;
 	tree_data.Filter.SplatFilter = osgVegetation::PassFilter::GenerateSplatFilter(osg::Vec4(-1, -1, 0.5, -1), "<");
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayer::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.6, 1.0));
+	tree_data.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.6, 1.0));
 	layers.push_back(tree_data);
 	return layers;
 }
@@ -155,6 +157,9 @@ int main(int argc, char** argv)
 	osgVegetation::SceneConfiguration config;
 	config.Shadow.Mode = osgVegetation::SM_LISPSM;
 	config.FogMode = osgVegetation::FM_EXP2;
+	
+	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
+	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
 
 	osg::ArgumentParser arguments(&argc, argv);
 
@@ -202,17 +207,16 @@ int main(int argc, char** argv)
 	
 	terrain_shading_config.UseTessellation = true;
 	
-	terrain_shading_config.ColorTexture = osgVegetation::TextureConfig("terrain/hm/colormap.png", 0);
-	terrain_shading_config.NormalTexture = osgVegetation::TextureConfig("terrain/hm/normalmap.png", 1);
-	terrain_shading_config.ElevationTexture = osgVegetation::TextureConfig(elev_tex, 2);
+	terrain_shading_config.ColorTexture.File = "terrain/hm/colormap.png";
+	terrain_shading_config.NormalTexture.File = "terrain/hm/normalmap.png";
+	terrain_shading_config.ElevationTexture.Texture = elev_tex;
 
-	terrain_shading_config.SplatTexture = osgVegetation::TextureConfig("terrain/hm/splatmap.png", 3);
+	terrain_shading_config.SplatTexture.File = "terrain/hm/splatmap.png";
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
-	terrain_shading_config.DetailTextureUnit = 4;
-	terrain_shading_config.NoiseTexture = osgVegetation::TextureConfig("terrain/detail/noise.png", 5);
+	terrain_shading_config.NoiseTexture.File = "terrain/detail/noise.png";
 	terrain_shading_config.MaxDistance = 1000;
 	osg::ref_ptr<osgVegetation::TerrainSplatShadingEffect> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(terrain_shading_config);
 	terrain_shading_effect->addChild(terrain);
@@ -237,12 +241,10 @@ int main(int argc, char** argv)
 	int billboard_tex_unit = 12;
 	for (size_t i = 0; i < GetVegetationLayers().size(); i++)
 	{
-		osgVegetation::BillboardLayer layer_config = GetVegetationLayers().at(i);
+		osgVegetation::BillboardLayerConfig layer_config = GetVegetationLayers().at(i);
 		osg::ref_ptr<osgVegetation::BillboardLayerEffect> bb_layer = new osgVegetation::BillboardLayerEffect(layer_config, billboard_tex_unit);
-		//bb_layer->setTerrainTextures(terrain->GetTextureUnits());
 		bb_layer->addChild(terrain_geometry);
-		//bb_layer->setNodeMask(0x1 | 0x2);
-		if (layer_config.Type == osgVegetation::BillboardLayer::BLT_GRASS)
+		if (!layer_config.CastShadow)
 			bb_layer->setNodeMask(ReceivesShadowTraversalMask);
 		else
 			bb_layer->setNodeMask(ReceivesShadowTraversalMask | CastsShadowTraversalMask);

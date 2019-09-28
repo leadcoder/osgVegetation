@@ -1,4 +1,4 @@
-#include "ov_MeshTileGenerator.h"
+#include "ov_MeshLayerGenerator.h"
 #include "ov_VPBVegetationInjection.h"
 #include <osg/Vec4i>
 #include <osg/Quat>
@@ -102,15 +102,15 @@ int main(int argc, char **argv)
 	mesh_data2.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/test.osg", osg::Vec4(0.0f, 0.0f, 2000.0f, 2500.0f)));
 	//layer.MeshTypes.push_back(mesh_data2);
 
-	std::vector<osgVegetation::MeshLayerConfig> layers;
-	layers.push_back(layer);
+	
+	//osg::ref_ptr<osgVegetation::MeshLayerConfig> mesh_layer = new osgVegetation::MeshLayerConfig(layer);
 
 	//Setup layers in terrain injection lods
 	std::vector<osgVegetation::VPBInjectionLODConfig> terrain_lods;
 	osgVegetation::VPBInjectionLODConfig tree_terrain_lod(3);
-	tree_terrain_lod.MeshLayers.push_back(layer);
+	tree_terrain_lod.Layers.push_back(&layer);
 	terrain_lods.push_back(tree_terrain_lod);
-	osgVegetation::VPBVegetationInjectionConfig vpbconfig(terrain_lods, osgVegetation::TextureRegister.CreateOrGetUnit(OV_BILLBOARD_TEXTURE_ID));
+	osgVegetation::VPBVegetationInjectionConfig vpbconfig(terrain_lods);
 
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(vpbconfig));
 
