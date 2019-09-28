@@ -1,5 +1,5 @@
 #pragma once
-
+#include "ov_ILayerConfig.h"
 #include "ov_PassFilter.h"
 #include <string>
 #include <vector>
@@ -37,7 +37,7 @@ namespace osgVegetation
 	private:
 	};
 
-	class MeshLayerConfig
+	class MeshLayerConfig : public ILayerConfig
 	{
 	public:
 		MeshLayerConfig(float density = 2) : Density(density)

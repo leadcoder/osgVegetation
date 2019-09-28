@@ -1,5 +1,6 @@
 #pragma once
 #include "ov_Common.h"
+#include "ov_ILayerConfig.h"
 #include "ov_PassFilter.h"
 #include <osg/Texture2DArray>
 #include <osg/Multisample>
@@ -17,7 +18,7 @@
 namespace osgVegetation
 {
 
-	class BillboardLayer
+	class BillboardLayerConfig : public ILayerConfig
 	{
 	public:
 
@@ -47,20 +48,21 @@ namespace osgVegetation
 			osg::Vec2f Size;
 			float Intensity;
 			float Probability;
-
 		private:
 		};
 
-		BillboardLayer(BillboardLayerType type = BLT_ROTATED_QUAD) : Type(type),
+		BillboardLayerConfig(BillboardLayerType type = BLT_ROTATED_QUAD) : Type(type),
 			MaxDistance(150),
 			Density(0.02), 
 			ColorImpact(1.0),
-			AlphaRejectValue(0.1)
+			AlphaRejectValue(0.1),
+			CastShadow(true),
+			ReceiveShadow(true)
 		{
 
 		}
 
-		~BillboardLayer()
+		~BillboardLayerConfig()
 		{
 
 		}
@@ -69,6 +71,8 @@ namespace osgVegetation
 		float Density;
 		float ColorImpact;
 		float AlphaRejectValue;
+		bool CastShadow;
+		bool ReceiveShadow;
 		BillboardLayerType Type;
 		PassFilter Filter;
 		std::vector<Billboard> Billboards;

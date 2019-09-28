@@ -14,6 +14,12 @@ namespace osgVegetation
 	class TerrainStateSetConfig
 	{
 	public:
+		TerrainStateSetConfig() : ColorTexture(Register.TexUnits.GetUnit(OV_TERRAIN_COLOR_TEXTURE_ID)),
+			NormalTexture(Register.TexUnits.GetUnit(OV_TERRAIN_NORMAL_TEXTURE_ID)),
+			ElevationTexture(Register.TexUnits.GetUnit(OV_TERRAIN_ELEVATION_TEXTURE_ID))
+		{
+
+		}
 		TextureConfig ColorTexture;
 		TextureConfig NormalTexture;
 		TextureConfig ElevationTexture;
@@ -54,8 +60,15 @@ namespace osgVegetation
 
 		void SetColorTexture(TextureConfig config)
 		{
+			//auto generate id
+			if (config.TexUnit < 0 && config.Texture || config.File != "")
+			{
+				config.TexUnit = Register.TexUnits.CreateOrGetUnit(OV_TERRAIN_COLOR_TEXTURE_ID);
+			}
+
 			if (config.TexUnit >= 0)
 			{
+				
 				_ApplyTextureConfig(config);
 				addUniform(new osg::Uniform("ov_color_texture", config.TexUnit));
 				setDefine("OV_TERRAIN_COLOR_TEXTURE");
@@ -64,6 +77,12 @@ namespace osgVegetation
 
 		void SetElevationTexture(TextureConfig config)
 		{
+			//auto generate id
+			if (config.TexUnit < 0 && config.Texture || config.File != "")
+			{
+				config.TexUnit = Register.TexUnits.CreateOrGetUnit(OV_TERRAIN_ELEVATION_TEXTURE_ID);
+			}
+
 			if (config.TexUnit >= 0)
 			{
 				_ApplyTextureConfig(config);
@@ -74,6 +93,12 @@ namespace osgVegetation
 
 		void SetNormalTexture(TextureConfig config)
 		{
+			//auto generate id
+			if (config.TexUnit < 0 && config.Texture || config.File != "")
+			{
+				config.TexUnit = Register.TexUnits.CreateOrGetUnit(OV_TERRAIN_NORMAL_TEXTURE_ID);
+			}
+
 			if (config.TexUnit >= 0)
 			{
 				_ApplyTextureConfig(config);

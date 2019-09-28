@@ -15,7 +15,8 @@ namespace osgVegetation
 	class TerrainShadingStateSetConfig : public TerrainStateSetConfig
 	{
 	public:
-		TerrainShadingStateSetConfig() : UseTessellation(false)
+		TerrainShadingStateSetConfig() : TerrainStateSetConfig(), UseTessellation(false), 
+			NoiseTexture(Register.TexUnits.GetUnit(OV_TERRAIN_NOISE_TEXTURE_ID))
 		{
 			
 		}
@@ -60,6 +61,12 @@ namespace osgVegetation
 
 		void _SetNoiseTexture(TextureConfig config)
 		{
+			//auto generate id
+			if (config.TexUnit < 0 && config.Texture || config.File != "")
+			{
+				config.TexUnit = Register.TexUnits.CreateOrGetUnit(OV_TERRAIN_NOISE_TEXTURE_ID);
+			}
+
 			_ApplyTextureConfig(config);
 			if (config.TexUnit >= 0)
 			{

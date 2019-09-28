@@ -11,19 +11,19 @@
 #include <osgDB/FileUtils>
 #include <osg/PatchParameter>
 #include "ov_Utils.h"
-#include "ov_BillboardLayer.h"
-#include "ov_TextureConfig.h"
+#include "ov_BillboardLayerConfig.h"
+#include "ov_Register.h"
 
 namespace osgVegetation
 {
 	class BillboardLayerStateSet : public osg::StateSet
 	{
 	public:
-		BillboardLayerStateSet(const BillboardLayer& data)
+		BillboardLayerStateSet(const BillboardLayerConfig& data)
 		{
 			setDefine("OV_TERRAIN_TESSELLATION");
 
-			const int billboard_tex_unit = TextureRegister.CreateOrGetUnit(OV_BILLBOARD_TEXTURE_ID);
+			const int billboard_tex_unit = Register.TexUnits.CreateOrGetUnit(OV_BILLBOARD_TEXTURE_ID);
 
 			//apply filters
 			data.Filter.Apply(this);
@@ -100,17 +100,17 @@ namespace osgVegetation
 			//program->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
 
 			std::string blt_type;
-			if (data.Type == BillboardLayer::BLT_ROTATED_QUAD)
+			if (data.Type == BillboardLayerConfig::BLT_ROTATED_QUAD)
 			{
 				//program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 4);
 				blt_type = "BLT_ROTATED_QUAD";
 			}
-			else if (data.Type == BillboardLayer::BLT_CROSS_QUADS)
+			else if (data.Type == BillboardLayerConfig::BLT_CROSS_QUADS)
 			{
 				//program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 8);
 				blt_type = "BLT_CROSS_QUADS";
 			}
-			else if (data.Type == BillboardLayer::BLT_GRASS)
+			else if (data.Type == BillboardLayerConfig::BLT_GRASS)
 			{
 				//program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT, 16);
 				blt_type = "BLT_GRASS";
@@ -132,7 +132,7 @@ namespace osgVegetation
 		virtual Object* clone(const osg::CopyOp& copyop) const { return new BillboardLayerStateSet(*this, copyop); }
 private:
 
-		osg::ref_ptr<osg::Texture2DArray> _CreateTextureArray(const std::vector<BillboardLayer::Billboard> &textrues)
+		osg::ref_ptr<osg::Texture2DArray> _CreateTextureArray(const std::vector<BillboardLayerConfig::Billboard> &textrues)
 		{
 			//Load textures
 			const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options();
@@ -146,7 +146,7 @@ private:
 				options->setOptionString("dds_flip");
 				osg::Image* image = osgDB::readImageFile(texture_name, options);
 				if (image == NULL)
-					OSGV_EXCEPT(std::string("BillboardLayer::CreateTextureArray - Failed to load texture:" + texture_name).c_str());
+					OSGV_EXCEPT(std::string("BillboardLayerConfig::CreateTextureArray - Failed to load texture:" + texture_name).c_str());
 				if (i == 0) // first image decide array size
 				{
 					tex->setTextureSize(image->s(), image->t(), textrues.size());
@@ -161,7 +161,7 @@ private:
 	class BillboardLayerEffect : public osg::Group
 	{
 	public:
-		BillboardLayerEffect(const BillboardLayer &config)
+		BillboardLayerEffect(const BillboardLayerConfig &config)
 		{
 			setStateSet(new BillboardLayerStateSet(config));
 		}
@@ -188,7 +188,7 @@ private:
 				layer_node->addChild(terrain_node);
 
 				//Disable shadow casting for grass, TODO make this optional
-				if (config.Layers[i].Type == BillboardLayer::BLT_GRASS)
+				if (config.Layers[i].Type == BillboardLayerConfig::BLT_GRASS)
 					layer_node->setNodeMask(config.ReceivesShadowTraversalMask);
 				else
 					layer_node->setNodeMask(config.ReceivesShadowTraversalMask | config.CastShadowTraversalMask);

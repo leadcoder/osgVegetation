@@ -1,11 +1,11 @@
 #pragma once
-#include "ov_BillboardLayer.h"
+#include "ov_BillboardLayerConfig.h"
 #include "ov_Utils.h"
 #include "ov_TerrainHelper.h"
 #include "ov_BillboardLayerStateSet.h"
 #include "ov_VPBVegetationInjectionConfig.h"
 #include "ov_BillboardMultiLayerEffect.h"
-#include "ov_MeshTileGenerator.h"
+#include "ov_MeshLayerGenerator.h"
 #include <osg/PagedLOD>
 #include <osgTerrain/Terrain>
 #include <osgTerrain/TerrainTile>
@@ -60,7 +60,7 @@ namespace osgVegetation
 				layer_node->addChild(terrain);
 
 				//Disable shadow casting for grass, TODO make this optional
-				if (m_Config.Layers[i].Type == BillboardLayer::BLT_GRASS)
+				if (m_Config.Layers[i].Type == BillboardLayerConfig::BLT_GRASS)
 					layer_node->setNodeMask(m_Config.ReceivesShadowTraversalMask);
 				else
 					layer_node->setNodeMask(m_Config.ReceivesShadowTraversalMask | m_Config.CastShadowTraversalMask);
@@ -74,70 +74,22 @@ namespace osgVegetation
 		BillboardNodeGeneratorConfig m_Config;
 		osg::ref_ptr <osg::StateSet> m_TerrainStateSet;
 	};
+#endif
 
-	class BillboardMultiLayerEffect : public osg::Group
+	class MeshMultiLayerGenerator
 	{
 	public:
-		BillboardMultiLayerEffect(const std::vector<BillboardLayer> &layers, int tex_unit)
+		MeshMultiLayerGenerator(std::vector<MeshLayerConfig> layers)
 		{
 			for (size_t i = 0; i < layers.size(); i++)
 			{
-				osg::ref_ptr<BillboardLayerEffect> layer = new BillboardLayerEffect(layers[i], tex_unit);
-				if(layers[i].Type == BillboardLayer::BLT_GRASS)
-					layer->setNodeMask(0x1);
-				else
-					layer->setNodeMask(0x1 | 0x2);
-
-				//layer->setNodeMask(0x1);
-				//layer_node->setNodeMask(0x1 | m_Config.CastShadowTraversalMask);
-				addChild(layer);
+				m_MeshGenerators.push_back(MeshLayerGenerator(layers[i]));
 			}
 		}
 
-		BillboardMultiLayerEffect(const BillboardMultiLayerEffect& rhs, const osg::CopyOp& copyop = osg::CopyOp::SHALLOW_COPY) : osg::Group(rhs, copyop)
-		{
-
-		}
-
-		virtual Object* cloneType() const { return new Group(); }
-		virtual Object* clone(const osg::CopyOp& copyop) const { return new BillboardMultiLayerEffect(*this, copyop); }
-
-		osg::ref_ptr<BillboardMultiLayerEffect> createInstance(osg::ref_ptr<osg::Node> terrain_geometry) const
-		{
-			osg::ref_ptr<BillboardMultiLayerEffect>  effect = dynamic_cast<BillboardMultiLayerEffect*>(clone(osg::CopyOp::DEEP_COPY_NODES));
-			effect->insertTerrain(terrain_geometry);
-			return effect;
-		}
-	
-		void insertTerrain(osg::ref_ptr<osg::Node> terrain_geometry)
-		{
-			for (unsigned int i = 0; i < getNumChildren(); i++)
-			{
-				getChild(i)->asGroup()->addChild(terrain_geometry);
-			}
-		}
-	};
-#endif
-
-
-	class VPBInjectionLOD
-	{
-	public:
-		VPBInjectionLOD(VPBInjectionLODConfig config) :
-			TargetLevel(config.TargetLevel),
-			m_BBEffect(new BillboardMultiLayerEffect(config.Layers))
-		{
-			for (size_t i = 0; i < config.MeshLayers.size(); i++)
-			{
-				m_MeshGenerators.push_back(MeshLayerGenerator(config.MeshLayers[i]));
-			}
-		}
-
-		osg::ref_ptr<osg::Node> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry)
+		osg::ref_ptr<osg::Group> CreateMeshNode(osg::ref_ptr<osg::Node> terrain_geometry)
 		{
 			osg::ref_ptr<osg::Group> root = new osg::Group();
-			osg::ref_ptr<BillboardMultiLayerEffect> bb_effect = m_BBEffect->createInstance(terrain_geometry);
-			root->addChild(bb_effect);
 			for (size_t i = 0; i < m_MeshGenerators.size(); i++)
 			{
 				osg::Group* mesh_node = m_MeshGenerators[i].CreateMeshNode(terrain_geometry);
@@ -145,10 +97,61 @@ namespace osgVegetation
 			}
 			return root;
 		}
+	private:
+		std::vector<MeshLayerGenerator> m_MeshGenerators;
+	};
+
+	class LayerGenerator
+	{
+	public:
+		LayerGenerator(std::vector<osg::ref_ptr<ILayerConfig>> layers)
+		{
+			//Sort layers
+			std::vector<MeshLayerConfig> mesh_layers;
+			std::vector<BillboardLayerConfig> billboard_layers;
+			for (size_t i = 0; i < layers.size(); i++)
+			{
+				if (MeshLayerConfig* mesh_layer = dynamic_cast<MeshLayerConfig*>(layers[i].get()))
+					mesh_layers.push_back(*mesh_layer);
+				if (BillboardLayerConfig* bb_layer = dynamic_cast<BillboardLayerConfig*>(layers[i].get()))
+					billboard_layers.push_back(*bb_layer);
+			}
+			m_BBEffect = new BillboardMultiLayerEffect(billboard_layers);
+			m_MeshGenerator = new MeshMultiLayerGenerator(mesh_layers);
+		}
+
+		osg::ref_ptr<osg::Group> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry)
+		{
+			osg::ref_ptr<osg::Group> root = new osg::Group();
+			osg::ref_ptr<BillboardMultiLayerEffect> bb_layers = m_BBEffect->createInstance(terrain_geometry);
+			root->addChild(bb_layers);
+			osg::ref_ptr<osg::Group> mesh_layers = m_MeshGenerator->CreateMeshNode(terrain_geometry);
+			root->addChild(mesh_layers);
+			return root;
+		}
 		int TargetLevel;
 	private:
 		osg::ref_ptr<BillboardMultiLayerEffect> m_BBEffect;
-		std::vector<MeshLayerGenerator> m_MeshGenerators;
+		MeshMultiLayerGenerator* m_MeshGenerator;
+	};
+
+
+	class VPBInjectionLOD
+	{
+	public:
+		VPBInjectionLOD(VPBInjectionLODConfig config) :
+			TargetLevel(config.TargetLevel),
+			m_Generator(config.Layers)
+		{
+		}
+
+		osg::ref_ptr<osg::Group> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry)
+		{
+			return m_Generator.CreateVegetationNode(terrain_geometry);
+		}
+		int TargetLevel;
+	private:
+		LayerGenerator m_Generator;
 	};
 
 	//Inject vegetation layers into VirtualPlanetBuilder (VPB) PLOD terrains,

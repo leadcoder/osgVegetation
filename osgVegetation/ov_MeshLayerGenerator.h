@@ -1,6 +1,6 @@
 #pragma once
 #include "ov_GPUCullData.h"
-#include "ov_MeshTileGeneratorConfig.h"
+#include "ov_MeshLayerConfig.h"
 #include "ov_Utils.h"
 #include <osg/CullFace>
 #include <osgDB/ReadFile>
@@ -8,7 +8,6 @@
 
 namespace osgVegetation
 {
-
 	//Hack to avoid gl-crash on first update
 	static bool _firstTerrainDrawDone = false;
 

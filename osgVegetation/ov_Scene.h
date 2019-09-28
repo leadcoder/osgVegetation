@@ -1,41 +1,14 @@
 #pragma once
 #include "ov_Common.h"
-#include <osg/Fog>
+#include "ov_Shadow.h"
+#include "ov_Fog.h"
 
 namespace osgVegetation
 {
-	enum ShadowModeEnum
-	{
-		SM_DISABLED,
-		SM_UNDEFINED,
-		SM_LISPSM,
-		SM_VDSM1, //one texture
-		SM_VDSM2, //two textures
-	};
-
-	enum FogModeEnum
-	{
-		FM_LINEAR = osg::Fog::LINEAR,
-		FM_EXP = osg::Fog::EXP,
-		FM_EXP2 = osg::Fog::EXP2,
-		FM_DISABLED = 4
-	};
-
-
-	class ShadowConfig
-	{
-	public:
-		ShadowConfig() : ReceivesShadowTraversalMask(0x1),
-			CastsShadowTraversalMask(0x2), Mode(SM_DISABLED){}
-		ShadowModeEnum Mode;
-		int ReceivesShadowTraversalMask;
-		int CastsShadowTraversalMask;
-	};
-
 	class SceneConfiguration
 	{
 	public:
-		ShadowConfig Shadow;
+		ShadowSettings Shadow;
 		FogModeEnum FogMode;
 	};
 

@@ -24,7 +24,9 @@ namespace osgVegetation
 	class TerrainSplatShadingConfig : public TerrainShadingStateSetConfig
 	{
 	public:
-		TerrainSplatShadingConfig() : TerrainShadingStateSetConfig(), MaxDistance(1000) , ColorModulateRatio(0), DetailTextureUnit(-1) {}
+		TerrainSplatShadingConfig() : TerrainShadingStateSetConfig(), MaxDistance(1000) , SplatTexture(Register.TexUnits.GetUnit(OV_TERRAIN_SPLAT_TEXTURE_ID)),
+			ColorModulateRatio(0), 
+			DetailTextureUnit(Register.TexUnits.GetUnit(OV_TERRAIN_DETAIL_TEXTURE_ID)) {}
 		std::vector<DetailLayer> DetailLayers;
 		int DetailTextureUnit;
 		TextureConfig SplatTexture;
@@ -44,6 +46,12 @@ namespace osgVegetation
 
 		void _SetSplatTexture(TextureConfig config)
 		{
+			//auto generate id
+			if (config.TexUnit < 0 && config.Texture || config.File != "")
+			{
+				config.TexUnit = Register.TexUnits.CreateOrGetUnit(OV_TERRAIN_SPLAT_TEXTURE_ID);
+			}
+
 			_ApplyTextureConfig(config);
 			if (config.TexUnit >= 0)
 			{
@@ -54,17 +62,18 @@ namespace osgVegetation
 		void _SetupSplatMapping(const TerrainSplatShadingConfig& config)
 		{
 			const bool has_detail = config.DetailLayers.size() > 0;
-			if (has_detail && config.DetailTextureUnit >= 0)
+			if (has_detail)
 			{
+				int d_unit = config.DetailTextureUnit < 0 ? Register.TexUnits.CreateOrGetUnit(OV_TERRAIN_DETAIL_TEXTURE_ID) : config.DetailTextureUnit;
 				setDefine("OV_TERRAIN_SPLAT_MAPPING");
 				_SetSplatTexture(config.SplatTexture);
 				osg::Vec4 scale(1, 1, 1, 1);
 				osg::ref_ptr<osg::Texture2DArray> tex = _CreateTextureArray(config.DetailLayers);
-				setTextureAttributeAndModes(config.DetailTextureUnit, tex, osg::StateAttribute::ON);
+				setTextureAttributeAndModes(d_unit, tex, osg::StateAttribute::ON);
 				addUniform(new osg::Uniform("ov_splat_max_distance", config.MaxDistance));
 				addUniform(new osg::Uniform("ov_splat_color_modulate_ratio", config.ColorModulateRatio));
 				
-				addUniform(new osg::Uniform("ov_splat_detail_texture", config.DetailTextureUnit));
+				addUniform(new osg::Uniform("ov_splat_detail_texture", d_unit));
 				int num_detail_textures = config.DetailLayers.size();
 				addUniform(new osg::Uniform("ov_splat_num_detail_textures", num_detail_textures));
 				for (size_t i = 0; i < config.DetailLayers.size(); i++)

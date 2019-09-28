@@ -8,7 +8,8 @@ SET(CPP_FILES
 )
 
 SET(H_FILES
-	ov_BillboardLayer.h
+	ov_ILayerConfig.h
+	ov_BillboardLayerConfig.h
 	ov_Common.h
 	ov_Utils.h
 	ov_VPBVegetationInjection.h
@@ -17,13 +18,16 @@ SET(H_FILES
 	ov_TerrainShadingStateSet.h
 	ov_TerrainSplatShadingStateSet.h
 	ov_TerrainStateSet.h
+	ov_TextureUnits.h
 	ov_Scene.h
+	ov_Shadow.h
+	ov_Fog.h
 	ov_BillboardMultiLayerEffect.h
 	ov_BillboardLayerStateSet.h
 	ov_PassFilter.h
 	AggregateGeometryVisitor.h 
-	ov_MeshTileGenerator.h 
-	ov_MeshTileGeneratorConfig.h 
+	ov_MeshLayerGenerator.h 
+	ov_MeshLayerConfig.h 
 	ov_GPUCullData.h
 )
 
