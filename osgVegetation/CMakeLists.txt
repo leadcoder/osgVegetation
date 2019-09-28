@@ -25,7 +25,8 @@ SET(H_FILES
 	ov_BillboardMultiLayerEffect.h
 	ov_BillboardLayerStateSet.h
 	ov_PassFilter.h
-	AggregateGeometryVisitor.h 
+	AggregateGeometryVisitor.h
+	ov_LayerGenerator.h
 	ov_MeshLayerGenerator.h 
 	ov_MeshLayerConfig.h 
 	ov_GPUCullData.h

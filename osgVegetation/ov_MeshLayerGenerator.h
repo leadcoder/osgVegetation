@@ -354,4 +354,30 @@ namespace osgVegetation
 		osg::ref_ptr<osg::StateSet>  m_TerrainStateSet;
 		osg::ref_ptr<osg::Group> m_InstanceGroup;
 	};
+
+
+	class MeshMultiLayerGenerator
+	{
+	public:
+		MeshMultiLayerGenerator(std::vector<MeshLayerConfig> layers)
+		{
+			for (size_t i = 0; i < layers.size(); i++)
+			{
+				m_MeshGenerators.push_back(MeshLayerGenerator(layers[i]));
+			}
+		}
+
+		osg::ref_ptr<osg::Group> CreateMeshNode(osg::ref_ptr<osg::Node> terrain_geometry)
+		{
+			osg::ref_ptr<osg::Group> root = new osg::Group();
+			for (size_t i = 0; i < m_MeshGenerators.size(); i++)
+			{
+				osg::Group* mesh_node = m_MeshGenerators[i].CreateMeshNode(terrain_geometry);
+				root->addChild(mesh_node);
+			}
+			return root;
+		}
+	private:
+		std::vector<MeshLayerGenerator> m_MeshGenerators;
+	};
 }
