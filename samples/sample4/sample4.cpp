@@ -47,6 +47,7 @@ std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 	grass_data.MaxDistance = 100;
 	grass_data.Density = 0.1;
 	grass_data.ColorImpact = 1.0;
+	grass_data.CastShadow = false;
 	grass_data.Filter.SplatFilter = osgVegetation::PassFilter::GenerateSplatFilter(osg::Vec4(-1, 0.5, -1, -1), "<");
 	//grass_data.Type = osgVegetation::BillboardLayerConfig::BLT_CROSS_QUADS;
 	grass_data.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
@@ -58,6 +59,7 @@ std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 	grass_data2.MaxDistance = 30;
 	grass_data2.Density = 0.4;
 	grass_data2.ColorImpact = 1.0;
+	grass_data2.CastShadow = false;
 	grass_data2.Filter.SplatFilter = grass_data.Filter.SplatFilter;
 	grass_data2.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data2);
@@ -119,7 +121,7 @@ osg::ref_ptr<osg::Group> CreateTerrainPatches(double terrain_size)
 	//Create terrain geometry used for both terrain layer and  vegetation layers
 	osg::ref_ptr<osg::Node> terrain_geometry = CreateDemoTerrain(terrain_size);
 	osgVegetation::ConvertToPatches(terrain_geometry);
-	osg::ref_ptr<osgVegetation::TerrainShadingEffect> terrain_shading_effect = new osgVegetation::TerrainShadingEffect(GetTerrainShaderConfig(true));
+	osg::ref_ptr<osgVegetation::TerrainSplatShadingEffect> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(GetTerrainShaderConfig(true));
 	//Disable terrain self shadowning
 	//terrain_shading_effect->setNodeMask(ReceivesShadowTraversalMask);
 	terrain_shading_effect->addChild(terrain_geometry);
@@ -150,23 +152,31 @@ osg::ref_ptr<osg::Group> CreateTerrain(double terrain_size)
 int main(int argc, char** argv)
 {
 	//Control texture slots
-	/*osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
-	osgVegetation::Register.TexUnits.AddUnit(2, OV_TERRAIN_NORMAL_TEXTURE_ID);
-	osgVegetation::Register.TexUnits.AddUnit(3, OV_TERRAIN_SPLAT_TEXTURE_ID);
-	osgVegetation::Register.TexUnits.AddUnit(4, OV_TERRAIN_DETAIL_TEXTURE_ID);
-	osgVegetation::Register.TexUnits.AddUnit(5, OV_BILLBOARD_TEXTURE_ID);*/
+	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
+	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
+	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
+	osgVegetation::Register.Scene.FogMode = osgVegetation::FM_EXP2;
+
+	Demo demo(argc, argv, osgVegetation::Register.Scene);
+
+	const double terrain_size = 2000;
+	const bool use_terrain_patches = true;
+	osg::ref_ptr<osg::Group> terrain_and_vegetation_node = use_terrain_patches ? CreateTerrainPatches(terrain_size) : CreateTerrain(terrain_size);
+	demo.GetSceneRoot()->addChild(terrain_and_vegetation_node);
+	demo.Run();
+
+#if 0
+	//Control texture slots
 	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
 	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
 
-	osgVegetation::SceneConfiguration config;
+	osgVegetation::SceneConfig config;
 	config.Shadow.Mode = osgVegetation::SM_VDSM2;
-
 	config.FogMode = osgVegetation::FM_EXP2;
 
 	osg::ArgumentParser arguments(&argc, argv);
 
-	//osg::DisplaySettings::instance()->setShaderHint(osg::DisplaySettings::SHADER_GL3);
-
+	
 	// construct the viewer.
 	osgViewer::Viewer viewer(arguments);
 
@@ -197,14 +207,14 @@ int main(int argc, char** argv)
 	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 
-	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.Shadow.Mode);
+	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.Shadow);
 
 	const double terrain_size = 2000;
 	const bool use_terrain_patches = false;
 	osg::ref_ptr<osg::Group> terrain_and_vegetation_node = use_terrain_patches ? CreateTerrainPatches(terrain_size) : CreateTerrain(terrain_size);
 
 	//apply scene settings to terrain and vegetation shaders
-	osgVegetation::SetSceneDefinitions(terrain_and_vegetation_node->getOrCreateStateSet(), config);
+	config.Apply(terrain_and_vegetation_node->getOrCreateStateSet());
 
 	root_node->addChild(terrain_and_vegetation_node);
 
@@ -214,7 +224,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	//Add light and shadows
+	//Add light
 	osg::Light* light = new osg::Light;
 	light->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	osg::Vec4 light_pos(1, 1.0, 1, 0);
@@ -245,7 +255,6 @@ int main(int argc, char** argv)
 			fog->setStart(0);
 			fog->setEnd(1000);
 		}
-
 		viewer.getCamera()->setClearColor(fog_color);
 	}
 
@@ -265,8 +274,8 @@ int main(int argc, char** argv)
 		light_dir.set(-light_pos.x(), -light_pos.y(), -light_pos.z());
 		light_dir.normalize();
 		light->setDirection(light_dir);
-
 		viewer.frame();
 	}
+#endif
 	return 0;
 }

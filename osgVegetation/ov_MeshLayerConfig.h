@@ -9,7 +9,6 @@ namespace osgVegetation
 	class MeshTypeConfig
 	{
 	public:
-
 		class MeshLODConfig
 		{
 		public:

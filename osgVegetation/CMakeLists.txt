@@ -14,6 +14,7 @@ SET(H_FILES
 	ov_Utils.h
 	ov_VPBVegetationInjection.h
 	ov_VPBVegetationInjectionConfig.h
+	ov_Register.h
 	ov_TextureConfig.h
 	ov_TerrainShadingStateSet.h
 	ov_TerrainSplatShadingStateSet.h

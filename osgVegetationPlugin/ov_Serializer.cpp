@@ -5,7 +5,7 @@
 
 namespace osgVegetation
 {
-	BillboardLayer::Billboard loadBillboard(TiXmlElement *bb_elem) 
+	BillboardLayerConfig::Billboard loadBillboard(TiXmlElement *bb_elem) 
 	{
 		if (!bb_elem->Attribute("Texture"))
 			throw std::runtime_error(std::string("Serializer::loadBillboard - Failed to find attribute: texture").c_str());
@@ -21,13 +21,13 @@ namespace osgVegetation
 		const osg::Vec2f size(width, height);
 		bb_elem->QueryFloatAttribute("Intensity", &intensity);
 		bb_elem->QueryFloatAttribute("Probability", &probability);
-		BillboardLayer::Billboard bb(texture,size,intensity,probability);
+		BillboardLayerConfig::Billboard bb(texture,size,intensity,probability);
 		return bb;
 	}
 
-	BillboardLayer loadBillboardLayer(TiXmlElement *bbl_elem)
+	BillboardLayerConfig loadBillboardLayer(TiXmlElement *bbl_elem)
 	{
-		BillboardLayer layer;
+		BillboardLayerConfig layer;
 
 		if (!bbl_elem->Attribute("Type"))
 			throw std::runtime_error(std::string("Serializer::loadBillboardLayer - Failed to find attribute: Type").c_str());
@@ -35,11 +35,11 @@ namespace osgVegetation
 		const std::string bbl_type = bbl_elem->Attribute("Type");
 
 		if (bbl_type == "BLT_CROSS_QUADS")
-			layer.Type = BillboardLayer::BLT_CROSS_QUADS;
+			layer.Type = BillboardLayerConfig::BLT_CROSS_QUADS;
 		else if (bbl_type == "BLT_ROTATED_QUAD")
-			layer.Type = BillboardLayer::BLT_ROTATED_QUAD;
+			layer.Type = BillboardLayerConfig::BLT_ROTATED_QUAD;
 		else if (bbl_type == "BLT_GRASS")
-			layer.Type = BillboardLayer::BLT_GRASS;
+			layer.Type = BillboardLayerConfig::BLT_GRASS;
 		else
 			throw std::runtime_error(std::string("Serializer::loadBillboardData - Unknown billboard type:" + bbl_type).c_str());
 		
@@ -47,6 +47,9 @@ namespace osgVegetation
 		bbl_elem->QueryFloatAttribute("ColorImpact", &layer.ColorImpact);
 		bbl_elem->QueryFloatAttribute("Density", &layer.Density);
 		bbl_elem->QueryFloatAttribute("MaxDistance", &layer.MaxDistance);
+		bbl_elem->QueryBoolAttribute("CastShadow", &layer.CastShadow);
+		bbl_elem->QueryBoolAttribute("RecieveShadow", &layer.ReceiveShadow);
+
 	
 		if(bbl_elem->Attribute("ColorFilter"))
 			layer.Filter.ColorFilter = bbl_elem->Attribute("ColorFilter");
@@ -60,7 +63,7 @@ namespace osgVegetation
 		TiXmlElement *bb_elem = bbl_elem->FirstChildElement("Billboard");
 		while (bb_elem)
 		{
-			BillboardLayer::Billboard bb = loadBillboard(bb_elem);
+			BillboardLayerConfig::Billboard bb = loadBillboard(bb_elem);
 			layer.Billboards.push_back(bb);
 			bb_elem = bb_elem->NextSiblingElement("Billboard");
 		}
@@ -173,15 +176,15 @@ namespace osgVegetation
 		TiXmlElement *bblayers_elem = lod_elem->FirstChildElement("BillboardLayer");
 		while (bblayers_elem)
 		{
-			BillboardLayer bbl = loadBillboardLayer(bblayers_elem);
-			config.Layers.push_back(bbl);
+			BillboardLayerConfig bbl = loadBillboardLayer(bblayers_elem);
+			config.Layers.push_back(new BillboardLayerConfig(bbl));
 			bblayers_elem = bblayers_elem->NextSiblingElement("BillboardLayer");
 		}
 		TiXmlElement *mesh_layers_elem = lod_elem->FirstChildElement("MeshLayer");
 		while (mesh_layers_elem)
 		{
 			MeshLayerConfig mesh_layer = loadMeshLayer(mesh_layers_elem);
-			config.MeshLayers.push_back(mesh_layer);
+			config.Layers.push_back(new MeshLayerConfig(mesh_layer));
 			mesh_layers_elem = mesh_layers_elem->NextSiblingElement("MeshLayer");
 		}
 		return config;
@@ -190,10 +193,7 @@ namespace osgVegetation
 	VPBVegetationInjectionConfig loadInjectionConfig(TiXmlElement *injection_elem)
 	{
 		VPBVegetationInjectionConfig config;
-		injection_elem->QueryIntAttribute("BillboardTexUnit", &config.BillboardTexUnit);
-		injection_elem->QueryIntAttribute("CastShadowTraversalMask", &config.CastShadowTraversalMask);
-		injection_elem->QueryIntAttribute("ReceivesShadowTraversalMask", &config.ReceivesShadowTraversalMask);
-
+		
 		TiXmlElement *terrain_lod_elem = injection_elem->FirstChildElement("VPBInjectionLOD");
 		while (terrain_lod_elem)
 		{
@@ -204,6 +204,28 @@ namespace osgVegetation
 		return config;
 	}
 
+	void loadRegister(TiXmlElement *register_elem)
+	{
+		register_elem->QueryIntAttribute("CastsShadowTraversalMask", &Register.Scene.Shadow.CastsShadowTraversalMask);
+		register_elem->QueryIntAttribute("ReceivesShadowTraversalMask", &Register.Scene.Shadow.ReceivesShadowTraversalMask);
+
+		if (register_elem->Attribute("ShadowMode"))
+		{
+			const std::string sm_str = register_elem->Attribute("ShadowMode");
+			if (sm_str == "SM_LISPSM")
+				Register.Scene.Shadow.Mode = SM_LISPSM;
+			else if (sm_str == "SM_VDSM1")
+				Register.Scene.Shadow.Mode = SM_VDSM1;
+			else if (sm_str == "SM_VDSM2")
+				Register.Scene.Shadow.Mode = SM_VDSM2;
+			else if (sm_str == "SM_DISABLED")
+				Register.Scene.Shadow.Mode = SM_DISABLED;
+			else if (sm_str == "SM_UNDEFINED")
+				Register.Scene.Shadow.Mode = SM_UNDEFINED;
+			else
+				throw std::runtime_error(std::string("Serializer::loadRegister - Unknown ShadowMode:" + sm_str).c_str());
+		}
+	}
 
 	DetailLayer loadDetailLayer(TiXmlElement *dl_elem)
 	{
@@ -255,8 +277,6 @@ namespace osgVegetation
 		return splat_config;
 	}
 
-	
-
 	osgVegetation::TerrainConfig  XMLSerializer::ReadTerrainData(const std::string &filename)
 	{
 		TerrainConfig terrain;
@@ -302,6 +322,10 @@ namespace osgVegetation
 				throw std::runtime_error(std::string("Serializer::GetTerrainData - Unknown ShadowMode:" + sm_str).c_str());
 		}*/
 
+		TiXmlElement *register_elem = terrain_elem->FirstChildElement("Register");
+		if (register_elem)
+			loadRegister(register_elem);
+
 		//TerrainTextureUnitSettings tex_units;
 		//TerrainShadingConfiguration config(tex_units);
 		TiXmlElement *sc_elem = terrain_elem->FirstChildElement("SplatShading");
@@ -311,8 +335,6 @@ namespace osgVegetation
 		TiXmlElement *injection_elem = terrain_elem->FirstChildElement("VPBVegetationInjectionConfig");
 		if(injection_elem)
 			terrain.BillboardConfig = loadInjectionConfig(injection_elem);
-
-		//terrain.BillboardConfig.BillboardTexUnit = 12;
 
 		xmlDoc->Clear();
 		// Delete our allocated document and return data

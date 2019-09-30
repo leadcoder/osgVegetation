@@ -164,6 +164,12 @@ private:
 		BillboardLayerEffect(const BillboardLayerConfig &config)
 		{
 			setStateSet(new BillboardLayerStateSet(config));
+			int node_mask = 0x1;
+			if (config.CastShadow)
+				node_mask |= Register.Scene.Shadow.CastsShadowTraversalMask;
+			if (config.ReceiveShadow)
+				node_mask |= Register.Scene.Shadow.ReceivesShadowTraversalMask;
+			setNodeMask(node_mask);
 		}
 		BillboardLayerEffect(const BillboardLayerEffect& rhs, const osg::CopyOp& copyop = osg::CopyOp::SHALLOW_COPY) : osg::Group(rhs, copyop)
 		{

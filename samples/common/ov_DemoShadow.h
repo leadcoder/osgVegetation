@@ -1,5 +1,5 @@
 #pragma once
-#include "ov_Scene.h"
+#include "ov_Register.h"
 #include <osgShadow/ShadowedScene>
 #include <osgShadow/ShadowMap>
 #include <osgShadow/ParallelSplitShadowMap>
@@ -7,14 +7,12 @@
 #include <osgShadow/StandardShadowMap>
 #include <osgShadow/ViewDependentShadowMap>
 
-
-static int ReceivesShadowTraversalMask = 0x1;
-static int CastsShadowTraversalMask = 0x2;
-
-osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
+osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowSettings config)
 {
-	int shadowTexUnit = 6;
-	if (type == osgVegetation::SM_LISPSM)
+	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
+	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
+	int shadowTexUnit = osgVegetation::Register.TexUnits.GetUnit(OV_SHADOW_TEXTURE0_ID);
+	if (config.Mode == osgVegetation::SM_LISPSM)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
 		int mapres = 2048;
@@ -37,8 +35,8 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 		//sm->setMainVertexShader( NULL );
 		//sm->setShadowVertexShader(NULL);
 	
-		shadowedScene->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
-		shadowedScene->setCastsShadowTraversalMask(CastsShadowTraversalMask);
+		shadowedScene->setReceivesShadowTraversalMask(config.ReceivesShadowTraversalMask);
+		shadowedScene->setCastsShadowTraversalMask(config.CastsShadowTraversalMask);
 
 		//sm->setMainFragmentShader(NULL);
 		osg::Shader* mainFragmentShader = new osg::Shader(osg::Shader::FRAGMENT,
@@ -71,16 +69,14 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit);
 		return shadowedScene;
 	}
-	else if (type == osgVegetation::SM_VDSM1 ||
-			 type == osgVegetation::SM_VDSM2)
+	else if (config.Mode == osgVegetation::SM_VDSM1 ||
+		config.Mode == osgVegetation::SM_VDSM2)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
 		int mapres = 2048;
-
-	
 		osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
-		settings->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
-		settings->setCastsShadowTraversalMask(CastsShadowTraversalMask);
+		settings->setReceivesShadowTraversalMask(config.ReceivesShadowTraversalMask);
+		settings->setCastsShadowTraversalMask(config.CastsShadowTraversalMask);
 		settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
 		
 		settings->setBaseShadowTextureUnit(shadowTexUnit);
@@ -88,7 +84,7 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 		double n = 0.8;
 		settings->setMinimumShadowMapNearFarRatio(n);
 
-		const unsigned int numShadowMaps = (type == osgVegetation::SM_VDSM1) ? 1 : 2;
+		const unsigned int numShadowMaps = (config.Mode == osgVegetation::SM_VDSM1) ? 1 : 2;
 		settings->setNumShadowMapsPerLight(numShadowMaps);
 		//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
 		settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
@@ -105,7 +101,7 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 		if (numShadowMaps > 1)
 		{
 			osg::Uniform* shadowTextureUnit1 = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit1");
-			int shadowTexUnit1 = shadowTexUnit + 1;
+			int shadowTexUnit1 = osgVegetation::Register.TexUnits.GetUnit(OV_SHADOW_TEXTURE0_ID);
 			shadowTextureUnit1->set(shadowTexUnit1);
 			shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit1);
 		}
@@ -117,3 +113,101 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowModeEnum type)
 		return new osg::Group();
 	}
 }
+
+class Demo
+{
+public:
+	Demo(int argc, char** argv, osgVegetation::SceneConfig& config) : m_Viewer(osg::ArgumentParser(&argc, argv))
+	{
+		osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> keyswitchManipulator = new osgGA::KeySwitchMatrixManipulator;
+		keyswitchManipulator->addMatrixManipulator('1', "Trackball", new osgGA::TrackballManipulator());
+		keyswitchManipulator->addMatrixManipulator('2', "Flight", new osgGA::FlightManipulator());
+		keyswitchManipulator->addMatrixManipulator('3', "Drive", new osgGA::DriveManipulator());
+		keyswitchManipulator->addMatrixManipulator('4', "Terrain", new osgGA::TerrainManipulator());
+		m_Viewer.setCameraManipulator(keyswitchManipulator.get());
+
+		// add the state manipulator
+		m_Viewer.addEventHandler(new osgGA::StateSetManipulator(m_Viewer.getCamera()->getOrCreateStateSet()));
+
+		// add the stats handler
+		m_Viewer.addEventHandler(new osgViewer::StatsHandler);
+
+		// add the record camera path handler
+		m_Viewer.addEventHandler(new osgViewer::RecordCameraPathHandler);
+
+		// add the window size toggle handler
+		m_Viewer.addEventHandler(new osgViewer::WindowSizeHandler);
+
+		m_Viewer.setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
+
+		osg::DisplaySettings::instance()->setNumMultiSamples(4);
+
+		//Add sample data path
+		osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
+
+		m_SceneData = CreateShadowNode(config.Shadow);
+
+		//Add light
+		m_Light = new osg::Light;
+		m_Light->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		osg::Vec4 light_pos(1, 1.0, 1, 0);
+		m_Light->setPosition(light_pos);		// last param	w = 0.0 directional light (direction)
+		osg::Vec3f light_dir(-light_pos.x(), -light_pos.y(), -light_pos.z());
+		light_dir.normalize();
+		m_Light->setDirection(light_dir);
+		m_Light->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f));
+
+		osg::LightSource* light_source = new osg::LightSource;
+		light_source->setLight(m_Light);
+		m_SceneData->addChild(light_source);
+
+		if (config.FogMode != osgVegetation::FM_DISABLED) //Add fog effect?
+		{
+			const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
+			osg::StateSet* state = m_SceneData->getOrCreateStateSet();
+			osg::ref_ptr<osg::Fog> fog = new osg::Fog();
+			state->setMode(GL_FOG, osg::StateAttribute::ON);
+			state->setAttributeAndModes(fog.get());
+			fog->setMode(osg::Fog::Mode(config.FogMode));
+			fog->setDensity(0.0005);
+			fog->setColor(fog_color);
+			if (config.FogMode == osgVegetation::FM_LINEAR)
+			{
+				fog->setStart(0);
+				fog->setEnd(1000);
+			}
+			m_Viewer.getCamera()->setClearColor(fog_color);
+
+			//apply scene settings
+			config.Apply(m_SceneData->getOrCreateStateSet());
+		}
+	}
+
+	void Run()
+	{
+		m_Viewer.setSceneData(m_SceneData);
+		m_Viewer.setUpViewInWindow(100, 100, 800, 600);
+
+		m_Viewer.realize();
+		m_Viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
+		//viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
+
+		// run the viewers main loop
+		while (!m_Viewer.done())
+		{
+			const float t = m_Viewer.getFrameStamp()->getSimulationTime() * 0.5;
+			const osg::Vec4 light_pos(sinf(t), cosf(t), 1, 0.0f);
+			m_Light->setPosition(light_pos);
+			osg::Vec3 light_dir(-light_pos.x(), -light_pos.y(), -light_pos.z());
+			light_dir.normalize();
+			m_Light->setDirection(light_dir);
+			m_Viewer.frame();
+		}
+	}
+	osg::ref_ptr<osg::Group> GetSceneRoot() const { return m_SceneData; }
+	osgViewer::Viewer& GetViewer() { return m_Viewer; }
+private:
+	osg::ref_ptr<osg::Group> m_SceneData;
+	osgViewer::Viewer m_Viewer;
+	osg::Light* m_Light;
+};

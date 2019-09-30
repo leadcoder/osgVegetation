@@ -20,8 +20,8 @@
 int main(int argc, char** argv)
 {
 	
-	osgVegetation::Register.Shadow.Mode = osgVegetation::SM_LISPSM;
-	osgVegetation::Register.FogMode = osgVegetation::FM_EXP2;
+	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
+	osgVegetation::Register.Scene.FogMode = osgVegetation::FM_EXP2;
 	//osgVegetation::Register.TexUnits.AddUnit(12, OV_BILLBOARD_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(1, OV_TERRAIN_SPLAT_TEXTURE_ID);
@@ -29,6 +29,70 @@ int main(int argc, char** argv)
 	//osgVegetation::Register.TexUnits.AddUnit(3, OV_BILLBOARD_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
 	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
+
+	Demo demo(argc, argv, osgVegetation::Register.Scene);
+
+	//setup vegetation layers
+	std::vector<osgVegetation::BillboardLayerConfig> layers;
+	osgVegetation::BillboardLayerConfig grass_layer;
+	grass_layer.MaxDistance = 140;
+	grass_layer.Density = 0.2;
+	grass_layer.ColorImpact = 1.0;
+	grass_layer.CastShadow = false;
+	grass_layer.Type = osgVegetation::BillboardLayerConfig::BLT_GRASS;
+	grass_layer.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 0.9, 0.008));
+	grass_layer.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 0.9, 0.002));
+	grass_layer.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	osg::Vec4 grass_splat_color_filter(0.1, -1, -1, -1);
+	grass_layer.Filter.SplatFilter = osgVegetation::PassFilter::GenerateSplatFilter(grass_splat_color_filter, "<");
+
+	osgVegetation::BillboardLayerConfig tree_layer;
+	tree_layer.MaxDistance = 740;
+	tree_layer.Density = 0.004;
+	tree_layer.ColorImpact = 0.7;
+	tree_layer.Type = osgVegetation::BillboardLayerConfig::BLT_ROTATED_QUAD;
+	tree_layer.Filter.ColorFilter = "if(length(base_color.xyz) > 0.5) return false;";
+	tree_layer.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.0, 1.0));
+	//tree_data.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/tree0.rgba", osg::Vec2f(8, 16), 1.2));
+
+	//Setup layers in terrain injection lods
+	std::vector<osgVegetation::VPBInjectionLODConfig> terrain_lods;
+	osgVegetation::VPBInjectionLODConfig grass_terrain_lod(5);
+	grass_terrain_lod.Layers.push_back(&grass_layer);
+	terrain_lods.push_back(grass_terrain_lod);
+
+	osgVegetation::VPBInjectionLODConfig tree_terrain_lod(2);
+	tree_terrain_lod.Layers.push_back(&tree_layer);
+	terrain_lods.push_back(tree_terrain_lod);
+
+
+	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(terrain_lods));
+#if 1
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
+#else
+	//osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osgb");
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");
+#endif
+
+	osgVegetation::TerrainSplatShadingConfig terrain_shading;
+	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
+	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
+	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.2));
+	//terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.2));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading.NoiseTexture.File = "terrain/detail/noise.png";
+
+	osg::ref_ptr <osgVegetation::TerrainSplatShadingStateSet> terrain_shading_ss = new osgVegetation::TerrainSplatShadingStateSet(terrain_shading);
+	osg::ref_ptr<osg::Group> terrain_shading_effect = new osg::Group();
+	terrain_shading_effect->setStateSet(terrain_shading_ss);
+	terrain_shading_effect->addChild(terrain_node);
+
+	demo.GetSceneRoot()->addChild(terrain_shading_effect);
+	demo.Run();
+#if 0
 	osg::ArgumentParser arguments(&argc, argv);
 
 	// construct the viewer.
@@ -95,7 +159,7 @@ int main(int argc, char** argv)
 	tree_terrain_lod.Layers.push_back(&tree_layer);
 	terrain_lods.push_back(tree_terrain_lod);
 
-	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(osgVegetation::Register.Shadow.Mode);
+	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(osgVegetation::Register.Scene.Shadow);
 	
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(terrain_lods));
 #if 1
@@ -145,20 +209,20 @@ int main(int argc, char** argv)
 	light_source->setLight(light);
 	root_node->addChild(light_source);
 
-	if (osgVegetation::Register.FogMode != osgVegetation::FM_DISABLED) //Add fog effect?
+	if (osgVegetation::Register.Scene.FogMode != osgVegetation::FM_DISABLED) //Add fog effect?
 	{
 		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
 		osg::StateSet* state = root_node->getOrCreateStateSet();
 		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
 		state->setMode(GL_FOG, osg::StateAttribute::ON);
 		state->setAttributeAndModes(fog.get());
-		fog->setMode(osg::Fog::Mode(osgVegetation::Register.FogMode));
+		fog->setMode(osg::Fog::Mode(osgVegetation::Register.Scene.FogMode));
 		fog->setDensity(0.0005);
 		fog->setColor(fog_color);
 		viewer.getCamera()->setClearColor(fog_color);
 	}
 
-	osgVegetation::Register.Apply(root_node->getOrCreateStateSet());
+	osgVegetation::Register.Scene.Apply(root_node->getOrCreateStateSet());
 
 	// add a viewport to the viewer and attach the scene graph.
 	viewer.setSceneData(root_node.get());
@@ -176,5 +240,6 @@ int main(int argc, char** argv)
 		light->setDirection(light_dir);
 		viewer.frame();
 	}
+#endif
 	return 0;
 }

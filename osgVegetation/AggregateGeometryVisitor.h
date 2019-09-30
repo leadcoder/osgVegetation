@@ -15,6 +15,7 @@
 
 #ifndef AGREGATE_GEOMETRY_VISITOR_H
 #define AGREGATE_GEOMETRY_VISITOR_H 1
+#include "ov_Register.h"
 #include <osg/Geode>
 #include <osg/Geometry>
 #include <osg/Transform>
@@ -412,9 +413,9 @@ public:
 			_images[i]->scaleImage(tex_size, tex_size, 1);
 			tex->setImage(i, _images[i]);
 		}
-		int tex_unit = 12;
-		_aggregatedGeometry->getOrCreateStateSet()->setTextureAttributeAndModes(tex_unit, tex, osg::StateAttribute::ON);
-		osg::Uniform* baseTextureSampler = new osg::Uniform("ov_mesh_color_texture", tex_unit);
+		const int mesh_tex_unit = osgVegetation::Register.TexUnits.CreateOrGetUnit(OV_MESH_COLOR_TEXTURE_ID);
+		_aggregatedGeometry->getOrCreateStateSet()->setTextureAttributeAndModes(mesh_tex_unit, tex, osg::StateAttribute::ON);
+		osg::Uniform* baseTextureSampler = new osg::Uniform("ov_mesh_color_texture", mesh_tex_unit);
 		_aggregatedGeometry->getOrCreateStateSet()->addUniform(baseTextureSampler);
 
 		_aggregatedGeometry->getOrCreateStateSet()->setMode(GL_SAMPLE_ALPHA_TO_COVERAGE_ARB, 1);

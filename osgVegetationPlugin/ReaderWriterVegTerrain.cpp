@@ -49,13 +49,13 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(
 
 
 	//Control texture slots
-	osgVegetation::TextureRegister.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
-	//osgVegetation::TextureRegister.AddUnit(2, OV_TERRAIN_NORMAL_TEXTURE_ID);
-	osgVegetation::TextureRegister.AddUnit(1, OV_TERRAIN_SPLAT_TEXTURE_ID);
-	osgVegetation::TextureRegister.AddUnit(2, OV_TERRAIN_DETAIL_TEXTURE_ID);
-	osgVegetation::TextureRegister.AddUnit(3, OV_BILLBOARD_TEXTURE_ID);
-	osgVegetation::TextureRegister.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
-	osgVegetation::TextureRegister.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
+	osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
+	//osgVegetation::Register.TexUnits.AddUnit(2, OV_TERRAIN_NORMAL_TEXTURE_ID);
+	osgVegetation::Register.TexUnits.AddUnit(1, OV_TERRAIN_SPLAT_TEXTURE_ID);
+	osgVegetation::Register.TexUnits.AddUnit(2, OV_TERRAIN_DETAIL_TEXTURE_ID);
+	osgVegetation::Register.TexUnits.AddUnit(3, OV_BILLBOARD_TEXTURE_ID);
+	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
+	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
 
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(terrain_config.BillboardConfig));
 

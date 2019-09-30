@@ -154,12 +154,69 @@ std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 
 int main(int argc, char** argv)
 {
-	osgVegetation::SceneConfiguration config;
-	config.Shadow.Mode = osgVegetation::SM_LISPSM;
-	config.FogMode = osgVegetation::FM_EXP2;
+	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
+	osgVegetation::Register.Scene.FogMode = osgVegetation::FM_EXP2;
 	
 	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
 	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
+
+	Demo demo(argc, argv, osgVegetation::Register.Scene);
+
+	osg::ref_ptr<osg::Group> root_node = new osg::Group();
+	std::string HEIGHT_MAP = "terrain/hm/heightmap.png";
+	double HEIGHT_MAP_SCALE = (1386.67 - 607.0);
+	double TERRAIN_SIZE = 4000;
+	osg::ref_ptr<osg::Image> elev_image = LoadElevationImage(HEIGHT_MAP, HEIGHT_MAP_SCALE);
+	osg::ref_ptr<osg::Texture2D> elev_tex = CreateElevationTexture(elev_image);
+	osg::ref_ptr<osg::Node> terrain = createFlatTerrainPatch(TERRAIN_SIZE, 50);
+	terrain->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask);
+
+	osgVegetation::TerrainSplatShadingConfig terrain_shading_config;
+
+	terrain_shading_config.UseTessellation = true;
+
+	terrain_shading_config.ColorTexture.File = "terrain/hm/colormap.png";
+	terrain_shading_config.NormalTexture.File = "terrain/hm/normalmap.png";
+	terrain_shading_config.ElevationTexture.Texture = elev_tex;
+
+	terrain_shading_config.SplatTexture.File = "terrain/hm/splatmap.png";
+	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
+	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
+	terrain_shading_config.NoiseTexture.File = "terrain/detail/noise.png";
+	terrain_shading_config.MaxDistance = 1000;
+	osg::ref_ptr<osgVegetation::TerrainSplatShadingEffect> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(terrain_shading_config);
+	terrain_shading_effect->addChild(terrain);
+	root_node->addChild(terrain_shading_effect);
+	//Add invisible collision geometry for camera manipulator intersection tests
+	{
+		const int COLLSION_TERRAIN_MASK = 0x4;
+		osg::ref_ptr<osg::Node> collision_terrain = createTerrainPatch(TERRAIN_SIZE, elev_image);
+		collision_terrain->setNodeMask(COLLSION_TERRAIN_MASK);
+		root_node->addChild(collision_terrain);
+		demo.GetViewer().getCamera()->setCullMask(~COLLSION_TERRAIN_MASK);
+	}
+
+	//Add vegetation to terrain
+
+	osg::ref_ptr<osg::Node> terrain_geometry = createFlatTerrainPatch(TERRAIN_SIZE, 100);
+
+	//osgVegetation::ConvertToPatches(terrain_geometry);
+	//terrain_geometry->setNodeMask(ReceivesShadowTraversalMask | CastsShadowTraversalMask);
+	//Add all billboard layers
+	for (size_t i = 0; i < GetVegetationLayers().size(); i++)
+	{
+		osgVegetation::BillboardLayerConfig layer_config = GetVegetationLayers().at(i);
+		osg::ref_ptr<osgVegetation::BillboardLayerEffect> bb_layer = new osgVegetation::BillboardLayerEffect(layer_config);
+		bb_layer->addChild(terrain_geometry);
+		terrain_shading_effect->addChild(bb_layer);
+	}
+	
+	demo.GetSceneRoot()->addChild(root_node);
+	demo.Run();
+
+#if 0
 
 	osg::ArgumentParser arguments(&argc, argv);
 
@@ -193,7 +250,7 @@ int main(int argc, char** argv)
 	//Add sample data path
 	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
 	
-	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.Shadow.Mode);
+	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.Shadow);
 	
 	std::string HEIGHT_MAP = "terrain/hm/heightmap.png";
 	double HEIGHT_MAP_SCALE = (1386.67 - 607.0);
@@ -201,7 +258,7 @@ int main(int argc, char** argv)
 	osg::ref_ptr<osg::Image> elev_image = LoadElevationImage(HEIGHT_MAP, HEIGHT_MAP_SCALE);
 	osg::ref_ptr<osg::Texture2D> elev_tex =  CreateElevationTexture(elev_image);
 	osg::ref_ptr<osg::Node> terrain = createFlatTerrainPatch(TERRAIN_SIZE, 50);
-	terrain->setNodeMask(ReceivesShadowTraversalMask);
+	terrain->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask);
 
 	osgVegetation::TerrainSplatShadingConfig terrain_shading_config;
 	
@@ -245,14 +302,15 @@ int main(int argc, char** argv)
 		osg::ref_ptr<osgVegetation::BillboardLayerEffect> bb_layer = new osgVegetation::BillboardLayerEffect(layer_config, billboard_tex_unit);
 		bb_layer->addChild(terrain_geometry);
 		if (!layer_config.CastShadow)
-			bb_layer->setNodeMask(ReceivesShadowTraversalMask);
+			bb_layer->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask);
 		else
-			bb_layer->setNodeMask(ReceivesShadowTraversalMask | CastsShadowTraversalMask);
+			bb_layer->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask | 
+				osgVegetation::Register.Scene.Shadow.CastsShadowTraversalMask);
 		terrain_shading_effect->addChild(bb_layer);
 	}
 #endif	
 	//apply scene settings to terrain
-	osgVegetation::SetSceneDefinitions(terrain_shading_effect->getOrCreateStateSet(), config);
+	config.Apply(terrain_shading_effect->getOrCreateStateSet());
 	
 	
 	if (!root_node)
@@ -314,5 +372,6 @@ int main(int argc, char** argv)
 		
 		viewer.frame();
 	}
+#endif
 	return 0;
 }

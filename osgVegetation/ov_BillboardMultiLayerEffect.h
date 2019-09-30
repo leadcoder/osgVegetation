@@ -12,17 +12,6 @@ namespace osgVegetation
 			for (size_t i = 0; i < layers.size(); i++)
 			{
 				osg::ref_ptr<BillboardLayerEffect> layer = new BillboardLayerEffect(layers[i]);
-				int node_mask = 0x1;
-				if (layers[i].CastShadow)
-					node_mask |= Register.Shadow.CastsShadowTraversalMask;
-				if (layers[i].ReceiveShadow)
-					node_mask |= Register.Shadow.ReceivesShadowTraversalMask;
-				layer->setNodeMask(node_mask);
-				
-				//if(layers[i].Type == BillboardLayerConfig::BLT_GRASS)
-				//	layer->setNodeMask(Register.Shadow.ReceivesShadowTraversalMask);
-				//else
-				//	layer->setNodeMask(Register.Shadow.CastsShadowTraversalMask | Register.Shadow.ReceivesShadowTraversalMask);
 				addChild(layer);
 			}
 		}

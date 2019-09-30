@@ -16,6 +16,7 @@ namespace osgVegetation
 #define OV_TERRAIN_DETAIL_TEXTURE_ID "ov_TerrainDetailTexture"
 #define OV_TERRAIN_NOISE_TEXTURE_ID "ov_TerrainNoiseTexture"
 #define OV_BILLBOARD_TEXTURE_ID "ov_BillboardTexture"
+#define OV_MESH_COLOR_TEXTURE_ID "ov_MeshColorTexture"
 #define OV_SHADOW_TEXTURE0_ID "ov_ShadowTexture0"
 #define OV_SHADOW_TEXTURE1_ID "ov_ShadowTexture1"
 
