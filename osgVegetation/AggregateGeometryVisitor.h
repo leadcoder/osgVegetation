@@ -424,7 +424,7 @@ public:
 		//need this for shadows to work
 		osg::AlphaFunc* alphaFunc = new osg::AlphaFunc;
 		alphaFunc->setFunction(osg::AlphaFunc::GEQUAL, 0.1);
-		//_aggregatedGeometry->getOrCreateStateSet()->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
+		_aggregatedGeometry->getOrCreateStateSet()->setAttributeAndModes(alphaFunc, osg::StateAttribute::ON);
 
 		return tex;
 	}

@@ -27,23 +27,35 @@ namespace osgVegetation
 			float Intensity;
 		};
 
-		MeshTypeConfig() : Probability(0)
+		MeshTypeConfig() : Probability(0), 
+			IntensityVariation(0.2),
+			Scale(1.0),
+			ScaleVariation(0),
+			DiffuseIntensity(1.0)
 		{
 
 		}
 		std::vector<MeshLODConfig> MeshLODs;
 		float Probability;
+		float IntensityVariation;
+		float Scale;
+		float ScaleVariation;
+		float DiffuseIntensity;
 	private:
 	};
 
 	class MeshLayerConfig : public ILayerConfig
 	{
 	public:
-		MeshLayerConfig(float density = 2) : Density(density)
+		MeshLayerConfig(float density = 2) : Density(density),
+			CastShadow(true),
+			ReceiveShadow(true)
 		{
 
 		}
 		float Density;
+		bool CastShadow;
+		bool ReceiveShadow;
 		PassFilter Filter;
 		std::vector<MeshTypeConfig> MeshTypes;
 	private:

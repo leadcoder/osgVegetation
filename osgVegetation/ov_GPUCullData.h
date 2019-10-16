@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AggregateGeometryVisitor.h"
+#include "ov_MeshLayerConfig.h"
 #include <osg/PrimitiveSetIndirect>
 #include <osg/TextureBuffer>
 #include <osg/BindImageTexture>
@@ -73,7 +74,7 @@ namespace osgVegetation
 				lods[i] = InstanceLOD();
 		}
 		InstanceType(const InstanceType& iType)
-			: bbMin(iType.bbMin), bbMax(iType.bbMax), params(iType.params)
+			: bbMin(iType.bbMin), bbMax(iType.bbMax), params(iType.params), floatParams(iType.floatParams)
 		{
 			for (unsigned int i = 0; i < OV_MAXIMUM_LOD_NUMBER; ++i)
 				lods[i] = iType.lods[i];
@@ -84,7 +85,9 @@ namespace osgVegetation
 			{
 				bbMin = iType.bbMin;
 				bbMax = iType.bbMax;
+				floatParams = iType.floatParams;
 				params = iType.params;
+				
 				for (unsigned int i = 0; i < OV_MAXIMUM_LOD_NUMBER; ++i)
 					lods[i] = iType.lods[i];
 			}
@@ -93,19 +96,17 @@ namespace osgVegetation
 		inline void setLodDefinition(unsigned int i, 
 			unsigned int targetID, 
 			unsigned int indexInTarget, 
-			const osg::Vec4& distance, 
 			unsigned int offsetInTarget, 
-			unsigned int type, 
 			const osg::BoundingBox& lodBBox, 
-			float intensity)
+			const MeshTypeConfig::MeshLODConfig &config)
 		{
 			if (i >= OV_MAXIMUM_LOD_NUMBER)
 				return;
 			params.x() = osg::maximum<int>(params.x(), i + 1);
-			lods[i].indirectTargetParams = osg::Vec4i(targetID, indexInTarget, offsetInTarget, type);
-			lods[i].distances = distance;
+			lods[i].indirectTargetParams = osg::Vec4i(targetID, indexInTarget, offsetInTarget, config.Type);
+			lods[i].distances = config.Distance;
 			lods[i].setBoundingBox(lodBBox);
-			lods[i].setIntensity(intensity);
+			lods[i].setIntensity(config.Intensity);
 			expandBy(lodBBox);
 		}
 
@@ -132,6 +133,7 @@ namespace osgVegetation
 
 		osg::Vec4f  bbMin;                              // bounding box that includes all LODs
 		osg::Vec4f  bbMax;
+		osg::Vec4f  floatParams;
 		osg::Vec4i  params;                             // x=number of active LODs
 		InstanceLOD lods[OV_MAXIMUM_LOD_NUMBER]; // information about LODs
 	};
@@ -297,11 +299,9 @@ namespace osgVegetation
 		bool registerType(unsigned int typeID, 
 			unsigned int targetID, 
 			osg::Node* node, 
-			const osg::Vec4& lodDistances, 
 			float maxDensityPerSquareKilometer, 
-			int type, 
-			float intensity,
-			float probablity)
+			float probablity,
+			const MeshTypeConfig::MeshLODConfig &config)
 		{
 			if (typeID >= instanceTypes->getData().size())
 				instanceTypes->getData().resize(typeID + 1);
@@ -322,22 +322,21 @@ namespace osgVegetation
 			osg::ComputeBoundsVisitor cbv;
 			node->accept(cbv);
 
-			// Indirect target texture buffers have finite size, therefore each instance LOD has maximum number that may be rendered in one frame.
-			// This maximum number of rendered instances is estimated from the area that LOD covers and maximum density of instances per square kilometer.
-			float lodArea = osg::PI * (lodDistances.w() * lodDistances.w() - lodDistances.x() * lodDistances.x()) / 1000000.0f;
-			// calculate max quantity of objects in lodArea using maximum density per square kilometer
-			unsigned int maxQuantity = (unsigned int)ceil(lodArea * maxDensityPerSquareKilometer);
-
 			itd.setLodDefinition(lodNumber, 
 				targetID, 
 				aoResult.index, 
-				lodDistances, 
 				target->second._maxTargetQuantity, 
-				type, 
 				cbv.getBoundingBox(),
-				intensity);
+				config);
 			
 			itd.setProbability(probablity);
+
+			const osg::Vec4 lodDistances = config.Distance;
+			// Indirect target texture buffers have finite size, therefore each instance LOD has maximum number that may be rendered in one frame.
+			// This maximum number of rendered instances is estimated from the area that LOD covers and maximum density of instances per square kilometer.
+			const float lodArea = osg::PI * (lodDistances.w() * lodDistances.w() - lodDistances.x() * lodDistances.x()) / 1000000.0f;
+			// calculate max quantity of objects in lodArea using maximum density per square kilometer
+			const unsigned int maxQuantity = (unsigned int)ceil(lodArea * maxDensityPerSquareKilometer);
 
 			target->second._maxTargetQuantity += maxQuantity;
 			return true;

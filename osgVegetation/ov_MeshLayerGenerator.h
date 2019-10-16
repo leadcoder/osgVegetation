@@ -112,22 +112,30 @@ namespace osgVegetation
 			osg::BoundingSphere _bounds;
 		};
 	public:
-		MeshLayerGenerator(const MeshLayerConfig &mesh_data)
+		MeshLayerGenerator(const MeshLayerConfig &config)
 		{
-			GPUCullData* gpuData = _CreateGPUData(mesh_data);
+			GPUCullData* gpuData = _CreateGPUData(config);
 			m_TerrainStateSet = _CreateTerrainStateSet(gpuData);
 
 			//apply filters
-			mesh_data.Filter.Apply(m_TerrainStateSet);
+			config.Filter.Apply(m_TerrainStateSet);
 
-			const double target_instance_area = 1.0 / (mesh_data.Density / 1000000.0);
+			const double target_instance_area = 1.0 / (config.Density / 1000000.0);
 			const float target_tri_side_lenght = static_cast<float>(GetEquilateralTriangleSideLengthFromArea(target_instance_area));
 			osg::Uniform* targetTriangleSide = new osg::Uniform(osg::Uniform::FLOAT, "ov_TargetTriangleSide");
 			targetTriangleSide->set(target_tri_side_lenght);
 			m_TerrainStateSet->addUniform(targetTriangleSide);
 
-			osg::BoundingSphere bs;
+			//osg::BoundingSphere bs;
 			m_InstanceGroup = _CreateInstanceGroup(gpuData);
+			
+			int node_mask = 0x1;
+			if (config.CastShadow)
+				node_mask |= Register.Scene.Shadow.CastsShadowTraversalMask;
+			if (config.ReceiveShadow)
+				node_mask |= Register.Scene.Shadow.ReceivesShadowTraversalMask;
+			m_InstanceGroup->setNodeMask(node_mask);
+			
 			delete gpuData;
 		}
 
@@ -162,6 +170,7 @@ namespace osgVegetation
 			terrain_geometry->accept(scbv);
 			group->addChild(terrain_geode);
 			group->addChild(m_InstanceGroup);
+			group->setNodeMask(m_InstanceGroup->getNodeMask());
 			//osg::BoundingSphere bs = terrain_geode->getBound();
 			//osg::ref_ptr<osg::Group> instance_group = _CreateInstanceGroup(bs);
 			//group->addChild(instance_group);
@@ -255,11 +264,17 @@ namespace osgVegetation
 					gpuData->registerType(i, 
 						0, 
 						mesh.get(), 
-						mesh_data.MeshTypes[i].MeshLODs[j].Distance, 
 						density,
-						mesh_data.MeshTypes[i].MeshLODs[j].Type, 
-						mesh_data.MeshTypes[i].MeshLODs[j].Intensity,
-						norm_prob);
+						norm_prob,
+						mesh_data.MeshTypes[i].MeshLODs[j]);
+				}
+				if (i < gpuData->instanceTypes->getData().size())
+				{
+					InstanceType& itd = gpuData->instanceTypes->getData().at(i);
+					itd.floatParams.x() = mesh_data.MeshTypes[i].IntensityVariation;
+					itd.floatParams.y() = mesh_data.MeshTypes[i].ScaleVariation;
+					itd.floatParams.z() = mesh_data.MeshTypes[i].DiffuseIntensity;
+					itd.floatParams.w() = mesh_data.MeshTypes[i].Scale;
 				}
 			}
 
