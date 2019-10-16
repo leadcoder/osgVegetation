@@ -98,6 +98,10 @@ namespace osgVegetation
 		MeshTypeConfig mesh;
 
 		mesh_elem->QueryFloatAttribute("Probability", &mesh.Probability);
+		mesh_elem->QueryFloatAttribute("IntensityVariation", &mesh.IntensityVariation);
+		mesh_elem->QueryFloatAttribute("Scale", &mesh.Scale);
+		mesh_elem->QueryFloatAttribute("ScaleVariation", &mesh.ScaleVariation);
+		mesh_elem->QueryFloatAttribute("DiffuseIntensity", &mesh.DiffuseIntensity);
 		TiXmlElement *mesh_lod_elem = mesh_elem->FirstChildElement("LOD");
 
 		while (mesh_lod_elem)
@@ -114,6 +118,8 @@ namespace osgVegetation
 	{
 		MeshLayerConfig layer;
 		mesh_layer_elem->QueryFloatAttribute("Density", &layer.Density);
+		mesh_layer_elem->QueryBoolAttribute("CastShadow", &layer.CastShadow);
+		mesh_layer_elem->QueryBoolAttribute("ReceiveShadow", &layer.ReceiveShadow);
 
 		if (mesh_layer_elem->Attribute("ColorFilter"))
 			layer.Filter.ColorFilter = mesh_layer_elem->Attribute("ColorFilter");
