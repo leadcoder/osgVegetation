@@ -5,10 +5,7 @@
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 
-namespace osgVegetation
-{
-
-	//predefined texture ids
+//predefined texture ids
 #define OV_TERRAIN_COLOR_TEXTURE_ID "ov_TerrainColorTexture"
 #define OV_TERRAIN_NORMAL_TEXTURE_ID "ov_TerrainNormalTexture"
 #define OV_TERRAIN_ELEVATION_TEXTURE_ID "ov_TerrainElevationTexture"
@@ -20,6 +17,8 @@ namespace osgVegetation
 #define OV_SHADOW_TEXTURE0_ID "ov_ShadowTexture0"
 #define OV_SHADOW_TEXTURE1_ID "ov_ShadowTexture1"
 
+namespace osgVegetation
+{
 	class TextureUnits
 	{
 	public:

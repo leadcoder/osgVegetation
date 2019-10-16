@@ -17,7 +17,6 @@
 
 namespace osgVegetation
 {
-
 	class BillboardLayerConfig : public ILayerConfig
 	{
 	public:
@@ -53,7 +52,7 @@ namespace osgVegetation
 
 		BillboardLayerConfig(BillboardLayerType type = BLT_ROTATED_QUAD) : Type(type),
 			MaxDistance(150),
-			Density(0.02), 
+			Density(0.02),
 			ColorImpact(1.0),
 			AlphaRejectValue(0.1),
 			CastShadow(true),
@@ -78,7 +77,4 @@ namespace osgVegetation
 		std::vector<Billboard> Billboards;
 	private:
 	};
-
-
-
 }

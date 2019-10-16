@@ -177,47 +177,6 @@ namespace osgVegetation
 			return group;
 		}
 	private:
-#if 0
-		void _SetupGPUData(const MeshTileGeneratorConfig &mesh_data)
-		{
-			osg::ref_ptr < osg::Program> drawProgram = new osg::Program;
-			//stateset->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
-			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_mesh_render_vertex.glsl")));
-			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_mesh_render_fragment.glsl")));
-			m_GpuData.registerIndirectTarget(0, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
-			//m_GpuData.registerIndirectTarget(1, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
-
-			for (size_t i = 0; i < mesh_data.MeshTypes.size(); i++)
-			{
-				for (size_t j = 0; j < mesh_data.MeshTypes[i].MeshLODs.size(); j++)
-				{
-#if 1
-					osg::ref_ptr<osg::Node> mesh = osgDB::readNodeFile(mesh_data.MeshTypes[i].MeshLODs[j].Mesh);
-#else
-					osg::ref_ptr<osg::Node> mesh;
-					if (mesh_data[i].MeshLODs[j].Mesh == "LOD0") mesh = createConiferTree(0.75f, osg::Vec4(1.0, 1.0, 1.0, 1.0), osg::Vec4(0.0, 1.0, 0.0, 1.0));
-					else if (mesh_data[i].MeshLODs[j].Mesh == "LOD1") mesh = createConiferTree(0.45f, osg::Vec4(0.0, 0.0, 1.0, 1.0), osg::Vec4(1.0, 1.0, 0.0, 1.0));
-					else if (mesh_data[i].MeshLODs[j].Mesh == "LOD2") mesh = createConiferTree(0.15f, osg::Vec4(1.0, 0.0, 0.0, 1.0), osg::Vec4(0.0, 0.0, 1.0, 1.0));
-					else mesh = osgDB::readNodeFile(mesh_data[i].MeshLODs[j].Mesh);
-#endif
-					m_GpuData.registerType(i, 0, mesh.get(), mesh_data.MeshTypes[i].MeshLODs[j].Distance, mesh_data.Density);
-				}
-			}
-
-			// every target will store 6 rows of data in GL_RGBA32F_ARB format ( the whole StaticInstance structure )
-			m_GpuData.endRegister(6, GL_RGBA, GL_FLOAT, GL_RGBA32F_ARB);
-
-			// in the end - we create OSG objects that draw instances using indirect targets and commands.
-			std::map<unsigned int, IndirectTarget>::iterator it, eit;
-			for (it = m_GpuData.targets.begin(), eit = m_GpuData.targets.end(); it != eit; ++it)
-			{
-				//it->second.geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InvokeMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
-				it->second._geometryAggregator->getAggregatedGeometry()->setDrawCallback(new InstanceGeometryDrawCB(it->second._indirectCommandTextureBuffer, it->second._indirectCommandImageBinding));
-				it->second._geometryAggregator->getAggregatedGeometry()->setComputeBoundingBoxCallback(new BoundingBoxCB());
-				it->second._geometryAggregator->getAggregatedGeometry()->setCullingActive(false);
-			}
-		}
-#endif
 
 		GPUCullData* _CreateGPUData(const MeshLayerConfig &mesh_data)
 		{
@@ -369,7 +328,6 @@ namespace osgVegetation
 		osg::ref_ptr<osg::StateSet>  m_TerrainStateSet;
 		osg::ref_ptr<osg::Group> m_InstanceGroup;
 	};
-
 
 	class MeshMultiLayerGenerator
 	{

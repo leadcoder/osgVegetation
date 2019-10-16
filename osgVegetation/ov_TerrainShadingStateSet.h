@@ -7,7 +7,6 @@
 #include <osg/Texture2DArray>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
-
 #include <vector>
 
 namespace osgVegetation

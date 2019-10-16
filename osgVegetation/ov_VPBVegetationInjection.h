@@ -9,70 +9,6 @@
 
 namespace osgVegetation
 {
-
-#if 0
-	class BillboardNodeGeneratorConfig
-	{
-	public:
-		BillboardNodeGeneratorConfig(const std::vector<BillboardLayer> &layers = std::vector<BillboardLayer>(),
-			//TerrainTextureUnitSettings terrrain_texture_units = TerrainTextureUnitSettings(),
-			int billboard_texture_unit = 2,
-			int receives_shadow_mask = 0x1,
-			int cast_shadow_mask = 0x2) : Layers(layers),
-			//TerrainTextureUnits(terrrain_texture_units),
-			BillboardTexUnit(billboard_texture_unit),
-			ReceivesShadowTraversalMask(receives_shadow_mask),
-			CastShadowTraversalMask(cast_shadow_mask)
-		{}
-		
-		std::vector<BillboardLayer> Layers;
-		//TerrainTextureUnitSettings TerrainTextureUnits;
-		int BillboardTexUnit;
-		int ReceivesShadowTraversalMask;
-		int CastShadowTraversalMask;
-	};
-
-	class BillboardNodeGenerator
-	{
-	public:
-		BillboardNodeGenerator(const BillboardNodeGeneratorConfig &config, osg::ref_ptr <osg::StateSet> terrain_state_set) : m_Config(config),
-			m_TerrainStateSet(terrain_state_set)
-		{
-			for (size_t i = 0; i < config.Layers.size(); i++)
-			{
-				m_Layers.push_back(new BillboardLayerStateSet(config.Layers[i], config.BillboardTexUnit));
-			}
-		}
-
-		osg::ref_ptr<osg::Node> CreateNode(osg::Node* terrain) const
-		{
-			osg::ref_ptr<osg::Group> layers = new osg::Group();
-			if (m_TerrainStateSet)
-				layers->getOrCreateStateSet()->merge(*m_TerrainStateSet);
-
-			for (size_t i = 0; i < m_Layers.size(); i++)
-			{
-				osg::ref_ptr<osg::Group> layer_node = new osg::Group();
-				layer_node->setStateSet(m_Layers[i]);
-				layer_node->addChild(terrain);
-
-				//Disable shadow casting for grass, TODO make this optional
-				if (m_Config.Layers[i].Type == BillboardLayerConfig::BLT_GRASS)
-					layer_node->setNodeMask(m_Config.ReceivesShadowTraversalMask);
-				else
-					layer_node->setNodeMask(m_Config.ReceivesShadowTraversalMask | m_Config.CastShadowTraversalMask);
-
-				layers->addChild(layer_node);
-			}
-			return layers;
-		}
-	private:
-		std::vector<osg::ref_ptr<BillboardLayerStateSet> > m_Layers;
-		BillboardNodeGeneratorConfig m_Config;
-		osg::ref_ptr <osg::StateSet> m_TerrainStateSet;
-	};
-#endif
-
 	class VPBInjectionLOD
 	{
 	public:
@@ -191,7 +127,6 @@ namespace osgVegetation
 			for (size_t i = 0; i < config.TerrainLODs.size(); i++)
 			{
 				m_Levels.push_back(VPBInjectionLOD(config.TerrainLODs[i]));
-				//m_LODLayers.insert(std::pair<int, osg::ref_ptr<BillboardMultiLayerEffect> >(config.TerrainLODs[i].TargetLevel, new BillboardMultiLayerEffect(config.TerrainLODs[i].Layers, config.BillboardTexUnit)));
 			}
 		}
 	

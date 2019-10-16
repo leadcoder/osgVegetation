@@ -17,9 +17,7 @@ namespace osgVegetation
 			switch (Shadow.Mode)
 			{
 			case SM_DISABLED:
-				//shadow_mode_str = "SM_DISABLED";
 			case SM_UNDEFINED:
-				//shadow_mode_str = "SM_UNDEFINED";
 				break;
 			case SM_LISPSM:
 				shadow_mode_str = "SM_LISPSM";

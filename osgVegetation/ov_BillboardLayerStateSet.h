@@ -142,7 +142,6 @@ private:
 			for (size_t i = 0; i < textrues.size(); i++)
 			{
 				const std::string texture_name = textrues[i].TextureName;
-				//const osg::ref_ptr<osgDB::ReaderWriter::Options> new_options = new osgDB::ReaderWriter::Options();
 				options->setOptionString("dds_flip");
 				osg::Image* image = osgDB::readImageFile(texture_name, options);
 				if (image == NULL)
