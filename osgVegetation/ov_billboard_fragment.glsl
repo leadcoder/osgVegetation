@@ -19,8 +19,8 @@ in ov_BillboardVertexData
 out vec4 fragColor;
 
 //forward declarations
-vec3 ov_directionalLight(vec3 normal);
-vec3 ov_directionalLightShadow(vec3 normal);
+vec3 ov_directionalLight(vec3 normal,vec3 diffuse);
+vec3 ov_directionalLightShadow(vec3 normal,vec3 diffuse);
 vec3 ov_applyFog(vec3 color, float depth);
 
 //get billboard normal
@@ -50,9 +50,9 @@ void main(void)
 	vec3 normal = ov_get_billboard_normal();
 
 #ifndef BLT_ROTATED_QUAD //self shadows don't work well for rotated quads
-	out_color.xyz *= ov_directionalLightShadow(normal);
+	out_color.xyz *= ov_directionalLightShadow(normal,vec3(1.0));
 #else
-	out_color.xyz *= ov_directionalLight(normal);
+	out_color.xyz *= ov_directionalLight(normal, vec3(1.0));
 #endif
 
 	out_color.xyz = ov_applyFog(out_color.xyz, ov_bb_in.Depth);

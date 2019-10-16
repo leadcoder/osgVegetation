@@ -35,12 +35,14 @@ float ov_getShadow()
 	return shadow;
 }
 
-vec3 ov_directionalLightShadow(vec3 normal)
+vec3 ov_directionalLightShadow(vec3 normal, vec3 diffuse)
 {
 	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
-	float NdotL = max(dot(normal, light_dir), 0.0);
+	//float NdotL = dot(normal, light_dir);
+	float	NdotL = max(dot(normal, light_dir), 0.0);
+
 	NdotL *= ov_getShadow();
-	vec3 light = min(NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz, 1.0);
+	vec3 light = min(NdotL * diffuse*gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz, 1.0);
     
 	//float NdotHV = max(dot(normal, gl_LightSource[0].halfVector.xyz), 0.0);
 	//if ( NdotL * NdotHV > 0.0 )
@@ -49,11 +51,11 @@ vec3 ov_directionalLightShadow(vec3 normal)
 	return light;
 }
 
-vec3 ov_directionalLight(vec3 normal)
+vec3 ov_directionalLight(vec3 normal, vec3 diffuse)
 {
 	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
 	float NdotL = max(dot(normal, light_dir), 0.0);
-	vec3 light = min(NdotL * gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz , 1.0);
+	vec3 light = min(NdotL * diffuse*gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz , 1.0);
 	return light;
 }
 

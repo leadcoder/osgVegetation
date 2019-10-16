@@ -6,6 +6,7 @@ in vec3 ov_position;
 in vec3 ov_vPosition;
 in vec3 ov_normal;
 in vec2 ov_texCoord;
+in vec3 ov_diffuse;
 flat in mat3 ov_texMat;
 flat in float ov_textureIndex;
 in vec4 ov_color;
@@ -14,8 +15,8 @@ flat in int ov_type;
 uniform sampler2DArray ov_mesh_color_texture;
     
 //forward declarations
-vec3 ov_directionalLight(vec3 normal);
-vec3 ov_directionalLightShadow(vec3 normal);
+vec3 ov_directionalLight(vec3 normal, vec3 diffuse);
+vec3 ov_directionalLightShadow(vec3 normal, vec3 diffuse);
 vec3 ov_applyFog(vec3 color, float depth);
 
 void main()
@@ -32,19 +33,23 @@ void main()
 		vec3 bnormal = normalize(ov_texMat * ((coded_normal * 2.0) - 1));
 		//vec3 bnormal = normalize(vec3(ov_vPosition.xy,0));
 		//bnormal = normalize(ov_texMat * vec3(bnormal.xy,ov_texCoord.y));
-		base_color.xyz *= ov_directionalLight(bnormal);
+		base_color.xyz *= ov_directionalLight(bnormal, ov_diffuse);
 		normal.y = 0;
 		normal = normalize(normal);
 		float NdotC = dot(normal, vec3(0,0,1));
 		if(NdotC < 0)
 			base_color.a = 0;
 		else
-			base_color.a *= NdotC*NdotC*NdotC*NdotC;
+			base_color.a *= NdotC*NdotC*NdotC*NdotC*NdotC*NdotC;
 	}
 	else
+	{
+		//if (!gl_FrontFacing)
+		//	normal = -normal;
+	
 		//base_color.xyz *= ov_directionalLight(normal);
-		base_color.xyz *= ov_directionalLightShadow(normal);
-		
+		base_color.xyz *= ov_directionalLightShadow(normal, ov_diffuse);
+	}
 
 	base_color.xyz = ov_applyFog(base_color.xyz, -ov_position.z);
 

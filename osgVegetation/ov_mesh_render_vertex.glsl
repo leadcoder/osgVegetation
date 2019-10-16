@@ -20,6 +20,7 @@ struct InstanceType
 {
     vec4 bbMin;
     vec4 bbMax;
+	vec4 floatParams;
     ivec4 params;
     InstanceLOD lods[OV_MAXIMUM_LOD_NUMBER];
 };
@@ -38,6 +39,7 @@ out vec3 ov_vPosition;
 out vec3 ov_normal;
 out vec2 ov_texCoord;
 out vec4 ov_color;
+out vec3 ov_diffuse;
 flat out mat3 ov_texMat;
 flat out float ov_fade;
 flat out float ov_textureIndex;
@@ -60,7 +62,7 @@ void main()
     
 	ov_fade = id_params.z;
 	ov_type = instanceTypes[instance_type_index].lods[instance_lod_number].indirectTargetParams.w;
-    
+    ov_diffuse = vec3(instanceTypes[instance_type_index].floatParams.z);
     mat4 mv_matrix = gl_ModelViewMatrix * instance_matrix;
        
     // Do fixed functionality vertex transform
@@ -76,7 +78,7 @@ void main()
 	
     ov_texCoord = ov_vertexTexCoord0.xy;
 	ov_textureIndex = ov_vertexTexCoord1.z;
-	
+
 	ov_color.xyz = ov_vertexColor.xyz * extra_params.x;
     ov_color.a = ov_vertexColor.a;
 }

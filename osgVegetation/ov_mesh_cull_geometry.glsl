@@ -52,6 +52,7 @@ struct InstanceType
 {
     vec4 bbMin;
     vec4 bbMax;
+	vec4 floatParams;
     ivec4 params;
     InstanceLOD lods[OV_MAXIMUM_LOD_NUMBER];
 };
@@ -162,11 +163,11 @@ mat4 ov_getRotationMatrix(vec3 axis, float angle)
 		0.0, 0.0, 0.0, 1.0);
 }
 
-mat4 ov_getTransformationMatrix(vec4 position)
+mat4 ov_getTransformationMatrix(vec4 position, float scale, float scale_variation)
 {
 	float rand_val = ov_rand(position.xy + vec2(10.2,3.5));
 	float rand_angle = rand_val*3.14*0.5;
-	float rand_scale = 0.7 + rand_val * (0.6);
+	float rand_scale = scale*((1.0 - scale_variation * 0.5) + rand_val * scale_variation);
 	mat4 rand_rot_mat = ov_getRotationMatrix(vec3(0, 0, 1), rand_angle);
 	mat4 rand_scale_mat = mat4(rand_scale, 0, 0, 0,
 		                  0, rand_scale, 0, 0,
@@ -188,17 +189,14 @@ void main(void)
 	vec3 terrain_normal = vec3(0,0,1); 
 	if(!ov_passFilter(instance_position.xyz, terrain_normal, instance_tex_coords))
 		return;
-
-	//vec4 land_cover_color = texture2D( ov_landCoverTexture, instance_tex_coords);
-	//if(length(land_cover_color.xyz) > 0.2)
-	//	return;
-
 	 
 	//get random mesh
 	int instance_type_id = ov_getRandomMeshType(instance_position.xy);
 	
 	//get transformation with random rotation and scale
-    mat4 instance_matrix = ov_getTransformationMatrix(instance_position);
+	float scale_variation = instanceTypes[instance_type_id].floatParams.y;
+	float scale = instanceTypes[instance_type_id].floatParams.w;
+    mat4 instance_matrix = ov_getTransformationMatrix(instance_position, scale, scale_variation);
     mat4 mvpo_matrix = gl_ModelViewProjectionMatrix * instance_matrix;
 
     // gl_Position is created only for debugging purposes
@@ -213,10 +211,8 @@ void main(void)
 		vec4 mv_pos = osg_ModelViewMatrix * instance_position;
 		float distance_to_object = length(mv_pos.xyz);
 
-		bool shadow_camera = false;
-		if (gl_ProjectionMatrix[3][3] != 0)
-			shadow_camera = true;
-
+		bool shadow_camera = gl_ProjectionMatrix[3][3] != 0;
+		
 		int start_lod = 0;
 		if (shadow_camera)
 		{
@@ -225,21 +221,25 @@ void main(void)
 			//and override object distance to be inside lod-range
 			distance_to_object = instanceTypes[instance_type_id].lods[start_lod].distances.y + 0.1; //note that we add 0.1m to avoid problems with zero values
 		}
-		float rand_intensity = 0.8 + 0.4*ov_rand(instance_position.xy + vec2(20.1,6.5));
+		else
+		{
+			distance_to_object = distance_to_object / max(gl_ProjectionMatrix[0][0], 1);
+		}
 
 		//vec3 terrain_color =  ov_getTerrainColor(-mv_pos.z, instance_tex_coords.xy, instance_position.xy).xyz;
-		//rand_intensity = 2*length(terrain_color); 
-
+		
 		for(int i = start_lod ; i < instanceTypes[instance_type_id].params.x; ++i)
 	    {
             if(ov_boundingBoxInViewFrustum( mvpo_matrix, instanceTypes[instance_type_id].lods[i].bbMin.xyz, instanceTypes[instance_type_id].lods[i].bbMax.xyz ) &&
                 (distance_to_object >= instanceTypes[instance_type_id].lods[i].distances.x ) && ( distance_to_object < instanceTypes[instance_type_id].lods[i].distances.w ))
             {
-
-                //ov_color = vec4(1.0,1.0,0.0,1.0);
-                vec4 lod_dist = instanceTypes[instance_type_id].lods[i].distances;
-				float intensity = rand_intensity;// * instanceTypes[instance_type_id].lods[i].bbMin.w;
-                float fade_alpha  = ( clamp( (distance_to_object - lod_dist.x)/(lod_dist.y - lod_dist.x), 0.0, 1.0 ) 
+				//get intensity
+                float intensity = instanceTypes[instance_type_id].lods[i].bbMin.w;
+				float max_intensity_variation = instanceTypes[instance_type_id].floatParams.x;
+				intensity = (intensity - max_intensity_variation*0.5) + max_intensity_variation*ov_rand(instance_position.xy + vec2(20.1,6.5));
+		        
+				vec4 lod_dist = instanceTypes[instance_type_id].lods[i].distances;
+				                float fade_alpha  = ( clamp( (distance_to_object - lod_dist.x)/(lod_dist.y - lod_dist.x), 0.0, 1.0 ) 
                     -  clamp( (distance_to_object- lod_dist.z)/( lod_dist.w - lod_dist.z), 0.0, 1.0 ) );
                 
 				int indirect_command_index   = instanceTypes[instance_type_id].lods[i].indirectTargetParams.x;
