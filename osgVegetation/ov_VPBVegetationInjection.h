@@ -255,7 +255,7 @@ namespace osgVegetation
 				return rr;
 
 			//disable terrain self shadowing
-			TerrainNodeMaskVisitor mask_visitor(0x1);
+			TerrainNodeMaskVisitor mask_visitor(0x1 | Register.Scene.Shadow.ReceivesShadowTraversalMask);
 			rr.getNode()->accept(mask_visitor);
 
 #ifdef OV_USE_TILE_ID_LOD_LEVEL
@@ -264,8 +264,6 @@ namespace osgVegetation
 			const int lod_level = ExtractLODLevelFromFileName(filename);
 #endif
 			VPBInjectionLOD* injector = GetTargetLevel(lod_level);
-			//std::map<int, osg::ref_ptr<BillboardMultiLayerEffect> >::const_iterator iter = m_LODLayers.find(lod_level);
-			//if (iter != m_LODLayers.end())
 			if (injector)
 			{
 				osg::Group* root_node = dynamic_cast<osg::Group*>(rr.getNode());

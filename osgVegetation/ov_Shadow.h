@@ -15,8 +15,8 @@ namespace osgVegetation
 	class ShadowSettings
 	{
 	public:
-		ShadowSettings() : ReceivesShadowTraversalMask(0x1),
-			CastsShadowTraversalMask(0x2), Mode(SM_DISABLED){}
+		ShadowSettings() : ReceivesShadowTraversalMask(0x2),
+			CastsShadowTraversalMask(0x4), Mode(SM_DISABLED){}
 		ShadowModeEnum Mode;
 		int ReceivesShadowTraversalMask;
 		int CastsShadowTraversalMask;
