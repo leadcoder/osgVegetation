@@ -63,13 +63,11 @@ std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 	grass_data2.Filter.SplatFilter = grass_data.Filter.SplatFilter;
 	grass_data2.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data2);
-
-	//osgVegetation::BillboardLayerConfig tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
-
+	
 	osgVegetation::BillboardLayerConfig tree_data(osgVegetation::BillboardLayerConfig::BLT_ROTATED_QUAD);
 	tree_data.MaxDistance = 740;
 	tree_data.Density = 0.01;
-	tree_data.ColorImpact = 0.7;
+	tree_data.ColorImpact = 0.0;
 	tree_data.Filter.SplatFilter = osgVegetation::PassFilter::GenerateSplatFilter(osg::Vec4(-1, 0.5, -1, -1), "<");
 	tree_data.Filter.ColorFilter = "if(length(base_color.xyz) > 0.5) return false;";
 	//tree_data.Type = osgVegetation::BillboardLayerConfig::BLT_CROSS_QUADS;
@@ -90,6 +88,7 @@ osgVegetation::TerrainSplatShadingConfig GetTerrainShaderConfig(bool tess)
 	tsc.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.08));
 	tsc.NoiseTexture.File = "terrain/detail/noise.png";
 	tsc.UseTessellation = tess;
+	tsc.ColorModulateRatio = 0.2;
 	return tsc;
 }
 
@@ -151,131 +150,15 @@ osg::ref_ptr<osg::Group> CreateTerrain(double terrain_size)
 
 int main(int argc, char** argv)
 {
-	//Control texture slots
-	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
-	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
-	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
+	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_VDSM2;
 	osgVegetation::Register.Scene.FogMode = osgVegetation::FM_EXP2;
 
 	Demo demo(argc, argv, osgVegetation::Register.Scene);
 
 	const double terrain_size = 2000;
-	const bool use_terrain_patches = true;
+	const bool use_terrain_patches = false;
 	osg::ref_ptr<osg::Group> terrain_and_vegetation_node = use_terrain_patches ? CreateTerrainPatches(terrain_size) : CreateTerrain(terrain_size);
 	demo.GetSceneRoot()->addChild(terrain_and_vegetation_node);
 	demo.Run();
-
-#if 0
-	//Control texture slots
-	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
-	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
-
-	osgVegetation::SceneConfig config;
-	config.Shadow.Mode = osgVegetation::SM_VDSM2;
-	config.FogMode = osgVegetation::FM_EXP2;
-
-	osg::ArgumentParser arguments(&argc, argv);
-
-	
-	// construct the viewer.
-	osgViewer::Viewer viewer(arguments);
-
-	// set up the camera manipulators.
-	{
-		osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> keyswitchManipulator = new osgGA::KeySwitchMatrixManipulator;
-		keyswitchManipulator->addMatrixManipulator('1', "Trackball", new osgGA::TrackballManipulator());
-		keyswitchManipulator->addMatrixManipulator('2', "Flight", new osgGA::FlightManipulator());
-		keyswitchManipulator->addMatrixManipulator('3', "Drive", new osgGA::DriveManipulator());
-		keyswitchManipulator->addMatrixManipulator('4', "Terrain", new osgGA::TerrainManipulator());
-		viewer.setCameraManipulator(keyswitchManipulator.get());
-	}
-
-	// add the state manipulator
-	viewer.addEventHandler(new osgGA::StateSetManipulator(viewer.getCamera()->getOrCreateStateSet()));
-
-	// add the stats handler
-	viewer.addEventHandler(new osgViewer::StatsHandler);
-
-	// add the record camera path handler
-	viewer.addEventHandler(new osgViewer::RecordCameraPathHandler);
-
-	// add the window size toggle handler
-	viewer.addEventHandler(new osgViewer::WindowSizeHandler);
-
-	osg::DisplaySettings::instance()->setNumMultiSamples(4);
-
-	//Add sample data path
-	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
-
-	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.Shadow);
-
-	const double terrain_size = 2000;
-	const bool use_terrain_patches = false;
-	osg::ref_ptr<osg::Group> terrain_and_vegetation_node = use_terrain_patches ? CreateTerrainPatches(terrain_size) : CreateTerrain(terrain_size);
-
-	//apply scene settings to terrain and vegetation shaders
-	config.Apply(terrain_and_vegetation_node->getOrCreateStateSet());
-
-	root_node->addChild(terrain_and_vegetation_node);
-
-	if (!root_node)
-	{
-		osg::notify(osg::NOTICE) << "Warning: no valid data loaded, please specify a database on the command line." << std::endl;
-		return 1;
-	}
-
-	//Add light
-	osg::Light* light = new osg::Light;
-	light->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
-	osg::Vec4 light_pos(1, 1.0, 1, 0);
-	light->setPosition(light_pos);		// last param	w = 0.0 directional light (direction)
-	osg::Vec3f light_dir(-light_pos.x(), -light_pos.y(), -light_pos.z());
-	light_dir.normalize();
-	light->setDirection(light_dir);
-	light->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f));
-
-	osg::LightSource* light_source = new osg::LightSource;
-	light_source->setLight(light);
-	root_node->addChild(light_source);
-
-	viewer.setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
-
-	if (config.FogMode != osgVegetation::FM_DISABLED) //Add fog effect?
-	{
-		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
-		osg::StateSet* state = root_node->getOrCreateStateSet();
-		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
-		state->setMode(GL_FOG, osg::StateAttribute::ON);
-		state->setAttributeAndModes(fog.get());
-		fog->setMode(osg::Fog::Mode(config.FogMode));
-		fog->setDensity(0.0005);
-		fog->setColor(fog_color);
-		if (config.FogMode == osgVegetation::FM_LINEAR)
-		{
-			fog->setStart(0);
-			fog->setEnd(1000);
-		}
-		viewer.getCamera()->setClearColor(fog_color);
-	}
-
-	viewer.setSceneData(root_node);
-	viewer.setUpViewInWindow(100, 100, 800, 600);
-
-	viewer.realize();
-	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
-	//viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
-
-	// run the viewers main loop
-	while (!viewer.done())
-	{
-		float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
-		light_pos.set(sinf(t), cosf(t), 1, 0.0f);
-		light->setPosition(light_pos);
-		light_dir.set(-light_pos.x(), -light_pos.y(), -light_pos.z());
-		light_dir.normalize();
-		light->setDirection(light_dir);
-		viewer.frame();
-	}
-#endif
 	return 0;
 }

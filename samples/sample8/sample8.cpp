@@ -141,7 +141,6 @@ std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 	grass_data2.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_data2);
 
-	//osgVegetation::BillboardLayerConfig tree_data(2740, 0.001, 0.5, 0.7, 0.1, 2);
 	osgVegetation::BillboardLayerConfig tree_data(osgVegetation::BillboardLayerConfig::BLT_ROTATED_QUAD);
 	tree_data.MaxDistance = 740;
 	tree_data.Density = 0.001;
@@ -163,9 +162,10 @@ int main(int argc, char** argv)
 	Demo demo(argc, argv, osgVegetation::Register.Scene);
 
 	osg::ref_ptr<osg::Group> root_node = new osg::Group();
-	std::string HEIGHT_MAP = "terrain/hm/heightmap.png";
-	double HEIGHT_MAP_SCALE = (1386.67 - 607.0);
-	double TERRAIN_SIZE = 4000;
+	
+	const std::string HEIGHT_MAP = "terrain/hm/heightmap.png";
+	const double HEIGHT_MAP_SCALE = (1386.67 - 607.0);
+	const double TERRAIN_SIZE = 4000;
 	osg::ref_ptr<osg::Image> elev_image = LoadElevationImage(HEIGHT_MAP, HEIGHT_MAP_SCALE);
 	osg::ref_ptr<osg::Texture2D> elev_tex = CreateElevationTexture(elev_image);
 	osg::ref_ptr<osg::Node> terrain = createFlatTerrainPatch(TERRAIN_SIZE, 50);
@@ -185,13 +185,15 @@ int main(int argc, char** argv)
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
 	terrain_shading_config.NoiseTexture.File = "terrain/detail/noise.png";
-	terrain_shading_config.MaxDistance = 1000;
+	terrain_shading_config.MaxDistance = 400;
+	terrain_shading_config.ColorModulateRatio = 0.2;
 	osg::ref_ptr<osgVegetation::TerrainSplatShadingEffect> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(terrain_shading_config);
 	terrain_shading_effect->addChild(terrain);
 	root_node->addChild(terrain_shading_effect);
+
 	//Add invisible collision geometry for camera manipulator intersection tests
 	{
-		const int COLLSION_TERRAIN_MASK = 0x4;
+		const int COLLSION_TERRAIN_MASK = 0x8;
 		osg::ref_ptr<osg::Node> collision_terrain = createTerrainPatch(TERRAIN_SIZE, elev_image);
 		collision_terrain->setNodeMask(COLLSION_TERRAIN_MASK);
 		root_node->addChild(collision_terrain);
@@ -202,8 +204,6 @@ int main(int argc, char** argv)
 
 	osg::ref_ptr<osg::Node> terrain_geometry = createFlatTerrainPatch(TERRAIN_SIZE, 100);
 
-	//osgVegetation::ConvertToPatches(terrain_geometry);
-	//terrain_geometry->setNodeMask(ReceivesShadowTraversalMask | CastsShadowTraversalMask);
 	//Add all billboard layers
 	for (size_t i = 0; i < GetVegetationLayers().size(); i++)
 	{
@@ -212,166 +212,7 @@ int main(int argc, char** argv)
 		bb_layer->addChild(terrain_geometry);
 		terrain_shading_effect->addChild(bb_layer);
 	}
-	
 	demo.GetSceneRoot()->addChild(root_node);
 	demo.Run();
-
-#if 0
-
-	osg::ArgumentParser arguments(&argc, argv);
-
-	// construct the viewer.
-	osgViewer::Viewer viewer(arguments);
-
-	// set up the camera manipulators.
-	{
-		osg::ref_ptr<osgGA::KeySwitchMatrixManipulator> keyswitchManipulator = new osgGA::KeySwitchMatrixManipulator;
-		keyswitchManipulator->addMatrixManipulator('1', "Trackball", new osgGA::TrackballManipulator());
-		keyswitchManipulator->addMatrixManipulator('2', "Flight", new osgGA::FlightManipulator());
-		keyswitchManipulator->addMatrixManipulator('3', "Drive", new osgGA::DriveManipulator());
-		keyswitchManipulator->addMatrixManipulator('4', "Terrain", new osgGA::TerrainManipulator());
-		viewer.setCameraManipulator(keyswitchManipulator.get());
-	}
-
-	// add the state manipulator
-	viewer.addEventHandler(new osgGA::StateSetManipulator(viewer.getCamera()->getOrCreateStateSet()));
-
-	// add the stats handler
-	viewer.addEventHandler(new osgViewer::StatsHandler);
-
-	// add the record camera path handler
-	viewer.addEventHandler(new osgViewer::RecordCameraPathHandler);
-
-	// add the window size toggle handler
-	viewer.addEventHandler(new osgViewer::WindowSizeHandler);
-
-	osg::DisplaySettings::instance()->setNumMultiSamples(4);
-
-	//Add sample data path
-	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
-	
-	osg::ref_ptr<osg::Group> root_node = CreateShadowNode(config.Shadow);
-	
-	std::string HEIGHT_MAP = "terrain/hm/heightmap.png";
-	double HEIGHT_MAP_SCALE = (1386.67 - 607.0);
-	double TERRAIN_SIZE = 4000;
-	osg::ref_ptr<osg::Image> elev_image = LoadElevationImage(HEIGHT_MAP, HEIGHT_MAP_SCALE);
-	osg::ref_ptr<osg::Texture2D> elev_tex =  CreateElevationTexture(elev_image);
-	osg::ref_ptr<osg::Node> terrain = createFlatTerrainPatch(TERRAIN_SIZE, 50);
-	terrain->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask);
-
-	osgVegetation::TerrainSplatShadingConfig terrain_shading_config;
-	
-	terrain_shading_config.UseTessellation = true;
-	
-	terrain_shading_config.ColorTexture.File = "terrain/hm/colormap.png";
-	terrain_shading_config.NormalTexture.File = "terrain/hm/normalmap.png";
-	terrain_shading_config.ElevationTexture.Texture = elev_tex;
-
-	terrain_shading_config.SplatTexture.File = "terrain/hm/splatmap.png";
-	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.dds"), 0.05));
-	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
-	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
-	terrain_shading_config.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass_mossy.dds"), 0.05));
-	terrain_shading_config.NoiseTexture.File = "terrain/detail/noise.png";
-	terrain_shading_config.MaxDistance = 1000;
-	osg::ref_ptr<osgVegetation::TerrainSplatShadingEffect> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(terrain_shading_config);
-	terrain_shading_effect->addChild(terrain);
-	root_node->addChild(terrain_shading_effect);
-
-	//Add invisible collision geometry for camera manipulator intersection tests
-	{
-		const int COLLSION_TERRAIN_MASK = 0x4;
-		osg::ref_ptr<osg::Node> collision_terrain = createTerrainPatch(TERRAIN_SIZE, elev_image);
-		collision_terrain->setNodeMask(COLLSION_TERRAIN_MASK);
-		root_node->addChild(collision_terrain);
-		viewer.getCamera()->setCullMask(~COLLSION_TERRAIN_MASK);
-	}
-	
-	//Add vegetation to terrain
-#if 1
-	osg::ref_ptr<osg::Node> terrain_geometry = createFlatTerrainPatch(TERRAIN_SIZE, 100);
-	
-	//osgVegetation::ConvertToPatches(terrain_geometry);
-	//terrain_geometry->setNodeMask(ReceivesShadowTraversalMask | CastsShadowTraversalMask);
-	//Add all billboard layers
-	int billboard_tex_unit = 12;
-	for (size_t i = 0; i < GetVegetationLayers().size(); i++)
-	{
-		osgVegetation::BillboardLayerConfig layer_config = GetVegetationLayers().at(i);
-		osg::ref_ptr<osgVegetation::BillboardLayerEffect> bb_layer = new osgVegetation::BillboardLayerEffect(layer_config, billboard_tex_unit);
-		bb_layer->addChild(terrain_geometry);
-		if (!layer_config.CastShadow)
-			bb_layer->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask);
-		else
-			bb_layer->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask | 
-				osgVegetation::Register.Scene.Shadow.CastsShadowTraversalMask);
-		terrain_shading_effect->addChild(bb_layer);
-	}
-#endif	
-	//apply scene settings to terrain
-	config.Apply(terrain_shading_effect->getOrCreateStateSet());
-	
-	
-	if (!root_node)
-	{
-		osg::notify(osg::NOTICE) << "Warning: no valid data loaded, please specify a database on the command line." << std::endl;
-		return 1;
-	}
-	
-	//Add light and shadows
-	osg::Light* light = new osg::Light;
-	light->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
-	osg::Vec4 light_pos(1, 1.0, 1, 0);
-	light->setPosition(light_pos);		// last param	w = 0.0 directional light (direction)
-	osg::Vec3f light_dir(-light_pos.x(), -light_pos.y(), -light_pos.z());
-	light_dir.normalize();
-	light->setDirection(light_dir);
-	light->setAmbient(osg::Vec4(0.3f, 0.3f, 0.3f, 1.0f));
-
-	osg::LightSource* light_source = new osg::LightSource;
-	light_source->setLight(light);
-	root_node->addChild(light_source);
-
-	viewer.setThreadingModel(osgViewer::ViewerBase::SingleThreaded);
-
-	if (config.FogMode != osgVegetation::FM_DISABLED) //Add fog effect?
-	{
-		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
-		osg::StateSet* state = root_node->getOrCreateStateSet();
-		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
-		state->setMode(GL_FOG, osg::StateAttribute::ON);
-		state->setAttributeAndModes(fog.get());
-		fog->setMode(osg::Fog::Mode(config.FogMode));
-		fog->setDensity(0.0005);
-		fog->setColor(fog_color);
-		if (config.FogMode == osgVegetation::FM_LINEAR)
-		{
-			fog->setStart(0);
-			fog->setEnd(1000);
-		}
-		
-		viewer.getCamera()->setClearColor(fog_color);
-	}
-
-	viewer.setSceneData(root_node);
-	viewer.setUpViewInWindow(100, 100, 800, 600);
-
-	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
-	//viewer.getCamera()->getGraphicsContext()->getState()->setUseVertexAttributeAliasing(true);
-
-	// run the viewers main loop
-	while (!viewer.done())
-	{
-		float t = viewer.getFrameStamp()->getSimulationTime() * 0.5;
-		light_pos.set(sinf(t), cosf(t), 1, 0.0f);
-		light->setPosition(light_pos);
-		light_dir.set(-light_pos.x(), -light_pos.y(), -light_pos.z());
-		light_dir.normalize();
-		light->setDirection(light_dir);
-		
-		viewer.frame();
-	}
-#endif
 	return 0;
 }
