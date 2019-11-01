@@ -210,36 +210,46 @@ void main(void)
         //ov_color = vec4(1.0,0.0,0.0,1.0);
 		vec4 mv_pos = osg_ModelViewMatrix * instance_position;
 		float distance_to_object = length(mv_pos.xyz);
+		int max_lods = instanceTypes[instance_type_id].params.x;
 
 		bool shadow_camera = gl_ProjectionMatrix[3][3] != 0;
 		
 		int start_lod = 0;
+		float lod_scale = 1.0;
 		if (shadow_camera)
 		{
 			//select last lod
-			start_lod = max(0, instanceTypes[instance_type_id].params.x - 1);
+			start_lod = max(0, max_lods - 1);
 			//and override object distance to be inside lod-range
 			distance_to_object = instanceTypes[instance_type_id].lods[start_lod].distances.y + 0.1; //note that we add 0.1m to avoid problems with zero values
 		}
 		else
 		{
-			distance_to_object = distance_to_object / max(gl_ProjectionMatrix[0][0], 1);
+			//scale dist by fov
+			lod_scale = max(gl_ProjectionMatrix[0][0], 1);
 		}
 
 		//vec3 terrain_color =  ov_getTerrainColor(-mv_pos.z, instance_tex_coords.xy, instance_position.xy).xyz;
-		
-		for(int i = start_lod ; i < instanceTypes[instance_type_id].params.x; ++i)
+		vec4 max_lod_dist = instanceTypes[instance_type_id].lods[max_lods-1].distances;
+
+		for(int i = start_lod ; i < max_lods; ++i)
 	    {
-            if(ov_boundingBoxInViewFrustum( mvpo_matrix, instanceTypes[instance_type_id].lods[i].bbMin.xyz, instanceTypes[instance_type_id].lods[i].bbMax.xyz ) &&
-                (distance_to_object >= instanceTypes[instance_type_id].lods[i].distances.x ) && ( distance_to_object < instanceTypes[instance_type_id].lods[i].distances.w ))
+			vec4 lod_dist = instanceTypes[instance_type_id].lods[i].distances;
+			lod_dist = lod_dist * lod_scale;
+			//lod_dist.x = min(lod_dist.x, max_lod_dist.z);
+			//lod_dist.y = min(lod_dist.y, max_lod_dist.z);
+			//lod_dist.z = min(lod_dist.z, max_lod_dist.z);
+			//lod_dist.w = min(lod_dist.w, max_lod_dist.w);
+
+		    if(ov_boundingBoxInViewFrustum( mvpo_matrix, instanceTypes[instance_type_id].lods[i].bbMin.xyz, instanceTypes[instance_type_id].lods[i].bbMax.xyz ) &&
+                (distance_to_object >= lod_dist.x ) && ( distance_to_object < lod_dist.w ))
             {
 				//get intensity
                 float intensity = instanceTypes[instance_type_id].lods[i].bbMin.w;
 				float max_intensity_variation = instanceTypes[instance_type_id].floatParams.x;
 				intensity = (intensity - max_intensity_variation*0.5) + max_intensity_variation*ov_rand(instance_position.xy + vec2(20.1,6.5));
-		        
-				vec4 lod_dist = instanceTypes[instance_type_id].lods[i].distances;
-				                float fade_alpha  = ( clamp( (distance_to_object - lod_dist.x)/(lod_dist.y - lod_dist.x), 0.0, 1.0 ) 
+
+				float fade_alpha  = ( clamp( (distance_to_object - lod_dist.x)/(lod_dist.y - lod_dist.x), 0.0, 1.0 ) 
                     -  clamp( (distance_to_object- lod_dist.z)/( lod_dist.w - lod_dist.z), 0.0, 1.0 ) );
                 
 				int indirect_command_index   = instanceTypes[instance_type_id].lods[i].indirectTargetParams.x;
