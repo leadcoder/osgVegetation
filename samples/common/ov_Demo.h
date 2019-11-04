@@ -1,5 +1,21 @@
 #pragma once
 #include "ov_Register.h"
+
+#include <osg/ArgumentParser>
+#include <osgDB/ReadFile>
+#include <osgViewer/Viewer>
+#include <osgViewer/ViewerEventHandlers>
+#include <osgGA/TrackballManipulator>
+#include <osgGA/FlightManipulator>
+#include <osgGA/DriveManipulator>
+#include <osgGA/KeySwitchMatrixManipulator>
+#include <osgGA/StateSetManipulator>
+#include <osgGA/AnimationPathManipulator>
+#include <osgGA/TerrainManipulator>
+#include <osg/Version>
+#include <osg/PositionAttitudeTransform>
+#include <osg/Fog>
+
 #include <osgShadow/ShadowedScene>
 #include <osgShadow/ShadowMap>
 #include <osgShadow/ParallelSplitShadowMap>

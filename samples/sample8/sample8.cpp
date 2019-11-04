@@ -51,15 +51,6 @@ osg::ref_ptr <osg::Texture2D> CreateElevationTexture(osg::ref_ptr<osg::Image> el
 	return elevation_texture;
 }
 
-struct BoundingBoxCB : public osg::Drawable::ComputeBoundingBoxCallback
-{
-	BoundingBoxCB() {}
-	BoundingBoxCB(const osg::BoundingBox &bbox) : _bbox(bbox) {};
-	osg::BoundingBox computeBound(const osg::Drawable&) const { return _bbox; }
-private:
-	osg::BoundingBox _bbox;
-};
-
 struct BoundingSphereCB : public osg::Drawable::ComputeBoundingSphereCallback
 {
 	BoundingSphereCB() {}
