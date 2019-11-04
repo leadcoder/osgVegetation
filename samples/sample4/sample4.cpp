@@ -38,7 +38,7 @@
 
 #include <iostream>
 #include "ov_DemoTerrain.h"
-#include "ov_DemoShadow.h"
+#include "ov_Demo.h"
 
 std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 {

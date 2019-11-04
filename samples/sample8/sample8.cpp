@@ -19,7 +19,7 @@
 #include <osg/ShapeDrawable>
 #include <iostream>
 #include "ov_DemoTerrain.h"
-#include "ov_DemoShadow.h"
+#include "ov_Demo.h"
 
 
 osg::ref_ptr<osg::Image> LoadElevationImage(const std::string &heightFile, float height_scale)

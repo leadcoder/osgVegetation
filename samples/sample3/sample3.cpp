@@ -14,7 +14,7 @@
 #include <osgGA/TerrainManipulator>
 #include <osg/Version>
 #include <osg/Fog>
-#include "ov_DemoShadow.h"
+#include "ov_Demo.h"
 #include <iostream>
 
 int main(int argc, char** argv)
@@ -25,10 +25,6 @@ int main(int argc, char** argv)
 	//osgVegetation::Register.TexUnits.AddUnit(12, OV_BILLBOARD_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(1, OV_TERRAIN_SPLAT_TEXTURE_ID);
-	//osgVegetation::Register.TexUnits.AddUnit(2, OV_TERRAIN_DETAIL_TEXTURE_ID);
-	//osgVegetation::Register.TexUnits.AddUnit(3, OV_BILLBOARD_TEXTURE_ID);
-	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
-	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
 
 	Demo demo(argc, argv, osgVegetation::Register.Scene);
 
