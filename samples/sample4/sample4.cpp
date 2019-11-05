@@ -40,7 +40,7 @@
 #include "ov_DemoTerrain.h"
 #include "ov_Demo.h"
 
-std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
+std::vector<osgVegetation::BillboardLayerConfig> CreateVegetationConfig()
 {
 	std::vector<osgVegetation::BillboardLayerConfig> layers;
 	osgVegetation::BillboardLayerConfig grass_data(osgVegetation::BillboardLayerConfig::BLT_GRASS);
@@ -76,7 +76,7 @@ std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 	return layers;
 }
 
-osgVegetation::TerrainSplatShadingConfig GetTerrainShaderConfig(bool tess)
+osgVegetation::TerrainSplatShadingConfig CreateTerrainShaderConfig(bool tess)
 {
 	//Create terrain layer node
 	osgVegetation::TerrainSplatShadingConfig tsc;
@@ -92,27 +92,12 @@ osgVegetation::TerrainSplatShadingConfig GetTerrainShaderConfig(bool tess)
 	return tsc;
 }
 
+#if 0
 osg::ref_ptr<osg::Node> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry)
 {
-#if 0
-	osg::ref_ptr<osg::Group> veg_group = new osg::Group();
-	for (size_t i = 0; i < GetVegetationLayers().size(); i++)
-	{
-		osgVegetation::BillboardLayerConfig layer_config = GetVegetationLayers().at(i);
-		osg::ref_ptr<osg::Group> bb_layer = new osgVegetation::BillboardLayerEffect(layer_config, billboard_tex_unit);
-		bb_layer->addChild(terrain_geometry);
-		if (layer_config.Type == osgVegetation::BillboardLayerConfig::BLT_GRASS)
-			bb_layer->setNodeMask(ReceivesShadowTraversalMask);
-		else
-			bb_layer->setNodeMask(ReceivesShadowTraversalMask | CastsShadowTraversalMask);
-		veg_group->addChild(bb_layer);
-	}
-	return veg_group;
-#else
 	osg::ref_ptr<osgVegetation::BillboardMultiLayerEffect> layers = new osgVegetation::BillboardMultiLayerEffect(GetVegetationLayers());
 	layers->insertTerrain(terrain_geometry);
 	return layers;
-#endif
 }
 
 osg::ref_ptr<osg::Group> CreateTerrainPatches(double terrain_size)
@@ -133,7 +118,6 @@ osg::ref_ptr<osg::Group> CreateTerrain(double terrain_size)
 {
 	//Create terrain geometry used for both terrain layer and  vegetation layers
 	osg::ref_ptr<osg::Node> terrain_geometry = CreateDemoTerrain(terrain_size);
-
 	const bool apply_shader = true;
 	osg::ref_ptr<osg::Group> terrain_shading_effect = apply_shader ? new osgVegetation::TerrainSplatShadingEffect(GetTerrainShaderConfig(false)) : new osg::Group();
 	//Disable terrain self shadowning
@@ -147,6 +131,7 @@ osg::ref_ptr<osg::Group> CreateTerrain(double terrain_size)
 	terrain_shading_effect->addChild( CreateVegetationNode(terrain_patch_geometry));
 	return terrain_shading_effect;
 }
+#endif
 
 int main(int argc, char** argv)
 {
@@ -156,9 +141,40 @@ int main(int argc, char** argv)
 	Demo demo(argc, argv, osgVegetation::Register.Scene);
 
 	const double terrain_size = 2000;
-	const bool use_terrain_patches = false;
-	osg::ref_ptr<osg::Group> terrain_and_vegetation_node = use_terrain_patches ? CreateTerrainPatches(terrain_size) : CreateTerrain(terrain_size);
-	demo.GetSceneRoot()->addChild(terrain_and_vegetation_node);
+
+//#define REUSE_TERRAIN
+#ifdef REUSE_TERRAIN
+	osg::ref_ptr<osg::Node> terrain_geometry =  CreateDemoTerrain(terrain_size);
+	osgVegetation::ConvertToPatches(terrain_geometry);
+	
+	osg::ref_ptr<osgVegetation::BillboardMultiLayerEffect> veg_effect = new osgVegetation::BillboardMultiLayerEffect(CreateVegetationConfig());
+	veg_effect->insertTerrain(terrain_geometry);
+
+	//Create terrain shading effect
+	osg::ref_ptr<osg::Group> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(CreateTerrainShaderConfig(true));
+	
+	//Apply terrain shading to both terrain and vegetation
+	terrain_shading_effect->addChild(terrain_geometry);
+	terrain_shading_effect->addChild(veg_effect);
+#else
+	osg::ref_ptr<osg::Node> terrain_geometry = CreateDemoTerrain(terrain_size);
+
+	osg::ref_ptr<osg::Node> vegetation_terrain = dynamic_cast<osg::Node*>(terrain_geometry->clone(osg::CopyOp::DEEP_COPY_PRIMITIVES | osg::CopyOp::DEEP_COPY_DRAWABLES));
+	osgVegetation::ConvertToPatches(vegetation_terrain);
+
+	osg::ref_ptr<osgVegetation::BillboardMultiLayerEffect> veg_effect = new osgVegetation::BillboardMultiLayerEffect(CreateVegetationConfig());
+	veg_effect->insertTerrain(vegetation_terrain);
+
+	//Create terrain shading effect
+	osg::ref_ptr<osg::Group> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(CreateTerrainShaderConfig(false));
+
+	//Apply terrain shading to both terrain and vegetation
+	terrain_shading_effect->addChild(terrain_geometry);
+	terrain_shading_effect->addChild(veg_effect);
+
+#endif
+	demo.GetSceneRoot()->addChild(terrain_shading_effect);
+
 	demo.Run();
 	return 0;
 }

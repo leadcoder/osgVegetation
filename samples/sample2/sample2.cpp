@@ -1,6 +1,6 @@
 #include "ov_BillboardLayerConfig.h"
 #include "ov_MeshLayerConfig.h"
-#include "ov_MeshLayerGenerator.h"
+#include "ov_LayerGenerator.h"
 #include "ov_BillboardLayerStateSet.h"
 #include "ov_TerrainSplatShadingStateSet.h"
 #include "ov_Utils.h"
@@ -37,58 +37,37 @@ int main(int argc, char** argv)
 	//the first layer is more dens but with shorter render distance,
 	//the second more sparse with longer render distance.
 	osg::Vec4 grass_splat_threashold(0.5, 0.5, 0.5, 0.5);
-	std::vector<osgVegetation::BillboardLayerConfig> layers;
-	osgVegetation::BillboardLayerConfig grass_layer0(osgVegetation::BillboardLayerConfig::BLT_GRASS);
-	grass_layer0.MaxDistance = 100;
-	grass_layer0.Density = 0.1;
-	grass_layer0.ColorImpact = 0.0;
-	grass_layer0.CastShadow = false;
-	grass_layer0.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 1.0, 0.008));
-	grass_layer0.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 1.0, 0.002));
-	grass_layer0.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	std::vector<osg::ref_ptr<osgVegetation::ILayerConfig>> layers;
+	osg::ref_ptr <osgVegetation::BillboardLayerConfig> grass_layer0 = new osgVegetation::BillboardLayerConfig(osgVegetation::BillboardLayerConfig::BLT_GRASS);
+	grass_layer0->MaxDistance = 100;
+	grass_layer0->Density = 0.1;
+	grass_layer0->ColorImpact = 0.0;
+	grass_layer0->CastShadow = false;
+	grass_layer0->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 1.0, 0.008));
+	grass_layer0->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 1.0, 0.002));
+	grass_layer0->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_layer0);
-
-	osgVegetation::BillboardLayerConfig grass_layer1(osgVegetation::BillboardLayerConfig::BLT_GRASS);
-	grass_layer1.MaxDistance = 30;
-	grass_layer1.Density = 0.4;
-	grass_layer1.CastShadow = false;
-	grass_layer1.ColorImpact = 0.0;
-	grass_layer1.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	
+	osg::ref_ptr <osgVegetation::BillboardLayerConfig> grass_layer1 = new osgVegetation::BillboardLayerConfig(osgVegetation::BillboardLayerConfig::BLT_GRASS);
+	grass_layer1->MaxDistance = 30;
+	grass_layer1->Density = 0.4;
+	grass_layer1->CastShadow = false;
+	grass_layer1->ColorImpact = 0.0;
+	grass_layer1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_layer1);
 
 	//Setup tree layer, 
-	osgVegetation::BillboardLayerConfig tree_data(osgVegetation::BillboardLayerConfig::BLT_ROTATED_QUAD);
-	tree_data.MaxDistance = 740;
-	tree_data.Density = 0.001;
-	tree_data.ColorImpact = 0.0;
-	tree_data.Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.6, 1.0));
-	//layers.push_back(tree_data);
+	osg::ref_ptr <osgVegetation::MeshLayerConfig> tree_layer = new osgVegetation::MeshLayerConfig(1000);
+	osgVegetation::MeshTypeConfig mesh;
+	const float end_dist = 200.0f;
+	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l0.osg", osg::Vec4(0.0f, 0.0f, 100.0f, 110.0f)));
+	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1.osg", osg::Vec4(100.0f, 110.0f, end_dist, end_dist + 10)));
+	tree_layer->MeshTypes.push_back(mesh);
+	layers.push_back(tree_layer);
 
-	osgVegetation::MeshLayerConfig layer(1000);
-	osgVegetation::MeshTypeConfig mesh_data1;
-	float end_dist = 200.0f;
-	mesh_data1.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l0.osg", osg::Vec4(0.0f, 0.0f, 100.0f, 110.0f)));
-	mesh_data1.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1.osg", osg::Vec4(100.0f, 110.0f, end_dist, end_dist + 10)));
-	//mesh_data.MeshLODs.push_back(MeshTypeConfig::MeshLODConfig("LOD2", osg::Vec4(500.0f, 510.0f, 1200.0f, 1210.0f)));
-	layer.MeshTypes.push_back(mesh_data1);
-
-
-	osgVegetation::MeshLayerGenerator generator(layer);
-	osg::Group* mesh_tile = generator.CreateMeshNode(vegetation_terrain);
-	root_node->addChild(mesh_tile);
-
-	//Create layers from config and add them to root node
-	for (size_t i = 0; i < layers.size(); i++)
-	{
-		//first create the effect node
-		osg::ref_ptr<osgVegetation::BillboardLayerEffect> bb_layer = new osgVegetation::BillboardLayerEffect(layers[i]);
-
-		//...then add the terrain to be rendered with this effect
-		bb_layer->addChild(vegetation_terrain);
-
-		//Last, add layer to scene
-		root_node->addChild(bb_layer);
-	}
+	osgVegetation::LayerGenerator generator(layers);
+	osg::ref_ptr<osg::Group> vegetation_node = generator.CreateVegetationNode(vegetation_terrain);
+	root_node->addChild(vegetation_node);
 
 	demo.GetSceneRoot()->addChild(root_node);
 	demo.Run();
