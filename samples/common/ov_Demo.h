@@ -117,8 +117,8 @@ public:
 private:
 	osg::ref_ptr<osg::Group> _CreateShadowNode(osgVegetation::ShadowSettings config)
 	{
-		osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
-		osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
+		osgVegetation::Register.TexUnits.AddUnitIfNotPresent(6, OV_SHADOW_TEXTURE0_ID);
+		osgVegetation::Register.TexUnits.AddUnitIfNotPresent(7, OV_SHADOW_TEXTURE1_ID);
 		int shadowTexUnit = osgVegetation::Register.TexUnits.GetUnit(OV_SHADOW_TEXTURE0_ID);
 		if (config.Mode == osgVegetation::SM_LISPSM)
 		{
@@ -177,7 +177,8 @@ private:
 			sm->setMainFragmentShader(mainFragmentShader);
 			shadowedScene->setShadowTechnique(sm);
 
-			osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
+			//Add texure unit uniform, not provided by osg in lispsm
+			osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit0");
 			shadowTextureUnit->set(shadowTexUnit);
 			shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit);
 			return shadowedScene;
@@ -206,13 +207,14 @@ private:
 			settings->setMaximumShadowMapDistance(800);
 			settings->setTextureSize(osg::Vec2s(mapres, mapres));
 			//settings->setComputeNearFarModeOverride(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
-			settings->setComputeNearFarModeOverride(osg::CullSettings::COMPUTE_NEAR_FAR_USING_PRIMITIVES);
-			settings->setShaderHint(osgShadow::ShadowSettings::NO_SHADERS);
-			//settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
+			//settings->setComputeNearFarModeOverride(osg::CullSettings::COMPUTE_NEAR_FAR_USING_PRIMITIVES);
+			settings->setComputeNearFarModeOverride(osg::CullSettings::COMPUTE_NEAR_FAR_USING_BOUNDING_VOLUMES);
+			//settings->setShaderHint(osgShadow::ShadowSettings::NO_SHADERS);
+			settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
 			osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
 			shadowedScene->setShadowTechnique(vdsm.get());
 
-			osg::Uniform* shadowTextureUnit0 = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit0");
+		/*	osg::Uniform* shadowTextureUnit0 = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit0");
 			shadowTextureUnit0->set(shadowTexUnit);
 			shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit0);
 
@@ -222,7 +224,7 @@ private:
 				int shadowTexUnit1 = osgVegetation::Register.TexUnits.GetUnit(OV_SHADOW_TEXTURE1_ID);
 				shadowTextureUnit1->set(shadowTexUnit1);
 				shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit1);
-			}
+			}*/
 
 			return shadowedScene;
 		}

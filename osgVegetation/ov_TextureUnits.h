@@ -44,12 +44,23 @@ namespace osgVegetation
 			return new_unit;
 		}
 
-		void AddUnit(int index, const std::string name = "")
+		void AddUnit(int index, const std::string &name = "")
 		{
 			NamedUnit named_unit;
 			named_unit.Name = name;
 			named_unit.Index = index;
 			m_Units.push_back(named_unit);
+		}
+
+		void AddUnitIfNotPresent(int index, const std::string &name)
+		{
+			if (!IsRegistred(name))
+			{
+				NamedUnit named_unit;
+				named_unit.Name = name;
+				named_unit.Index = index;
+				m_Units.push_back(named_unit);
+			}
 		}
 
 		int GetUnit(const std::string &name)
@@ -69,6 +80,18 @@ namespace osgVegetation
 			for (size_t i = 0; i < m_Units.size(); i++)
 			{
 				if (m_Units[i].Index == unit)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		bool IsRegistred(const std::string &name)
+		{
+			for (size_t i = 0; i < m_Units.size(); i++)
+			{
+				if (m_Units[i].Name == name)
 				{
 					return true;
 				}

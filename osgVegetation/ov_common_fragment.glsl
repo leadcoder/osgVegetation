@@ -1,36 +1,43 @@
 #pragma import_defines (SM_LISPSM, SM_VDSM1, SM_VDSM2, FM_LINEAR, FM_EXP, FM_EXP2)
 
-#ifdef SM_LISPSM
-uniform sampler2DShadow shadowTexture;
-uniform int shadowTextureUnit;
+#if defined(SM_LISPSM) || defined(SM_VDSM1) || defined(SM_VDSM2)
+#define HAS_SHADOW
 #endif
 
-#ifdef SM_VDSM1
-uniform sampler2DShadow shadowTexture0;
-uniform int shadowTextureUnit0;
+#ifdef HAS_SHADOW
+
+#if defined(SM_LISPSM) || defined(SM_VDSM1)
+	#define OV_NUM_SHADOW_MAPS 1
 #endif
 
 #ifdef SM_VDSM2
-uniform sampler2DShadow shadowTexture0;
+	#define OV_NUM_SHADOW_MAPS 2
+#endif
+//Sampler name differ between lispsm and vdsm
+#ifdef SM_LISPSM
+#define OV_SHADOW_SAMPPLER0_NAME shadowTexture
+#else
+#define OV_SHADOW_SAMPPLER0_NAME shadowTexture0
+#endif
+
+uniform sampler2DShadow OV_SHADOW_SAMPPLER0_NAME;
 uniform int shadowTextureUnit0;
 uniform sampler2DShadow shadowTexture1;
 uniform int shadowTextureUnit1;
+
 #endif
+
+
+
 
 float ov_getShadow()
 {
 	float shadow = 1.0;
-#ifdef SM_LISPSM
-	shadow *= shadow2DProj(shadowTexture, gl_TexCoord[shadowTextureUnit]).r;
-#endif
-
-#ifdef SM_VDSM1
-	shadow *= shadow2DProj(shadowTexture0, gl_TexCoord[shadowTextureUnit0]).r;
-#endif
-
-#ifdef SM_VDSM2
-	shadow *= shadow2DProj(shadowTexture0, gl_TexCoord[shadowTextureUnit0]).r;
+#ifdef HAS_SHADOW
+	shadow *= shadow2DProj(OV_SHADOW_SAMPPLER0_NAME, gl_TexCoord[shadowTextureUnit0]).r;
+#if (OV_NUM_SHADOW_MAPS > 1)
 	shadow *= shadow2DProj(shadowTexture1, gl_TexCoord[shadowTextureUnit1]).r;
+#endif
 #endif
 	return shadow;
 }
