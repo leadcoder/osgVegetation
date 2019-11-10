@@ -30,7 +30,7 @@ namespace osgVegetation
 	//Inject vegetation layers into VirtualPlanetBuilder (VPB) PLOD terrains,
 	//ie terrain created with --PagedLOD, --POLYGONAL or --TERRAIN.
 	//Both flat and geocentric terrains should work.
-	class VPBVegetationInjection : public osgDB::ReadFileCallback
+	class VPBVegetationInjection  : public osgDB::ReadFileCallback
 	{
 	public:
 		class TerrainNodeMaskVisitor : public osg::NodeVisitor
@@ -121,6 +121,27 @@ namespace osgVegetation
 				}
 			}
 		};
+
+		//Vistor that create geometry from found terrain tiles and add them to provided root group
+		class ApplyPseudoLoader : public osg::NodeVisitor
+		{
+		private:
+			std::string m_PseudoLoaderExt;
+		public:
+			ApplyPseudoLoader(const std::string ext) : m_PseudoLoaderExt(ext),
+				osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
+			}
+
+			void apply(osg::PagedLOD& node)
+			{
+				for (size_t i = 0; i < node.getNumFileNames(); i++)
+				{
+					const std::string name = node.getFileName(i);
+					if(name != "")
+						node.setFileName(i, name + "." + m_PseudoLoaderExt);
+				}
+			}
+		};
 	
 		VPBVegetationInjection(const VPBVegetationInjectionConfig &config)
 		{
@@ -161,7 +182,7 @@ namespace osgVegetation
 			return lod_level;
 		}
 
-		osg::Group* CreateTerrainGeometry(osg::Node* terrain)
+		osg::Group* CreateTerrainGeometry(osg::Node* terrain) const
 		{
 			osg::Group* terrain_geometry = new osg::Group();
 
@@ -179,6 +200,8 @@ namespace osgVegetation
 		}
 
 //#define OV_USE_TILE_ID_LOD_LEVEL
+
+#if 0
 		virtual osgDB::ReaderWriter::ReadResult readNode(const std::string& filename, const osgDB::Options* options)
 		{
 			osgDB::ReaderWriter::ReadResult rr = ReadFileCallback::readNode(filename, options);
@@ -190,7 +213,7 @@ namespace osgVegetation
 				return rr;
 
 			//disable terrain self shadowing
-			TerrainNodeMaskVisitor mask_visitor(0x1 | Register.Scene.Shadow.ReceivesShadowTraversalMask);
+			TerrainNodeMaskVisitor mask_visitor(~Register.Scene.Shadow.CastsShadowTraversalMask);
 			rr.getNode()->accept(mask_visitor);
 
 #ifdef OV_USE_TILE_ID_LOD_LEVEL
@@ -214,7 +237,9 @@ namespace osgVegetation
 			}
 			return rr;
 		}
-		VPBInjectionLOD* GetTargetLevel(int level)
+#endif
+
+		VPBInjectionLOD* GetTargetLevel(int level) 
 		{
 			for (size_t i = 0; i < m_Levels.size(); i++)
 			{
@@ -223,8 +248,60 @@ namespace osgVegetation
 			}
 			return NULL;
 		}
+
+		osgDB::ReaderWriter::ReadResult readNode(
+			const std::string& filename,
+			const osgDB::ReaderWriter::Options* options)
+		{
+			const bool use_pseudo_loader = m_PseudoLoaderExt != "" ? true : false;
+			
+			osgDB::ReaderWriter::ReadResult rr = use_pseudo_loader ? osgDB::readNodeFile(filename, options) : ReadFileCallback::readNode(filename, options);
+		
+			if (!rr.getNode())
+				return rr;
+
+			if (!rr.validNode())
+				return rr;
+
+			if (use_pseudo_loader)
+			{
+				ApplyPseudoLoader pseudo_loader_visitor(m_PseudoLoaderExt);
+				rr.getNode()->accept(pseudo_loader_visitor);
+			}
+
+			//disable terrain self shadowing
+			TerrainNodeMaskVisitor mask_visitor(~Register.Scene.Shadow.CastsShadowTraversalMask);
+			rr.getNode()->accept(mask_visitor);
+
+#ifdef OV_USE_TILE_ID_LOD_LEVEL
+			const int lod_level = ttv.Tiles.size() > 0 ? ttv.Tiles[0]->getTileID().level - 1 : 0;
+#else
+			const int lod_level = ExtractLODLevelFromFileName(filename);
+#endif
+			VPBInjectionLOD* injector = GetTargetLevel(lod_level);
+			if (injector)
+			{
+				osg::Group* root_node = dynamic_cast<osg::Group*>(rr.getNode());
+				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(root_node);
+				//check that root node is a group-node, also check if PagedLOD (leaf nodes?), then not possible to attach 
+				if (root_node && plod == NULL)
+				{
+					//Create/clone terrain geometry
+					osg::Group* terrain_geometry = CreateTerrainGeometry(root_node);
+					osg::ref_ptr<osg::Node> veg_node = injector->CreateVegetationNode(terrain_geometry);
+					root_node->addChild(veg_node);
+				}
+			}
+			return rr;
+		}
+
+		void SetPseudoLoaderExt(const std::string& ext)
+		{
+			m_PseudoLoaderExt = ext;
+		}
 	protected:
 		virtual ~VPBVegetationInjection() {}
 		std::vector<VPBInjectionLOD> m_Levels;
+		std::string m_PseudoLoaderExt;
 	};
 }
