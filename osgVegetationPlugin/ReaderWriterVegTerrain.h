@@ -24,7 +24,7 @@ public:
 
 private:
 	ReaderWriter::ReadResult _readOVT(const std::string& file, const ReaderWriter::Options* options) const;
-	ReaderWriter::ReadResult _readOVTInjection(const std::string& file, const ReaderWriter::Options* options) const;
+	ReaderWriter::ReadResult _readPseudo(const std::string& file, const ReaderWriter::Options* options) const;
 	mutable osgVegetation::VPBVegetationInjection* m_VPBInjection;
 
 };

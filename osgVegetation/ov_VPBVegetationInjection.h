@@ -201,44 +201,6 @@ namespace osgVegetation
 
 //#define OV_USE_TILE_ID_LOD_LEVEL
 
-#if 0
-		virtual osgDB::ReaderWriter::ReadResult readNode(const std::string& filename, const osgDB::Options* options)
-		{
-			osgDB::ReaderWriter::ReadResult rr = ReadFileCallback::readNode(filename, options);
-
-			if (!rr.getNode())
-				return rr;
-
-			if (!rr.validNode())
-				return rr;
-
-			//disable terrain self shadowing
-			TerrainNodeMaskVisitor mask_visitor(~Register.Scene.Shadow.CastsShadowTraversalMask);
-			rr.getNode()->accept(mask_visitor);
-
-#ifdef OV_USE_TILE_ID_LOD_LEVEL
-			const int lod_level = ttv.Tiles.size() > 0 ? ttv.Tiles[0]->getTileID().level - 1 : 0;
-#else
-			const int lod_level = ExtractLODLevelFromFileName(filename);
-#endif
-			VPBInjectionLOD* injector = GetTargetLevel(lod_level);
-			if (injector)
-			{
-				osg::Group* root_node = dynamic_cast<osg::Group*>(rr.getNode());
-				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(root_node);
-				//check that root node is a group-node, also check if PagedLOD (leaf nodes?), then not possible to attach 
-				if (root_node && plod == NULL) 
-				{
-					//Create/clone terrain geometry
-					osg::Group* terrain_geometry = CreateTerrainGeometry(root_node);
-					osg::ref_ptr<osg::Node> veg_node = injector->CreateVegetationNode(terrain_geometry);
-					root_node->addChild(veg_node);
-				}
-			}
-			return rr;
-		}
-#endif
-
 		VPBInjectionLOD* GetTargetLevel(int level) 
 		{
 			for (size_t i = 0; i < m_Levels.size(); i++)
