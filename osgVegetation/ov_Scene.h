@@ -8,6 +8,9 @@ namespace osgVegetation
 	class SceneConfig
 	{
 	public:
+		SceneConfig() : FogMode(FM_DISABLED)
+		{
+		}
 		ShadowSettings Shadow;
 		FogModeEnum FogMode;
 
