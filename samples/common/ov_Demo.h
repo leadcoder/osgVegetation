@@ -86,9 +86,9 @@ public:
 				fog->setEnd(1000);
 			}
 			m_Viewer.getCamera()->setClearColor(fog_color);
-			//apply scene settings
-			config.Apply(m_SceneData->getOrCreateStateSet());
 		}
+		//apply scene settings
+		config.Apply(m_SceneData->getOrCreateStateSet());
 	}
 
 	void Run()
