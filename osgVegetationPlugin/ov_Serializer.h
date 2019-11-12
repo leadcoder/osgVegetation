@@ -12,6 +12,7 @@ namespace osgVegetation
 	{
 	public:
 		std::string Filename;
+		std::string TerrainType;
 		TerrainSplatShadingConfig SplatConfig;
 		VPBVegetationInjectionConfig BillboardConfig;
 	};

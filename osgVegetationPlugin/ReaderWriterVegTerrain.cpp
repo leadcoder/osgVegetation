@@ -43,10 +43,8 @@ ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, cons
 
 	osgVegetation::TerrainConfig terrain_config = osgVegetation::XMLSerializer::ReadTerrainData(fileName);
 
-
 	const std::string file_path = osgDB::getFilePath(fileName);
 	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path);
-
 
 	//Control texture slots
 	osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
@@ -57,18 +55,36 @@ ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, cons
 	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
 	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
 
-	m_VPBInjection = new osgVegetation::VPBVegetationInjection(terrain_config.BillboardConfig);
+	osg::ref_ptr <osgVegetation::TerrainSplatShadingStateSet> terrain_shading_ss = new osgVegetation::TerrainSplatShadingStateSet(terrain_config.SplatConfig);
+
+	const bool custom_terrain = terrain_config.TerrainType == "custom" ? true : false;
+	const bool inject_terrain_state_set = custom_terrain;
+
+	m_VPBInjection = custom_terrain ?  new osgVegetation::CustomTerrain(terrain_config.BillboardConfig) : 
+		new osgVegetation::VPBVegetationInjection(terrain_config.BillboardConfig);
 	m_VPBInjection->SetPseudoLoaderExt(OV_PSEUDO_EXT);
 
+	if (inject_terrain_state_set)
+	{
+		m_VPBInjection->SetTerrainStateSet(terrain_shading_ss);
+	}
+
 	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(terrain_config.Filename + "." + OV_PSEUDO_EXT);
+
 	if (!terrain_node)
 		return ReadResult::ERROR_IN_READING_FILE;
 
-	osg::ref_ptr <osgVegetation::TerrainSplatShadingStateSet> terrain_shading_ss = new osgVegetation::TerrainSplatShadingStateSet(terrain_config.SplatConfig);
-	osg::ref_ptr<osg::Group> root_node = new osg::Group();
-	root_node->setStateSet(terrain_shading_ss);
-	root_node->addChild(terrain_node);
-	return root_node;
+	if (!inject_terrain_state_set)
+	{
+		osg::ref_ptr<osg::Group> root_node = new osg::Group();
+		root_node->setStateSet(terrain_shading_ss);
+		root_node->addChild(terrain_node);
+		return root_node;
+	}
+	else
+	{
+		return terrain_node;
+	}
 }
 
 ReaderWriter::ReadResult ReaderWriterOVT::_readPseudo(const std::string& file, const ReaderWriter::Options* options) const

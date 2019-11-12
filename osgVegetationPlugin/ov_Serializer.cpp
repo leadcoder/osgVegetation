@@ -301,6 +301,9 @@ namespace osgVegetation
 			throw std::runtime_error(std::string("Failed to find attribute: File").c_str());
 		terrain.Filename = terrain_elem->Attribute("File");
 
+		if (terrain_elem->Attribute("Type"))
+			terrain.TerrainType = terrain_elem->Attribute("Type");
+
 		/*if (terrain_elem->Attribute("Type"))
 		{
 			const std::string tt_str = terrain_elem->Attribute("Type");
