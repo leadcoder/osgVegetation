@@ -1709,7 +1709,7 @@ private:
 	osg::BoundingBox _bbox;
 };
 
-osg::ref_ptr<osg::Node> createFlatGrid(double terrain_size, int samples)
+osg::ref_ptr<osg::Node> createFlatGrid(double terrain_size, int samples, bool tess = false)
 {
 	const osg::Vec3 origin(-terrain_size / 2.0, -terrain_size / 2.0, 0.0);
 	const unsigned int numColumns = samples;
@@ -1752,8 +1752,10 @@ osg::ref_ptr<osg::Node> createFlatGrid(double terrain_size, int samples)
 	geometry->setColorArray(&color);
 	geometry->setColorBinding(osg::Geometry::BIND_OVERALL);
 	geometry->setTexCoordArray(0, &t);
+	if(tess)
+		geometry->setUseDisplayList(false);
 
-	osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_TRIANGLES, 3 * 2 * numRows * numColumns));
+	osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(tess ? GL_PATCHES : GL_TRIANGLES, 3 * 2 * numRows * numColumns));
 	geometry->addPrimitiveSet(&drawElements);
 	int ei = 0;
 	for (unsigned int r = 0; r < numRows - 1; ++r)
