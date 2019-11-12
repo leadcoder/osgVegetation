@@ -89,6 +89,9 @@ ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, cons
 
 ReaderWriter::ReadResult ReaderWriterOVT::_readPseudo(const std::string& file, const ReaderWriter::Options* options) const
 {
+	if (!m_VPBInjection)
+		return ReadResult::FILE_NOT_HANDLED;
+
 	//remove pseudo extention
 	const std::string filename = osgDB::getNameLessExtension(file);
 	return m_VPBInjection->readNode(filename, options);

@@ -123,6 +123,60 @@ namespace osgVegetation
 			}
 		};
 
+		class InjectionVisitor : public osg::NodeVisitor
+		{
+		public:
+			VPBInjectionLOD* m_Injector;
+			osg::Group* m_VegetationRoot;
+
+			InjectionVisitor(VPBInjectionLOD* injector) : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN),
+				m_Injector(injector),
+				m_VegetationRoot(new osg::Group){}
+		
+			void apply(osg::Node& node)
+			{
+				osgTerrain::TerrainTile* tile = dynamic_cast<osgTerrain::TerrainTile*>(&node);
+				if (tile)
+				{
+					if (osg::MatrixTransform* terrain_tile = dynamic_cast<osg::MatrixTransform*>(TerrainHelper::CreateTerrainNodeFromTerrainTile(tile)))
+					{
+						if (terrain_tile->getNumChildren() > 0)
+						{
+							//insert vegetation below matrix transform
+							osg::ref_ptr<osg::Group> veg_node = m_Injector->CreateVegetationNode(terrain_tile->getChild(0));
+							terrain_tile->removeChild(unsigned int(0));
+							terrain_tile->addChild(veg_node);
+							m_VegetationRoot->addChild(terrain_tile);
+						}
+					}
+				}
+				else
+				{
+					traverse(node);
+				}
+			}
+
+			//if we have geode, assmue polygon terrain for now
+			void apply(osg::Geode& geode)
+			{
+				if (osg::Geode* geode_copy = dynamic_cast<osg::Geode*>(geode.clone(osg::CopyOp::DEEP_COPY_ALL)))
+				{
+					//reset node mask
+					geode_copy->setNodeMask(~0);
+
+					ConvertToPatchesVisitor cv;
+					geode_copy->accept(cv);
+
+					osg::MatrixTransform* new_matrix = new osg::MatrixTransform();
+					osg::NodePath nodePath = getNodePath();
+					new_matrix->setMatrix(osg::computeLocalToWorld(nodePath));
+					osg::ref_ptr<osg::Group> veg_node = m_Injector->CreateVegetationNode(geode_copy);
+					new_matrix->addChild(veg_node);
+					m_VegetationRoot->addChild(new_matrix);
+				}
+			}
+		};
+
 		//Vistor that create geometry from found terrain tiles and add them to provided root group
 		class ApplyPseudoLoader : public osg::NodeVisitor
 		{
@@ -191,10 +245,6 @@ namespace osgVegetation
 			TerrainTilesToGeometryVisitor tt_visitor(terrain_geometry);
 			terrain->accept(tt_visitor);
 
-			//osgDB::writeNodeFile(*terrain_geometry,"c:/temp/ovt_tile.osg");
-			//CopyTerrainGeodeToVisitor copy_visitor(terrain_geometry);
-			//terrain->accept(copy_visitor);
-
 			//Prepare for tesselation shaders, change PrimitiveSet draw mode to GL_PATCHES
 			ConvertToPatchesVisitor cv;
 			terrain_geometry->accept(cv);
@@ -247,13 +297,21 @@ namespace osgVegetation
 			{
 				osg::Group* root_node = dynamic_cast<osg::Group*>(rr.getNode());
 				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(root_node);
-				//check that root node is a group-node, also check if PagedLOD (leaf nodes?), then not possible to attach 
+				//check that root node is a group-node, also check if PagedLOD (leaf nodes?), then not possible to attach
+				//TODO: if plod inject group node above
 				if (root_node && plod == NULL)
 				{
+					InjectionVisitor injector_visitor(injector);
+					root_node->accept(injector_visitor);
+					root_node->addChild(injector_visitor.m_VegetationRoot);
 					//Create/clone terrain geometry
-					osg::Group* terrain_geometry = CreateTerrainGeometry(root_node);
-					osg::ref_ptr<osg::Node> veg_node = injector->CreateVegetationNode(terrain_geometry);
-					root_node->addChild(veg_node);
+					//osg::Group* terrain_geometry = CreateTerrainGeometry(root_node);
+					//InjectionVisitor2 injector_visitor(injector);
+					//terrain_geometry->accept(injector_visitor);
+					//root_node->addChild(terrain_geometry);
+
+					//osg::ref_ptr<osg::Node> veg_node = injector->CreateVegetationNode(terrain_geometry);
+					//root_node->addChild(veg_node);
 				}
 			}
 			return rr;
