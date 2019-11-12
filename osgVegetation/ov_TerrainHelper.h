@@ -56,12 +56,12 @@ namespace osgVegetation
 					
 					ret_node = new osg::MatrixTransform();
 					
-					osg::Matrixd matrix = locator->getTransform();
-					osg::Vec3d center = osg::Vec3d(0.5, 0.5, 0.0) * matrix;
+					const osg::Matrixd matrix = locator->getTransform();
 					osg::Matrixd localToWorldTransform;
 
 					if (locator->getCoordinateSystemType() == osgTerrain::Locator::GEOCENTRIC)
 					{
+						const osg::Vec3d center = osg::Vec3d(0.5, 0.5, 0.0) * matrix;
 						em->computeLocalToWorldTransformFromLatLongHeight(center.y(), center.x(), center.z(), localToWorldTransform);
 					}
 					else
