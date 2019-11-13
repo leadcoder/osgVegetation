@@ -22,6 +22,12 @@
 #include "ov_Demo.h"
 
 
+namespace osgVegetation
+{
+	GlobalRegister Register;
+}
+
+
 osg::ref_ptr<osg::Image> LoadElevationImage(const std::string &heightFile, float height_scale)
 {
 	osg::ref_ptr <osg::Image> heightMap = osgDB::readImageFile(heightFile);
@@ -145,7 +151,7 @@ std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 int main(int argc, char** argv)
 {
 	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
-	osgVegetation::Register.Scene.FogMode = osgVegetation::FM_EXP2;
+	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
 	
 	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
 	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);

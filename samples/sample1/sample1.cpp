@@ -21,7 +21,10 @@
 #include "ov_Demo.h"
 #include "ov_DemoTerrain.h"
 
-
+namespace osgVegetation 
+{
+	GlobalRegister Register;
+}
 
 int main(int argc, char** argv)
 {
@@ -29,7 +32,7 @@ int main(int argc, char** argv)
 	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
 	
 	//Enable fog
-	osgVegetation::Register.Scene.FogMode = osgVegetation::FM_EXP2;
+	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
 
 	Demo demo(argc, argv, osgVegetation::Register.Scene);
 

@@ -40,6 +40,12 @@
 #include "ov_DemoTerrain.h"
 #include "ov_Demo.h"
 
+namespace osgVegetation
+{
+	GlobalRegister Register;
+}
+
+
 std::vector<osgVegetation::BillboardLayerConfig> CreateVegetationConfig()
 {
 	std::vector<osgVegetation::BillboardLayerConfig> layers;
@@ -136,7 +142,7 @@ osg::ref_ptr<osg::Group> CreateTerrain(double terrain_size)
 int main(int argc, char** argv)
 {
 	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_VDSM2;
-	osgVegetation::Register.Scene.FogMode = osgVegetation::FM_EXP2;
+	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
 
 	Demo demo(argc, argv, osgVegetation::Register.Scene);
 
