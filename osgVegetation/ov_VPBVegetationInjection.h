@@ -166,14 +166,6 @@ namespace osgVegetation
 					lod_level = atoi(level.c_str());
 				}
 			}
-			else //Trian tile
-			{
-				int x1, x2, y1, y2;
-				int lod = -1;
-				int num_args = sscanf(clean_filename.c_str(), "tile_%dx%d_%d_%dx%d", &x1, &y1, &lod, &x2, &y2);
-				if (num_args == 5)
-					lod_level = lod;
-			}
 			return lod_level;
 		}
 

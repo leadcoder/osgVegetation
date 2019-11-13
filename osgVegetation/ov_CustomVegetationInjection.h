@@ -125,6 +125,23 @@ namespace osgVegetation
 			}
 		}
 
+		static int GetLODLevelFromFileName(const std::string& filename)
+		{
+			int lod_level = -1;
+			std::string clean_filename = filename;
+			std::size_t found = clean_filename.find_last_of("/\\");
+			if (found != std::string::npos)
+				clean_filename = clean_filename.substr(found + 1);
+			int x1, x2, y1, y2;
+			int lod = -1;
+			int num_args = sscanf(clean_filename.c_str(), "tile_%dx%d_%d_%dx%d", &x1, &y1, &lod, &x2, &y2);
+			if (num_args == 5)
+				lod_level = lod;
+			
+			return lod_level;
+		}
+
+
 		osgDB::ReaderWriter::ReadResult readNode(
 			const std::string& filename,
 			const osgDB::ReaderWriter::Options* options)
@@ -143,7 +160,7 @@ namespace osgVegetation
 				rr.getNode()->accept(pseudo_loader_visitor);
 			}
 
-			const int lod_level = ExtractLODLevelFromFileName(filename);
+			const int lod_level = GetLODLevelFromFileName(filename);
 
 			if (lod_level >= 0)
 				ApplyNodeMaskToObjects(0x1 | Register.Scene.Shadow.ReceivesShadowTraversalMask, rr.getNode());
