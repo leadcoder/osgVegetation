@@ -50,8 +50,6 @@ Group {
                   DataVariance STATIC
                   rendering_hint DEFAULT_BIN
                   renderBinMode USE
-                  binNumber 10
-                  binName DepthSortedBin
                   GL_CULL_FACE ON
                   GL_LIGHTING ON
                   GL_ALPHA_TEST ON
@@ -3899,7 +3897,7 @@ Group {
                   textureUnit 0 {
                     GL_TEXTURE_2D ON
                     Texture2D {
-                      file "fir02.jpg"
+                      file "fir02.png"
                       wrap_s REPEAT
                       wrap_t REPEAT
                       wrap_r REPEAT

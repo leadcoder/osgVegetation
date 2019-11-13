@@ -174,6 +174,7 @@ int main(int argc, char** argv)
 	//Create terrain shading effect
 	osg::ref_ptr<osg::Group> terrain_shading_effect = new osgVegetation::TerrainSplatShadingEffect(CreateTerrainShaderConfig(false));
 
+	//osg::ref_ptr<osg::Group> terrain_shading_effect = new osg::Group();
 	//Apply terrain shading to both terrain and vegetation
 	terrain_shading_effect->addChild(terrain_geometry);
 	terrain_shading_effect->addChild(veg_effect);

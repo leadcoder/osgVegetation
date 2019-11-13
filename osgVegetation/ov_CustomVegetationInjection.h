@@ -27,9 +27,17 @@ namespace osgVegetation
 				GroupVisitor() : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
 				void apply(osg::PagedLOD& node) { traverse(node); }
 				void apply(osg::LOD& node) { traverse(node); }
-				void apply(osg::Geode& node) {}
+				void apply(osg::Geode& node) { }
 				void apply(osg::Geometry& node) {}
 				void apply(osg::Group& node) { Groups.push_back(&node); }
+			};
+
+			class GeodeVisitor : public osg::NodeVisitor
+			{
+			public:
+				std::vector<osg::Geode*> Geodes;
+				GeodeVisitor() : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
+				void apply(osg::Geode& node) { Geodes.push_back(&node); }
 			};
 		public:
 			//Get all paged lods;
@@ -38,6 +46,13 @@ namespace osgVegetation
 				PLODVisitor plod_vist;
 				node->accept(plod_vist);
 				return plod_vist.PLODVec;
+			}
+
+			static std::vector<osg::Geode*> GetGeodes(osg::Node* node)
+			{
+				PLODTerrainHelper::GeodeVisitor gv;
+				node->accept(gv);
+				return gv.Geodes;
 			}
 
 			static std::vector<osg::Group*> GetGroups(osg::Node* node)
@@ -100,10 +115,29 @@ namespace osgVegetation
 			for (size_t i = 0; i < plods.size(); i++)
 			{
 				//get all terrain tiles under this plod, placed in group
-				std::vector<osg::Group*> groups = PLODTerrainHelper::GetGroups(plods[i]);
+				/*std::vector<osg::Group*> groups = PLODTerrainHelper::GetGroups(plods[i]);
 				for (size_t j = 0; j < groups.size(); j++)
 				{
 					groups[j]->getOrCreateStateSet()->merge(*state_set);
+				}*/
+
+				std::vector<osg::Geode*> geodes = PLODTerrainHelper::GetGeodes(plods[i]);
+				for (size_t j = 0; j < geodes.size(); j++)
+				{
+					if (osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(geodes[j]->getParent(0)))
+					{
+						osg::Group* group = new osg::Group();
+						group->getOrCreateStateSet()->merge(*state_set);
+						group->addChild(geodes[j]);
+						group->setNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask);
+						//inject terrain stateset node
+						plod->replaceChild(geodes[j], group);
+					}
+					else if (osg::Group* group = dynamic_cast<osg::Group*>(geodes[j]->getParent(0)))
+					{
+						group->getOrCreateStateSet()->merge(*state_set);
+						group->setNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask);
+					}
 				}
 			}
 		}
@@ -124,6 +158,8 @@ namespace osgVegetation
 				}
 			}
 		}
+
+		
 
 		static int GetLODLevelFromFileName(const std::string& filename)
 		{
