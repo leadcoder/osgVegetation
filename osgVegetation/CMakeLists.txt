@@ -31,6 +31,7 @@ SET(H_FILES
 	ov_MeshLayerGenerator.h 
 	ov_MeshLayerConfig.h 
 	ov_GPUCullData.h
+	ov_CustomVegetationInjection.h
 )
 
 SET(SHADERS_FILES
