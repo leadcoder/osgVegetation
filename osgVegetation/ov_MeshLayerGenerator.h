@@ -129,11 +129,19 @@ namespace osgVegetation
 			//osg::BoundingSphere bs;
 			m_InstanceGroup = _CreateInstanceGroup(gpuData);
 			
-			int node_mask = 0x1;
+
+			int node_mask = m_InstanceGroup->getNodeMask();
+
 			if (config.CastShadow)
 				node_mask |= Register.Scene.Shadow.CastsShadowTraversalMask;
+			else
+				node_mask &= ~Register.Scene.Shadow.CastsShadowTraversalMask;
+
 			if (config.ReceiveShadow)
 				node_mask |= Register.Scene.Shadow.ReceivesShadowTraversalMask;
+			else
+				node_mask &= ~Register.Scene.Shadow.ReceivesShadowTraversalMask;
+
 			m_InstanceGroup->setNodeMask(node_mask);
 			
 			delete gpuData;
@@ -219,7 +227,7 @@ namespace osgVegetation
 #endif
 					const float norm_prob = acc_probability > 0 ? mesh_data.MeshTypes[i].Probability / acc_probability : 1.0f / mesh_data.MeshTypes.size();
 					//float density = 2 * mesh_data.Density / mesh_data.MeshTypes.size();
-					const float density = 2 * mesh_data.Density * norm_prob;
+					const float density = 4 * mesh_data.Density * norm_prob;
 					gpuData->registerType(i, 
 						0, 
 						mesh.get(), 
