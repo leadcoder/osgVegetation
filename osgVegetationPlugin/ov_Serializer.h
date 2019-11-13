@@ -7,14 +7,13 @@
 class TiXmlElement;
 namespace osgVegetation
 {
-
-	struct TerrainConfig
+	struct OVTConfig
 	{
 	public:
 		std::string Filename;
 		std::string TerrainType;
 		TerrainSplatShadingConfig SplatConfig;
-		VPBVegetationInjectionConfig BillboardConfig;
+		VPBVegetationInjectionConfig VPBConfig;
 	};
 	
 	class XMLSerializer
@@ -22,6 +21,6 @@ namespace osgVegetation
 	public:
 		XMLSerializer(){}
 		virtual ~XMLSerializer(){}
-		static TerrainConfig ReadTerrainData(const std::string &filename);
+		static OVTConfig ReadOVTConfig(const std::string &filename);
 	};
 }

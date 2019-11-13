@@ -9,11 +9,18 @@
 #include "ov_Utils.h"
 #include "ov_Serializer.h"
 #include "ov_VPBVegetationInjection.h"
+#include "ov_CustomVegetationInjection.h"
 
 using namespace osg;
 using namespace osgDB;
 
 #define OV_PSEUDO_EXT "ovt_injection"
+
+
+namespace osgVegetation
+{
+	GlobalRegister Register;
+}
 
 
 ReaderWriterOVT::ReaderWriterOVT() :m_VPBInjection(NULL)
@@ -32,8 +39,6 @@ bool ReaderWriterOVT::acceptsExtension(const std::string& extension) const
     return osgDB::equalCaseInsensitive(extension, "ovt") || osgDB::equalCaseInsensitive(extension, OV_PSEUDO_EXT);
 }
 
-
-
 ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, const ReaderWriter::Options* options) const
 {
 	// See if we can find the requested file
@@ -41,27 +46,26 @@ ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, cons
 	if (fileName.empty())
 		return ReadResult::FILE_NOT_FOUND;
 
-	osgVegetation::TerrainConfig terrain_config = osgVegetation::XMLSerializer::ReadTerrainData(fileName);
+	osgVegetation::OVTConfig terrain_config = osgVegetation::XMLSerializer::ReadOVTConfig(fileName);
 
 	const std::string file_path = osgDB::getFilePath(fileName);
 	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path);
 
 	//Control texture slots
-	osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
-	//osgVegetation::Register.TexUnits.AddUnit(2, OV_TERRAIN_NORMAL_TEXTURE_ID);
+	/*osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(1, OV_TERRAIN_SPLAT_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(2, OV_TERRAIN_DETAIL_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(3, OV_BILLBOARD_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
-	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
+	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);*/
 
 	osg::ref_ptr <osgVegetation::TerrainSplatShadingStateSet> terrain_shading_ss = new osgVegetation::TerrainSplatShadingStateSet(terrain_config.SplatConfig);
 
 	const bool custom_terrain = terrain_config.TerrainType == "custom" ? true : false;
 	const bool inject_terrain_state_set = custom_terrain;
 
-	m_VPBInjection = custom_terrain ?  new osgVegetation::CustomTerrain(terrain_config.BillboardConfig) : 
-		new osgVegetation::VPBVegetationInjection(terrain_config.BillboardConfig);
+	m_VPBInjection = custom_terrain ?  new osgVegetation::CustomVegetationInjection(terrain_config.VPBConfig) :
+		new osgVegetation::VPBVegetationInjection(terrain_config.VPBConfig);
 	m_VPBInjection->SetPseudoLoaderExt(OV_PSEUDO_EXT);
 
 	if (inject_terrain_state_set)

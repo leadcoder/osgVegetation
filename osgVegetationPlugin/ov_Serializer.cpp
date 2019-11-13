@@ -212,24 +212,49 @@ namespace osgVegetation
 
 	void loadRegister(TiXmlElement *register_elem)
 	{
-		register_elem->QueryIntAttribute("CastsShadowTraversalMask", &Register.Scene.Shadow.CastsShadowTraversalMask);
+		int mask = 0;
+		register_elem->QueryIntAttribute("CastsShadowTraversalMask", &mask);
+		osgVegetation::Register.Scene.Shadow.CastsShadowTraversalMask = mask;
 		register_elem->QueryIntAttribute("ReceivesShadowTraversalMask", &Register.Scene.Shadow.ReceivesShadowTraversalMask);
-
 		if (register_elem->Attribute("ShadowMode"))
 		{
 			const std::string sm_str = register_elem->Attribute("ShadowMode");
-			if (sm_str == "SM_LISPSM")
-				Register.Scene.Shadow.Mode = SM_LISPSM;
-			else if (sm_str == "SM_VDSM1")
-				Register.Scene.Shadow.Mode = SM_VDSM1;
-			else if (sm_str == "SM_VDSM2")
-				Register.Scene.Shadow.Mode = SM_VDSM2;
-			else if (sm_str == "SM_DISABLED")
-				Register.Scene.Shadow.Mode = SM_DISABLED;
-			else if (sm_str == "SM_UNDEFINED")
-				Register.Scene.Shadow.Mode = SM_UNDEFINED;
-			else
-				throw std::runtime_error(std::string("Serializer::loadRegister - Unknown ShadowMode:" + sm_str).c_str());
+			Register.Scene.Shadow.Mode = Register.Scene.Shadow.StringToMode(sm_str);
+		}
+
+		if (register_elem->Attribute("FogMode"))
+		{
+			const std::string fm_str = register_elem->Attribute("FogMode");
+			Register.Scene.Fog.Mode = Register.Scene.Fog.StringToMode(fm_str);
+		}
+
+		//check texture units
+		int tu_color = 0;
+		register_elem->QueryIntAttribute("TerrainColorTextureUnit", &tu_color);
+		if(tu_color > -1)
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(tu_color, OV_TERRAIN_COLOR_TEXTURE_ID);
+
+		int tu_splat = 1;
+		register_elem->QueryIntAttribute("TerrainSplatTextureUnit", &tu_splat);
+		if (tu_splat > -1)
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(tu_splat, OV_TERRAIN_SPLAT_TEXTURE_ID);
+
+		int tu_normal = -1;
+		register_elem->QueryIntAttribute("TerrainNormalTextureUnit", &tu_normal);
+		if (tu_normal > -1)
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(tu_normal, OV_TERRAIN_NORMAL_TEXTURE_ID);
+
+		int tu_elevation = -1;
+		register_elem->QueryIntAttribute("TerrainElevationTextureUnit", &tu_elevation);
+		if (tu_elevation > -1)
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(tu_elevation, OV_TERRAIN_ELEVATION_TEXTURE_ID);
+		
+		int tu_shadow = 6;
+		register_elem->QueryIntAttribute("ShadowTextureUnit", &tu_shadow);
+		if (tu_shadow > -1)
+		{
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(tu_shadow, OV_SHADOW_TEXTURE0_ID);
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(tu_shadow + 1, OV_SHADOW_TEXTURE1_ID);
 		}
 	}
 
@@ -267,15 +292,21 @@ namespace osgVegetation
 		splat_shading_elem->QueryFloatAttribute("MaxDistance", &splat_config.MaxDistance);
 		splat_shading_elem->QueryFloatAttribute("ColorModulateRatio", &splat_config.ColorModulateRatio);
 
-		//set some defaults
-		splat_config.ColorTexture.TexUnit = 0;
-		splat_config.SplatTexture.TexUnit = 1;
-		splat_config.DetailTextureUnit = 2;
+		//splat_config.ColorTexture.TexUnit = -1;
+		//splat_config.SplatTexture.TexUnit = -1;
+		//splat_config.DetailTextureUnit = -1;
 
-		splat_shading_elem->QueryIntAttribute("ColorTextureUnit", &splat_config.ColorTexture.TexUnit);
-		splat_shading_elem->QueryIntAttribute("SplatTextureUnit", &splat_config.SplatTexture.TexUnit);
-		splat_shading_elem->QueryIntAttribute("DetailTextureUnit", &splat_config.DetailTextureUnit);
+		//splat_shading_elem->QueryIntAttribute("ColorTextureUnit", &splat_config.ColorTexture.TexUnit);
+		//splat_shading_elem->QueryIntAttribute("SplatTextureUnit", &splat_config.SplatTexture.TexUnit);
+		//splat_shading_elem->QueryIntAttribute("DetailTextureUnit", &splat_config.DetailTextureUnit);
 		
+		/*if (splat_config.ColorTexture.TexUnit > -1)
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(splat_config.ColorTexture.TexUnit, OV_TERRAIN_COLOR_TEXTURE_ID);
+		if (splat_config.SplatTexture.TexUnit > -1)
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(splat_config.SplatTexture.TexUnit, OV_TERRAIN_SPLAT_TEXTURE_ID);
+		if (splat_config.DetailTextureUnit > -1)
+			osgVegetation::Register.TexUnits.AddUnitIfNotPresent(splat_config.DetailTextureUnit, OV_TERRAIN_DETAIL_TEXTURE_ID);
+			*/
 
 		TiXmlElement *dlv_elem = splat_shading_elem->FirstChildElement("DetailLayers");
 		if (dlv_elem)
@@ -283,9 +314,9 @@ namespace osgVegetation
 		return splat_config;
 	}
 
-	osgVegetation::TerrainConfig  XMLSerializer::ReadTerrainData(const std::string &filename)
+	osgVegetation::OVTConfig  XMLSerializer::ReadOVTConfig(const std::string &filename)
 	{
-		TerrainConfig terrain;
+		OVTConfig terrain;
 		TiXmlDocument *xmlDoc = new TiXmlDocument(filename.c_str());
 		if (!xmlDoc->LoadFile())
 		{
@@ -304,46 +335,17 @@ namespace osgVegetation
 		if (terrain_elem->Attribute("Type"))
 			terrain.TerrainType = terrain_elem->Attribute("Type");
 
-		/*if (terrain_elem->Attribute("Type"))
-		{
-			const std::string tt_str = terrain_elem->Attribute("Type");
-			if (tt_str == "TT_PLOD_TERRAIN")
-				terrain.Type = Terrain::TT_PLOD_TERRAIN;
-			else if (tt_str == "TT_PLOD_GEODE")
-				terrain.Type = Terrain::TT_PLOD_GEODE;
-		}
-
-		terrain.ShadowMode = Terrain::SM_DISABLED;
-		if (terrain_elem->Attribute("ShadowMode"))
-		{
-			const std::string sm_str = terrain_elem->Attribute("ShadowMode");
-			if (sm_str == "SM_LISPSM")
-				terrain.ShadowMode = Terrain::SM_LISPSM;
-			else if (sm_str == "SM_VDSM1")
-				terrain.ShadowMode = Terrain::SM_VDSM1;
-			else if (sm_str == "SM_VDSM2")
-				terrain.ShadowMode = Terrain::SM_VDSM2;
-			else if (sm_str == "SM_DISABLED")
-				terrain.ShadowMode = Terrain::SM_DISABLED;
-			else if (sm_str == "SM_UNDEFINED")
-				terrain.ShadowMode = Terrain::SM_UNDEFINED;
-			else
-				throw std::runtime_error(std::string("Serializer::GetTerrainData - Unknown ShadowMode:" + sm_str).c_str());
-		}*/
-
 		TiXmlElement *register_elem = terrain_elem->FirstChildElement("Register");
 		if (register_elem)
 			loadRegister(register_elem);
-
-		//TerrainTextureUnitSettings tex_units;
-		//TerrainShadingConfiguration config(tex_units);
+		
 		TiXmlElement *sc_elem = terrain_elem->FirstChildElement("SplatShading");
 		if (sc_elem)
 			terrain.SplatConfig = loadSplatShading(sc_elem);
 
 		TiXmlElement *injection_elem = terrain_elem->FirstChildElement("VPBVegetationInjectionConfig");
 		if(injection_elem)
-			terrain.BillboardConfig = loadInjectionConfig(injection_elem);
+			terrain.VPBConfig = loadInjectionConfig(injection_elem);
 
 		xmlDoc->Clear();
 		// Delete our allocated document and return data
