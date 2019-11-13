@@ -18,8 +18,8 @@ namespace osgVegetation
 		ShadowSettings() : ReceivesShadowTraversalMask(0x2),
 			CastsShadowTraversalMask(0x4), Mode(SM_DISABLED){}
 		ShadowModeEnum Mode;
-		int ReceivesShadowTraversalMask;
-		int CastsShadowTraversalMask;
+		unsigned int ReceivesShadowTraversalMask;
+		unsigned int CastsShadowTraversalMask;
 
 		static std::string ModeToString(ShadowModeEnum mode)
 		{

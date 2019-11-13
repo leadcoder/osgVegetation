@@ -190,7 +190,7 @@ int main(int argc, char** argv)
 
 	//Add invisible collision geometry for camera manipulator intersection tests
 	{
-		const int COLLSION_TERRAIN_MASK = 0x8;
+		const unsigned int COLLSION_TERRAIN_MASK = 0x8;
 		osg::ref_ptr<osg::Node> collision_terrain = createTerrainPatch(TERRAIN_SIZE, elev_image);
 		collision_terrain->setNodeMask(COLLSION_TERRAIN_MASK);
 		root_node->addChild(collision_terrain);

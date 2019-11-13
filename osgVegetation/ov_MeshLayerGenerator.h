@@ -130,7 +130,7 @@ namespace osgVegetation
 			m_InstanceGroup = _CreateInstanceGroup(gpuData);
 			
 
-			int node_mask = m_InstanceGroup->getNodeMask();
+			unsigned int node_mask = m_InstanceGroup->getNodeMask();
 
 			if (config.CastShadow)
 				node_mask |= Register.Scene.Shadow.CastsShadowTraversalMask;

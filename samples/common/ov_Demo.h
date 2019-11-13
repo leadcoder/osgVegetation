@@ -70,17 +70,17 @@ public:
 		light_source->setLight(m_Light);
 		m_SceneData->addChild(light_source);
 
-		if (config.FogMode != osgVegetation::FM_DISABLED) //Add fog effect?
+		if (config.Fog.Mode != osgVegetation::FM_DISABLED) //Add fog effect?
 		{
 			const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
 			osg::StateSet* state = m_SceneData->getOrCreateStateSet();
 			osg::ref_ptr<osg::Fog> fog = new osg::Fog();
 			state->setMode(GL_FOG, osg::StateAttribute::ON);
 			state->setAttributeAndModes(fog.get());
-			fog->setMode(osg::Fog::Mode(config.FogMode));
+			fog->setMode(osg::Fog::Mode(config.Fog.Mode));
 			fog->setDensity(0.0005);
 			fog->setColor(fog_color);
-			if (config.FogMode == osgVegetation::FM_LINEAR)
+			if (config.Fog.Mode == osgVegetation::FM_LINEAR)
 			{
 				fog->setStart(0);
 				fog->setEnd(1000);

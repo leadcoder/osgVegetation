@@ -108,7 +108,7 @@ namespace osgVegetation
 			}
 		}
 
-		static void ApplyNodeMaskToObjects(int node_mask, osg::Node* root_node)
+		static void ApplyNodeMaskToObjects(unsigned int node_mask, osg::Node* root_node)
 		{
 			//Objects are under root node
 			if (osg::Group* group_root = dynamic_cast<osg::Group*>(root_node))
@@ -119,7 +119,7 @@ namespace osgVegetation
 					std::vector<osg::Group*> groups = PLODTerrainHelper::GetGroups(child);
 					for (size_t j = 0; j < groups.size(); j++)
 					{
-						groups[j]->setNodeMask(node_mask);
+						groups[j]->setNodeMask(groups[j]->getNodeMask() & node_mask);
 					}
 				}
 			}
@@ -140,7 +140,6 @@ namespace osgVegetation
 			
 			return lod_level;
 		}
-
 
 		osgDB::ReaderWriter::ReadResult readNode(
 			const std::string& filename,
@@ -163,7 +162,7 @@ namespace osgVegetation
 			const int lod_level = GetLODLevelFromFileName(filename);
 
 			if (lod_level >= 0)
-				ApplyNodeMaskToObjects(0x1 | Register.Scene.Shadow.ReceivesShadowTraversalMask, rr.getNode());
+				ApplyNodeMaskToObjects(~Register.Scene.Shadow.CastsShadowTraversalMask, rr.getNode());
 
 			if (m_TerrainStateSet && lod_level >= 0)
 			{

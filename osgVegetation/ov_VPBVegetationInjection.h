@@ -37,9 +37,9 @@ namespace osgVegetation
 		class TerrainNodeMaskVisitor : public osg::NodeVisitor
 		{
 		private:
-			int m_NodeMask;
+			unsigned int m_NodeMask;
 		public:
-			TerrainNodeMaskVisitor(int node_mask) : m_NodeMask(node_mask),
+			TerrainNodeMaskVisitor(unsigned int node_mask) : m_NodeMask(node_mask),
 				osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
 			}
 

@@ -164,7 +164,7 @@ private:
 		{
 			setStateSet(new BillboardLayerStateSet(config));
 			
-			int node_mask = getNodeMask();
+			unsigned int node_mask = getNodeMask();
 
 			if (config.CastShadow)
 				node_mask |= Register.Scene.Shadow.CastsShadowTraversalMask;

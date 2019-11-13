@@ -69,9 +69,15 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowSettings config)
 		sm->setMainFragmentShader(mainFragmentShader);
 		shadowedScene->setShadowTechnique(sm);
 		
-		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
+		/*osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit");
+		shadowTextureUnit->set(shadowTexUnit);
+		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit);*/
+
+		//Add texure unit uniform, not provided by osg in lispsm
+		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit0");
 		shadowTextureUnit->set(shadowTexUnit);
 		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit);
+
 		return shadowedScene;
 	}
 	else if (config.Mode == osgVegetation::SM_VDSM1 ||

@@ -212,10 +212,8 @@ namespace osgVegetation
 
 	void loadRegister(TiXmlElement *register_elem)
 	{
-		int mask = 0;
-		register_elem->QueryIntAttribute("CastsShadowTraversalMask", &mask);
-		osgVegetation::Register.Scene.Shadow.CastsShadowTraversalMask = mask;
-		register_elem->QueryIntAttribute("ReceivesShadowTraversalMask", &Register.Scene.Shadow.ReceivesShadowTraversalMask);
+		register_elem->QueryUnsignedAttribute("CastsShadowTraversalMask", &osgVegetation::Register.Scene.Shadow.CastsShadowTraversalMask);
+		register_elem->QueryUnsignedAttribute("ReceivesShadowTraversalMask", &Register.Scene.Shadow.ReceivesShadowTraversalMask);
 		if (register_elem->Attribute("ShadowMode"))
 		{
 			const std::string sm_str = register_elem->Attribute("ShadowMode");
