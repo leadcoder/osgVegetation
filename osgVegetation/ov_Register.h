@@ -12,5 +12,5 @@ namespace osgVegetation
 		SceneConfig Scene;
 	};
 
-	static GlobalRegister Register;
+	extern GlobalRegister Register;
 }
