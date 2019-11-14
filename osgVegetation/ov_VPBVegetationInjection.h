@@ -31,7 +31,7 @@ namespace osgVegetation
 	//Inject vegetation layers into VirtualPlanetBuilder (VPB) PLOD terrains,
 	//ie terrain created with --PagedLOD, --POLYGONAL or --TERRAIN.
 	//Both flat and geocentric terrains should work.
-	class VPBVegetationInjection  : public osgDB::ReadFileCallback
+	class VPBVegetationInjection : public osgDB::ReadFileCallback
 	{
 	public:
 		class TerrainNodeMaskVisitor : public osg::NodeVisitor
@@ -70,8 +70,8 @@ namespace osgVegetation
 
 			InjectionVisitor(VPBInjectionLOD* injector) : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN),
 				m_Injector(injector),
-				m_VegetationRoot(new osg::Group){}
-		
+				m_VegetationRoot(new osg::Group) {}
+
 			void apply(osg::Node& node)
 			{
 				osgTerrain::TerrainTile* tile = dynamic_cast<osgTerrain::TerrainTile*>(&node);
@@ -132,20 +132,21 @@ namespace osgVegetation
 				for (size_t i = 0; i < node.getNumFileNames(); i++)
 				{
 					const std::string name = node.getFileName(i);
-					if(name != "")
+					if (name != "")
 						node.setFileName(i, name + "." + m_PseudoLoaderExt);
 				}
 			}
 		};
-	
-		VPBVegetationInjection(const VPBVegetationInjectionConfig &config)
+
+		VPBVegetationInjection(const VPBVegetationInjectionConfig &config) : m_TerrainCastShadow(false),
+			m_ObjectsCastShadow(false)
 		{
 			for (size_t i = 0; i < config.TerrainLODs.size(); i++)
 			{
 				m_Levels.push_back(VPBInjectionLOD(config.TerrainLODs[i]));
 			}
 		}
-	
+
 		static int ExtractLODLevelFromFileName(const std::string& filename)
 		{
 			std::string clean_filename = filename;
@@ -169,9 +170,9 @@ namespace osgVegetation
 			return lod_level;
 		}
 
-//#define OV_USE_TILE_ID_LOD_LEVEL
+		//#define OV_USE_TILE_ID_LOD_LEVEL
 
-		VPBInjectionLOD* GetTargetLevel(int level) 
+		VPBInjectionLOD* GetTargetLevel(int level)
 		{
 			for (size_t i = 0; i < m_Levels.size(); i++)
 			{
@@ -186,9 +187,9 @@ namespace osgVegetation
 			const osgDB::ReaderWriter::Options* options)
 		{
 			const bool use_pseudo_loader = m_PseudoLoaderExt != "" ? true : false;
-			
+
 			osgDB::ReaderWriter::ReadResult rr = use_pseudo_loader ? osgDB::readNodeFile(filename, options) : ReadFileCallback::readNode(filename, options);
-		
+
 			if (!rr.getNode())
 				return rr;
 
@@ -237,10 +238,14 @@ namespace osgVegetation
 			m_TerrainStateSet = state_set;
 		}
 
+		void SetTerrainCastShadow(bool value) { m_TerrainCastShadow = value;}
+		void SetObjectsCastShadow(bool value) { m_ObjectsCastShadow = value; }
 	protected:
 		virtual ~VPBVegetationInjection() {}
 		std::vector<VPBInjectionLOD> m_Levels;
 		std::string m_PseudoLoaderExt;
 		osg::ref_ptr <osg::StateSet> m_TerrainStateSet;
+		bool m_TerrainCastShadow;
+		bool m_ObjectsCastShadow;
 	};
 }

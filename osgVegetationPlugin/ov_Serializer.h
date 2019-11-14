@@ -10,8 +10,11 @@ namespace osgVegetation
 	struct OVTConfig
 	{
 	public:
+		OVTConfig() : ObjectsCastShadow(false), TerrainCastShadow(false){}
 		std::string Filename;
 		std::string TerrainType;
+		bool ObjectsCastShadow;
+		bool TerrainCastShadow;
 		TerrainSplatShadingConfig SplatConfig;
 		VPBVegetationInjectionConfig VPBConfig;
 	};

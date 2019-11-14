@@ -66,7 +66,10 @@ ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, cons
 
 	m_VPBInjection = custom_terrain ?  new osgVegetation::CustomVegetationInjection(terrain_config.VPBConfig) :
 		new osgVegetation::VPBVegetationInjection(terrain_config.VPBConfig);
+
 	m_VPBInjection->SetPseudoLoaderExt(OV_PSEUDO_EXT);
+	m_VPBInjection->SetTerrainCastShadow(terrain_config.TerrainCastShadow);
+	m_VPBInjection->SetObjectsCastShadow(terrain_config.ObjectsCastShadow);
 
 	if (inject_terrain_state_set)
 	{

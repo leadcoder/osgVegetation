@@ -6,80 +6,35 @@ namespace osgVegetation
 	class CustomVegetationInjection : public VPBVegetationInjection
 	{
 	public:
-		//Find the group holding the terrain geometry/geode 
-		class PLODTerrainHelper
+		class CollectGeodes : public osg::NodeVisitor
 		{
-		private:
-			class PLODVisitor : public osg::NodeVisitor
-			{
-			public:
-				std::vector<osg::PagedLOD*> PLODVec;
-				PLODVisitor() : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {	}
-				void apply(osg::PagedLOD& plod) {
-					PLODVec.push_back(&plod);
-				}
-			};
-
-			class GroupVisitor : public osg::NodeVisitor
-			{
-			public:
-				std::vector<osg::Group*> Groups;
-				GroupVisitor() : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
-				void apply(osg::PagedLOD& node) { traverse(node); }
-				void apply(osg::LOD& node) { traverse(node); }
-				void apply(osg::Geode& node) { }
-				void apply(osg::Geometry& node) {}
-				void apply(osg::Group& node) { Groups.push_back(&node); }
-			};
-
-			class GeodeVisitor : public osg::NodeVisitor
-			{
-			public:
-				std::vector<osg::Geode*> Geodes;
-				GeodeVisitor() : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
-				void apply(osg::Geode& node) { Geodes.push_back(&node); }
-			};
 		public:
-			//Get all paged lods;
-			static std::vector<osg::PagedLOD*> GetPagedLODNodes(osg::Node* node)
-			{
-				PLODVisitor plod_vist;
-				node->accept(plod_vist);
-				return plod_vist.PLODVec;
-			}
+			std::vector<osg::Geode*> Objects;
+			std::vector<osg::Geode*> TerrainTiles;
+			CollectGeodes() : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
 
-			static std::vector<osg::Geode*> GetGeodes(osg::Node* node)
+			bool HasPLODParent(osg::Node* node)
 			{
-				PLODTerrainHelper::GeodeVisitor gv;
-				node->accept(gv);
-				return gv.Geodes;
-			}
-
-			static std::vector<osg::Group*> GetGroups(osg::Node* node)
-			{
-				PLODTerrainHelper::GroupVisitor gv;
-				node->accept(gv);
-				return gv.Groups;
-			}
-		};
-
-		class CopyGeodesToGroup : public osg::NodeVisitor
-		{
-		private:
-			osg::Group* m_RootNode;
-		public:
-			CopyGeodesToGroup(osg::Group* root) : m_RootNode(root),
-				osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
-			}
-
-			void apply(osg::Geode& geode)
-			{
-				if (osg::Geode* geode_copy = dynamic_cast<osg::Geode*>(geode.clone(osg::CopyOp::DEEP_COPY_ALL)))
+				if (node->getNumParents() > 0)
 				{
-					//reset node mask
-					geode_copy->setNodeMask(~0);
-					m_RootNode->addChild(geode_copy);
+					if (osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(node->getParent(0)))
+					{
+						return true;
+					}
+					else
+					{
+						return HasPLODParent(node->getParent(0));
+					}
 				}
+				return false;
+			}
+
+			void apply(osg::Geode& node)
+			{
+				if (HasPLODParent(&node))
+					TerrainTiles.push_back(&node);
+				else
+					Objects.push_back(&node);
 			}
 		};
 
@@ -88,79 +43,62 @@ namespace osgVegetation
 
 		}
 
-		static osg::Group* CreateTerrainGeometry(osg::Node* root_node)
+		static void ApplyTerrainStateSet(osg::ref_ptr <osg::StateSet> state_set, osg::Geode* geode)
 		{
-			//Terrain geometry is under plods
-			std::vector<osg::PagedLOD*> plods = PLODTerrainHelper::GetPagedLODNodes(root_node);
-
-			//We know that we have no transforms at this level, (MeshLayers don't respect terrain transformation)
-			osg::Group* terrain_geometry = new osg::Group();
-			for (size_t i = 0; i < plods.size(); i++)
+			//First check if parent is PagedLOD, if so we need to inject a group node between plod and geode that
+			//can hold the terrain stateset. 
+			//TODO: Test to change the geode copy (when we create the terrain for the vegetation)
+			//to not include shaders avoid this extra node.
+			if (osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(geode->getParent(0)))
 			{
-				CopyGeodesToGroup tt_visitor(terrain_geometry);
-				plods[i]->accept(tt_visitor);
+				osg::Group* group = new osg::Group();
+				group->getOrCreateStateSet()->merge(*state_set);
+				group->addChild(geode);
+				//group->setNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask);
+				//inject terrain stateset node
+				plod->replaceChild(geode, group);
 			}
+			else if (osg::Group* group = dynamic_cast<osg::Group*>(geode->getParent(0)))
+			{
+				group->getOrCreateStateSet()->merge(*state_set);
+				//group->setNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask);
+			}
+		}
 
+		static void ApplyTerrainStateSet(osg::ref_ptr <osg::StateSet> state_set, const std::vector<osg::Geode*> &geodes)
+		{
+			for (size_t i = 0; i < geodes.size(); i++)
+			{
+				ApplyTerrainStateSet(state_set,geodes[i]);
+			}
+		}
+
+		static void ApplyNodeMask(unsigned int node_mask, const std::vector<osg::Geode*> &nodes)
+		{
+			for (size_t i = 0; i < nodes.size(); i++)
+			{
+				nodes[i]->setNodeMask(nodes[i]->getNodeMask() & node_mask);
+			}
+		}
+
+		static osg::Group* CreateTerrainGeometry(osg::Node* root_node, const std::vector<osg::Geode*> &geodes)
+		{
+			osg::Group* terrain_geometry = new osg::Group();
+			for (size_t i = 0; i < geodes.size(); i++)
+			{
+				if (osg::Geode* geode_copy = dynamic_cast<osg::Geode*>(geodes[i]->clone(osg::CopyOp::DEEP_COPY_ALL)))
+				{
+					//reset node mask
+					geode_copy->setNodeMask(~0);
+					terrain_geometry->addChild(geode_copy);
+				}
+			}
 			//Prepare for tesselation shaders, change PrimitiveSet draw mode to GL_PATCHES
 			ConvertToPatchesVisitor cv;
 			terrain_geometry->accept(cv);
-
 			return terrain_geometry;
 		}
-
-		static void ApplyTerrainStateSet(osg::ref_ptr <osg::StateSet> state_set, osg::Node* root_node)
-		{
-			//terrain is under plod node
-			std::vector<osg::PagedLOD*> plods = PLODTerrainHelper::GetPagedLODNodes(root_node);
-			for (size_t i = 0; i < plods.size(); i++)
-			{
-				//get all terrain tiles under this plod, placed in group
-				/*std::vector<osg::Group*> groups = PLODTerrainHelper::GetGroups(plods[i]);
-				for (size_t j = 0; j < groups.size(); j++)
-				{
-					groups[j]->getOrCreateStateSet()->merge(*state_set);
-				}*/
-
-				std::vector<osg::Geode*> geodes = PLODTerrainHelper::GetGeodes(plods[i]);
-				for (size_t j = 0; j < geodes.size(); j++)
-				{
-					if (osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(geodes[j]->getParent(0)))
-					{
-						osg::Group* group = new osg::Group();
-						group->getOrCreateStateSet()->merge(*state_set);
-						group->addChild(geodes[j]);
-						group->setNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask);
-						//inject terrain stateset node
-						plod->replaceChild(geodes[j], group);
-					}
-					else if (osg::Group* group = dynamic_cast<osg::Group*>(geodes[j]->getParent(0)))
-					{
-						group->getOrCreateStateSet()->merge(*state_set);
-						group->setNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask);
-					}
-				}
-			}
-		}
-
-		static void ApplyNodeMaskToObjects(unsigned int node_mask, osg::Node* root_node)
-		{
-			//Objects are under root node
-			if (osg::Group* group_root = dynamic_cast<osg::Group*>(root_node))
-			{
-				for (size_t i = 0; i < group_root->getNumChildren(); i++)
-				{
-					osg::Node* child = group_root->getChild(i);
-					std::vector<osg::Group*> groups = PLODTerrainHelper::GetGroups(child);
-					for (size_t j = 0; j < groups.size(); j++)
-					{
-						groups[j]->setNodeMask(groups[j]->getNodeMask() & node_mask);
-					}
-				}
-			}
-		}
-
-		
-
+	
 		static int GetLODLevelFromFileName(const std::string& filename)
 		{
 			int lod_level = -1;
@@ -197,30 +135,40 @@ namespace osgVegetation
 
 			const int lod_level = GetLODLevelFromFileName(filename);
 
-			if (lod_level >= 0)
-				ApplyNodeMaskToObjects(~Register.Scene.Shadow.CastsShadowTraversalMask, rr.getNode());
-
-			if (m_TerrainStateSet && lod_level >= 0)
+			//if (lod_level >= 0)
 			{
-				ApplyTerrainStateSet(m_TerrainStateSet, rr.getNode());
-			}
+				CollectGeodes collection;
+				rr.getNode()->accept(collection);
 
-			VPBInjectionLOD* injector = GetTargetLevel(lod_level);
-			if (injector)
-			{
-				osg::Group* root_node = dynamic_cast<osg::Group*>(rr.getNode());
-				osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(root_node);
-				//check that root node is a group-node, also check if PagedLOD (leaf nodes?), then not possible to attach 
-				if (root_node && plod == NULL)
+				if(!m_TerrainCastShadow)
+					ApplyNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask, collection.TerrainTiles);
+				if (!m_ObjectsCastShadow)
+					ApplyNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask, collection.Objects);
+			
+				if (m_TerrainStateSet)
 				{
-					//Create/clone terrain geometry
-					osg::Group* terrain_geometry = CreateTerrainGeometry(root_node);
-					osg::ref_ptr<osg::Node> veg_node = injector->CreateVegetationNode(terrain_geometry);
-					root_node->addChild(veg_node);
+					ApplyTerrainStateSet(m_TerrainStateSet, collection.TerrainTiles);
+				}
 
-					if (m_TerrainStateSet)
+				VPBInjectionLOD* injector = GetTargetLevel(lod_level);
+				if (injector)
+				{
+					osg::Group* root_node = dynamic_cast<osg::Group*>(rr.getNode());
+					osg::PagedLOD* plod = dynamic_cast<osg::PagedLOD*>(root_node);
+					//check that root node is a group-node, also check if PagedLOD (leaf nodes?), then not possible to attach 
+					if (root_node && plod == NULL)
 					{
-						veg_node->setStateSet(m_TerrainStateSet);
+						//Create/clone terrain geometry
+						osg::Group* terrain_geometry = CreateTerrainGeometry(root_node, collection.TerrainTiles);
+						osg::ref_ptr<osg::Node> veg_node = injector->CreateVegetationNode(terrain_geometry);
+						root_node->addChild(veg_node);
+
+						if (m_TerrainStateSet)
+						{
+							//We need to insert terrain stateate above vegetation to get 
+							//hold of shaders, uniforms, defines etc. during vegetation rendering
+							veg_node->setStateSet(m_TerrainStateSet);
+						}
 					}
 				}
 			}

@@ -333,6 +333,9 @@ namespace osgVegetation
 		if (terrain_elem->Attribute("Type"))
 			terrain.TerrainType = terrain_elem->Attribute("Type");
 
+		terrain_elem->QueryBoolAttribute("TerrainCastShadow", &terrain.TerrainCastShadow);
+		terrain_elem->QueryBoolAttribute("ObjectsCastShadow", &terrain.ObjectsCastShadow);
+
 		TiXmlElement *register_elem = terrain_elem->FirstChildElement("Register");
 		if (register_elem)
 			loadRegister(register_elem);
