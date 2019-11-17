@@ -7,7 +7,7 @@ namespace osgVegetation
 	class LayerGenerator
 	{
 	public:
-		LayerGenerator(std::vector<osg::ref_ptr<ILayerConfig>> layers)
+		LayerGenerator(std::vector<osg::ref_ptr<ILayerConfig> > layers)
 		{
 			std::vector<MeshLayerConfig> mesh_layers;
 			std::vector<BillboardLayerConfig> billboard_layers;

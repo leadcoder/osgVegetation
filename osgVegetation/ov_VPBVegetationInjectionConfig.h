@@ -14,7 +14,7 @@ namespace osgVegetation
 		{
 		}
 		int TargetLevel;
-		std::vector<osg::ref_ptr<ILayerConfig>> Layers;
+		std::vector<osg::ref_ptr<ILayerConfig> > Layers;
 	};
 
 	class VPBVegetationInjectionConfig

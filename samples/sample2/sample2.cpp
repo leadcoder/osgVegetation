@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 	//the first layer is more dens but with shorter render distance,
 	//the second more sparse with longer render distance.
 	osg::Vec4 grass_splat_threashold(0.5, 0.5, 0.5, 0.5);
-	std::vector<osg::ref_ptr<osgVegetation::ILayerConfig>> layers;
+	std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > layers;
 	osg::ref_ptr <osgVegetation::BillboardLayerConfig> grass_layer0 = new osgVegetation::BillboardLayerConfig(osgVegetation::BillboardLayerConfig::BLT_GRASS);
 	grass_layer0->MaxDistance = 100;
 	grass_layer0->Density = 0.1;
