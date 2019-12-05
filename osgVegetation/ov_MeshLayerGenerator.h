@@ -128,6 +128,10 @@ namespace osgVegetation
 
 			//osg::BoundingSphere bs;
 			m_InstanceGroup = _CreateInstanceGroup(gpuData);
+
+			if(config.BackFaceCulling)
+				m_InstanceGroup->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(osg::CullFace::BACK));
+
 			
 
 			unsigned int node_mask = m_InstanceGroup->getNodeMask();
@@ -274,7 +278,8 @@ namespace osgVegetation
 				it->second.addIndirectTargetData(false, "ov_indirectTarget", it->first, drawGeode->getOrCreateStateSet());
 				drawGeode->getOrCreateStateSet()->setAttributeAndModes(gpuData->instanceTypesUBB.get());
 				it->second.addDrawProgram("ov_instanceTypesData", drawGeode->getOrCreateStateSet());
-				drawGeode->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
+				//drawGeode->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
+				
 				//drawGeode->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(osg::CullFace::BACK));
 				//it->second.geometryAggregator->getAggregatedGeometry()->setComputeBoundingBoxCallback(new StaticBoundingBox());
 				group->addChild(drawGeode);

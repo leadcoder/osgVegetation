@@ -49,13 +49,15 @@ namespace osgVegetation
 	public:
 		MeshLayerConfig(float density = 2) : Density(density),
 			CastShadow(true),
-			ReceiveShadow(true)
+			ReceiveShadow(true),
+			BackFaceCulling(false)
 		{
 
 		}
 		float Density;
 		bool CastShadow;
 		bool ReceiveShadow;
+		bool BackFaceCulling;
 		PassFilter Filter;
 		std::vector<MeshTypeConfig> MeshTypes;
 	private:
