@@ -33,14 +33,12 @@ void main()
 		vec3 bnormal = normalize(ov_texMat * ((coded_normal * 2.0) - 1));
 		//vec3 bnormal = normalize(vec3(ov_vPosition.xy,0));
 		//bnormal = normalize(ov_texMat * vec3(bnormal.xy,ov_texCoord.y));
-		base_color.xyz *= ov_directionalLight(bnormal, ov_diffuse);
-		normal.y = 0;
+		base_color.xyz *= ov_directionalLightShadow(bnormal, ov_diffuse);
+		if(ov_normal.z < 0.9)
+			normal.y = 0;
 		normal = normalize(normal);
-		float NdotC = dot(normal, vec3(0,0,1));
-		if(NdotC < 0)
-			base_color.a = 0;
-		else
-			base_color.a *= NdotC*NdotC*NdotC*NdotC*NdotC*NdotC;
+		float NdotC = max(abs(dot(normal, vec3(0,0,-1))),0);
+		base_color.a *= NdotC*NdotC*NdotC*NdotC*NdotC*NdotC;
 	}
 	else
 	{
@@ -57,6 +55,7 @@ void main()
 	float alpha_boost = 1.0 + 1.0 * clamp(-ov_position.z / fade_dist, 0.0, 1.0);
 	base_color.a *= ov_fade*alpha_boost;
 
+	//gl_FragColor =  vec4(base_color.rgb,1.0);
 	gl_FragColor =  base_color;
     //gl_FragColor =  NdotL * base_color * gl_LightSource[0].diffuse +  base_color * gl_LightSource[0].ambient;
 }
