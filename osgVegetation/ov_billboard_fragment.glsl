@@ -31,7 +31,7 @@ vec3 ov_get_billboard_normal()
 	float ny = 0;
 	float nx = (ov_bb_in.TexCoord0.x) * 2.0 - 1.0;
 	float nz = sqrt(1.0 - (nx*nx));
-	return normalize(vec3(4 * nx, ny, nz));// +ov_geometry_normal);
+	return normalize(vec3(4 * nx, ny, nz));
 #else
 	return normalize(ov_bb_in.Normal);
 #endif
