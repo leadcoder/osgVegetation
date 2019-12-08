@@ -470,7 +470,7 @@ struct ImpostorGenerator
 			"    if(ov_normal.z < 0.9) plane_normal.y = 0;\n"
 			"    plane_normal = normalize(plane_normal);\n"
 			"    float NdotL = max(dot(normal, light_dir), 0);\n"
-			"    float NdotC = max(abs(dot(plane_normal, vec3(0,0,-1))), 0);\n"
+			"    float NdotC = max(dot(plane_normal, vec3(0,0,1)), 0);\n"
 			"    //if(NdotC < 0.92388) NdotC = 0.0; else NdotC = 1.0;\n"
 			"    base_color.xyz = base_color.xyz*NdotL*gl_LightSource[0].diffuse.xyz + base_color.xyz*gl_FrontLightModelProduct.sceneColor.xyz; \n"
 			"    base_color.w = mix(0.0, base_color.w, fastpow(NdotC,10)); \n"
