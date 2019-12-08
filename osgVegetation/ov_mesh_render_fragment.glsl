@@ -37,8 +37,8 @@ void main()
 		if(ov_normal.z < 0.9)
 			normal.y = 0;
 		normal = normalize(normal);
-		float NdotC = max(abs(dot(normal, vec3(0,0,-1))),0);
-		base_color.a *= NdotC*NdotC*NdotC*NdotC*NdotC*NdotC;
+		float NdotC = max(dot(normal, vec3(0,0,1)),0);
+		base_color.a *= NdotC*NdotC*NdotC*NdotC;
 	}
 	else
 	{
