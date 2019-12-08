@@ -120,6 +120,7 @@ namespace osgVegetation
 		mesh_layer_elem->QueryFloatAttribute("Density", &layer.Density);
 		mesh_layer_elem->QueryBoolAttribute("CastShadow", &layer.CastShadow);
 		mesh_layer_elem->QueryBoolAttribute("ReceiveShadow", &layer.ReceiveShadow);
+		mesh_layer_elem->QueryBoolAttribute("BackFaceCulling", &layer.BackFaceCulling);
 
 		if (mesh_layer_elem->Attribute("ColorFilter"))
 			layer.Filter.ColorFilter = mesh_layer_elem->Attribute("ColorFilter");
@@ -145,12 +146,15 @@ namespace osgVegetation
 		float lod0_fade_dist = -1;
 		float lod1_fade_dist = -1;
 		float intensity = -1;
+		float dist_scale = 1;
+
 		mesh_layer_elem->QueryFloatAttribute("DefaultDistanceLOD0", &lod0_dist);
 		mesh_layer_elem->QueryFloatAttribute("DefaultFadeLOD0", &lod0_fade_dist);
 		mesh_layer_elem->QueryFloatAttribute("DefaultDistanceLOD1", &lod1_dist);
 		mesh_layer_elem->QueryFloatAttribute("DefaultFadeLOD0", &lod1_fade_dist);
 		mesh_layer_elem->QueryFloatAttribute("DefaultIntensity", &intensity);
-		
+		mesh_layer_elem->QueryFloatAttribute("DistanceScale", &dist_scale);
+
 		for (size_t i = 0; i < layer.MeshTypes.size(); i++)
 		{
 			for (size_t j = 0; j < layer.MeshTypes[i].MeshLODs.size(); j++)
@@ -165,6 +169,7 @@ namespace osgVegetation
 					{
 						layer.MeshTypes[i].MeshLODs[j].Distance.set(lod0_dist - lod0_fade_dist, lod0_dist, lod1_dist, lod1_dist + lod1_fade_dist);
 					}
+					layer.MeshTypes[i].MeshLODs[j].Distance = layer.MeshTypes[i].MeshLODs[j].Distance * dist_scale;
 				}
 				if(intensity > -1)
 					layer.MeshTypes[i].MeshLODs[j].Intensity = intensity;
