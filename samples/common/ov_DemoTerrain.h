@@ -1613,6 +1613,16 @@ static osg::Geometry* _CreateGeometryFromHeightField(osg::HeightField* hf)
 	return geometry;
 }
 
+struct BoundingBoxCB : public osg::Drawable::ComputeBoundingBoxCallback
+{
+	BoundingBoxCB() {}
+	BoundingBoxCB(const osg::BoundingBox &bbox) : _bbox(bbox) {};
+	osg::BoundingBox computeBound(const osg::Drawable&) const { return _bbox; }
+private:
+	osg::BoundingBox _bbox;
+};
+
+
 osg::Node* CreateDemoTerrain(float terrain_size, const osg::Vec3& center = osg::Vec3(0,0,0))
 {
 	osg::Geode* geode = new osg::Geode;
@@ -1648,12 +1658,13 @@ osg::Node* CreateDemoTerrain(float terrain_size, const osg::Vec3& center = osg::
 			grid->setHeight(c, r, (h + hieghtOffset)*hieghtScale);
 		}
 	}
-
-	//osg::Geometry* geometry = _CreateGeometryFromHeightField(grid);
-	//geode->addDrawable(geometry);
-
+	
 	osg::ShapeDrawable* sd = new osg::ShapeDrawable(grid);
 	geode->addDrawable(sd);
+
+	sd->setComputeBoundingBoxCallback(new BoundingBoxCB(osg::BoundingBox(osg::Vec3d(-terrain_size / 2.0, -terrain_size / 2.0, -1000),
+		osg::Vec3d(terrain_size / 2.0, terrain_size / 2.0, 1000))));
+
 	//osg::Group* group = new osg::Group;
 	///group->addChild(geode);
 	return geode;
@@ -1684,15 +1695,15 @@ osg::Geometry* CreateDemoTerrain2(float terrain_size, const osg::Vec3& center = 
 		}
 	}
 
-	float hieghtScale = terrain_size * 0.25 / (maxHeight - minHeight);
-	float hieghtOffset = -(minHeight + maxHeight)*0.5f;
+	float heightScale = terrain_size * 0.25 / (maxHeight - minHeight);
+	float heightOffset = -(minHeight + maxHeight)*0.5f;
 
 	for (r = 0; r < 39; ++r)
 	{
 		for (unsigned int c = 0; c < 38; ++c)
 		{
 			float h = vertex[r + c * 39][2];
-			grid->setHeight(c, r, (h + hieghtOffset)*hieghtScale);
+			grid->setHeight(c, r, (h + heightOffset)*heightScale);
 		}
 	}
 
@@ -1700,14 +1711,6 @@ osg::Geometry* CreateDemoTerrain2(float terrain_size, const osg::Vec3& center = 
 	return geometry;
 }
 
-struct BoundingBoxCB : public osg::Drawable::ComputeBoundingBoxCallback
-{
-	BoundingBoxCB() {}
-	BoundingBoxCB(const osg::BoundingBox &bbox) : _bbox(bbox) {};
-	osg::BoundingBox computeBound(const osg::Drawable&) const { return _bbox; }
-private:
-	osg::BoundingBox _bbox;
-};
 
 osg::ref_ptr<osg::Node> createFlatGrid(double terrain_size, int samples, bool tess = false)
 {
