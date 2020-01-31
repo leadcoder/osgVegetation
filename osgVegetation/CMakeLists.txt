@@ -1,12 +1,6 @@
 #set lib name here!
 set(LIB_NAME "osgVegetation")
 
-include(OSGDep)
-
-SET(CPP_FILES 
-	ov_Runtime.cpp
-)
-
 SET(H_FILES
 	ov_ILayerConfig.h
 	ov_BillboardLayerConfig.h
@@ -58,19 +52,23 @@ SET(SHADERS_FILES
 	ov_mesh_render_fragment.glsl
 )
 
-include_directories(${OPENSCENEGRAPH_INCLUDE_DIRS})
+cmake_policy(SET CMP0076 NEW)
 
-#Enable class export 
-add_definitions( -DOSG_VEGETATION_EXPORTS)
+add_library(${LIB_NAME} INTERFACE)
+target_include_directories(${LIB_NAME} INTERFACE $<BUILD_INTERFACE:${OPENSCENEGRAPH_INCLUDE_DIRS}>)
+target_include_directories(${LIB_NAME} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_sources(${LIB_NAME} INTERFACE $<BUILD_INTERFACE:${H_FILES};${SHADERS_FILES}>)
+target_link_libraries(${LIB_NAME} INTERFACE ${OPENSCENEGRAPH_LIBRARIES})
 
-source_group("Shaders" FILES ${SHADERS_FILES})
-add_library(${LIB_NAME} SHARED  ${CPP_FILES} ${H_FILES} ${SHADERS_FILES})
-target_link_libraries(${LIB_NAME} ${OPENSCENEGRAPH_LIBRARIES})
+if(MSVC)
+	source_group("Shaders" FILES ${SHADERS_FILES})
+    add_custom_target(${LIB_NAME}.IDE SOURCES ${H_FILES} ${SHADERS_FILES})
+endif()
 
-INSTALL(TARGETS ${LIB_NAME}
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION bin
-  ARCHIVE DESTINATION lib)
+#  INSTALL(TARGETS ${LIB_NAME}
+#  RUNTIME DESTINATION bin
+#  LIBRARY DESTINATION bin
+#  ARCHIVE DESTINATION lib)
 
 INSTALL(FILES ${H_FILES} DESTINATION include)
 INSTALL(FILES ${SHADERS_FILES} DESTINATION bin)
