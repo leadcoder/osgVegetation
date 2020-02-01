@@ -25,7 +25,7 @@ namespace osgVegetation
 int main(int argc, char** argv)
 {
 	
-	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
+	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_DISABLED;
 	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
 	osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(1, OV_TERRAIN_SPLAT_TEXTURE_ID);
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 	tree_layer1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/fir01_bb.png", osg::Vec2f(10, 16), 1.0, 1.0));
 
 	//Setup mesh tree layer
-	osgVegetation::MeshLayerConfig* tree_layer2 = new osgVegetation::MeshLayerConfig(1000);
+	osgVegetation::MeshLayerConfig* tree_layer2 = new osgVegetation::MeshLayerConfig(3000);
 	tree_layer2->Filter.ColorFilter = tree_layer1->Filter.ColorFilter;
 	tree_layer2->Filter.SplatFilter = tree_layer1->Filter.SplatFilter;
 	{
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 		osgVegetation::MeshTypeConfig mesh;
 		const float end_dist = 740;
 		mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l0.osg", osg::Vec4(0.0f, 0.0f, 100.0f, 110.0f)));
-		mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1.osg", osg::Vec4(100.0f, 110.0f, end_dist, end_dist + 10)));
+		mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1_bb.osg", osg::Vec4(100.0f, 110.0f, end_dist, end_dist + 10),1));
 		tree_layer2->MeshTypes.push_back(mesh);
 	}
 
@@ -73,8 +73,8 @@ int main(int argc, char** argv)
 	grass_terrain_lod.Layers.push_back(grass_layer);
 
 	osgVegetation::VPBInjectionLODConfig tree_terrain_lod(2);
-	tree_terrain_lod.Layers.push_back(tree_layer1);
-	//tree_terrain_lod.Layers.push_back(tree_layer2);
+	//tree_terrain_lod.Layers.push_back(tree_layer1);
+	tree_terrain_lod.Layers.push_back(tree_layer2);
 
 	//Create the final config
 	std::vector<osgVegetation::VPBInjectionLODConfig> vpb_config;
@@ -85,7 +85,8 @@ int main(int argc, char** argv)
 	osgDB::Registry::instance()->setReadFileCallback(new osgVegetation::VPBVegetationInjection(vpb_config));
 
 #if 1
-	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/deploy/utm/us-terrain.osg");
+	//osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("terrain/us-terrain.zip/us-terrain.osg");
 #else
 	//osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osgb");
 	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile("D:/terrain/vpb/us/final/us-terrain.osg");

@@ -19,7 +19,7 @@ namespace osgVegetation
 int main(int argc, char** argv)
 {
 	//Enable LiSPSM shadows
-	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
+	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_DISABLED;
 	
 	//Enable fog
 	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
@@ -68,8 +68,15 @@ int main(int argc, char** argv)
 	osg::ref_ptr <osgVegetation::MeshLayerConfig> tree_layer = new osgVegetation::MeshLayerConfig(1000);
 	osgVegetation::MeshTypeConfig mesh;
 	const float end_dist = 200.0f;
-	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l0.osg", osg::Vec4(0.0f, 0.0f, 100.0f, 110.0f)));
-	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1.osg", osg::Vec4(100.0f, 110.0f, end_dist, end_dist + 10)));
+	
+
+	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/maple/maple.obj", osg::Vec4(0, 0, 50, 61),0U, 1.0));
+	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/maple/maple_bb.osg", osg::Vec4(50, 60, end_dist, end_dist + 10),1, 1.0));
+
+	//mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l0.osg", osg::Vec4(0.0f, 0.0f, 100.0f, 110.0f)));
+	//mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1.osg", osg::Vec4(100.0f, 110.0f, end_dist, end_dist + 10)));
+	mesh.DiffuseIntensity = 1.0;
+	mesh.IntensityVariation = 0;
 	tree_layer->MeshTypes.push_back(mesh);
 	layers.push_back(tree_layer);
 
