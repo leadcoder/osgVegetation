@@ -1,7 +1,7 @@
 #set lib name here!
 set(LIB_NAME "osgVegetation")
 
-SET(H_FILES
+set(H_FILES
 	ov_ILayerConfig.h
 	ov_BillboardLayerConfig.h
 	ov_Common.h
@@ -28,7 +28,7 @@ SET(H_FILES
 	ov_CustomVegetationInjection.h
 )
 
-SET(SHADERS_FILES
+set(SHADERS_FILES
 	ov_billboard_vertex.glsl
 	ov_billboard_tess_ctrl.glsl
 	ov_billboard_tess_eval.glsl
@@ -55,9 +55,11 @@ SET(SHADERS_FILES
 cmake_policy(SET CMP0076 NEW)
 
 add_library(${LIB_NAME} INTERFACE)
-target_include_directories(${LIB_NAME} INTERFACE $<BUILD_INTERFACE:${OPENSCENEGRAPH_INCLUDE_DIRS}>)
-target_include_directories(${LIB_NAME} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_sources(${LIB_NAME} INTERFACE $<BUILD_INTERFACE:${H_FILES};${SHADERS_FILES}>)
+target_include_directories(${LIB_NAME} INTERFACE 
+	$<BUILD_INTERFACE:${OPENSCENEGRAPH_INCLUDE_DIRS}>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+	$<INSTALL_INTERFACE:${OSGV_INCLUDE_INSTALL_DIR}>)
+
 target_link_libraries(${LIB_NAME} INTERFACE ${OPENSCENEGRAPH_LIBRARIES})
 
 if(MSVC)
@@ -65,15 +67,17 @@ if(MSVC)
     add_custom_target(${LIB_NAME}.IDE SOURCES ${H_FILES} ${SHADERS_FILES})
 endif()
 
-#  INSTALL(TARGETS ${LIB_NAME}
-#  RUNTIME DESTINATION bin
-#  LIBRARY DESTINATION bin
-#  ARCHIVE DESTINATION lib)
+install(TARGETS ${LIB_NAME} EXPORT ${LIB_NAME}Target)
 
-INSTALL(FILES ${H_FILES} DESTINATION include)
-INSTALL(FILES ${SHADERS_FILES} DESTINATION bin)
+install(EXPORT ${LIB_NAME}Target
+       FILE ${LIB_NAME}Target.cmake
+      NAMESPACE osgv::
+      DESTINATION cmake)
+
+install(FILES ${H_FILES} DESTINATION ${OSGV_INCLUDE_INSTALL_DIR})
+install(FILES ${SHADERS_FILES} DESTINATION shaders)
+install(FILES ${PROJECT_SOURCE_DIR}/CMakeModules/osgvegetation-config.cmake DESTINATION cmake)
 
 if(WIN32)
-	FILE(COPY ${SHADERS_FILES}  DESTINATION  ${CMAKE_BINARY_DIR}/out/debug)
-	FILE(COPY ${SHADERS_FILES}  DESTINATION  ${CMAKE_BINARY_DIR}/out/release)
+	file(COPY ${SHADERS_FILES}  DESTINATION  ${CMAKE_BINARY_DIR}/out/shaders)
 endif()

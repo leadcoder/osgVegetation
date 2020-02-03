@@ -51,7 +51,8 @@ int main(int argc, char **argv)
 	}
 
 	//Add sample data path
-	osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
+	osgDB::Registry::instance()->getDataFilePathList().push_back("../shaders");
+	osgDB::Registry::instance()->getDataFilePathList().push_back("../sample-data");
 
 	// construct the viewer.
 	osgViewer::Viewer viewer(arguments);

@@ -52,7 +52,8 @@ public:
 		osg::DisplaySettings::instance()->setNumMultiSamples(4);
 
 		//Add sample data path
-		osgDB::Registry::instance()->getDataFilePathList().push_back("../data");
+		osgDB::Registry::instance()->getDataFilePathList().push_back("../shaders");
+		osgDB::Registry::instance()->getDataFilePathList().push_back("../sample-data");
 
 		m_SceneData = _CreateShadowNode(config.Shadow);
 
