@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(osgVegetation)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 set(CMAKE_MODULE_PATH "${osgVegetation_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
 include(osgv-macros)
 
@@ -14,12 +16,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
 
-SET(CMAKE_DEBUG_POSTFIX  "_d" CACHE STRING "add a debug postfix, usually d on windows")
+set(CMAKE_DEBUG_POSTFIX  "d" CACHE STRING "add a debug postfix, usually d on windows")
+
 add_subdirectory(osgVegetation)
 add_subdirectory(osgVegetationPlugin)
-IF(OSGV_BUILD_APPLICATIONS)
+
+if(OSGV_BUILD_APPLICATIONS)
 	add_subdirectory(applications)
-ENDIF()
-IF(OSGV_BUILD_SAMPLES)
+endif()
+
+if(OSGV_BUILD_SAMPLES)
 	add_subdirectory(samples)
-ENDIF()
+endif()

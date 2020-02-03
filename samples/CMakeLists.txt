@@ -1,27 +1,19 @@
-
-#Copy shared libraries to runtime folder
-#include(OSGDep)
-#FILE(COPY ${OSG_BIN_FILES_DEBUG}  DESTINATION  ${CMAKE_BINARY_DIR}/out/debug) 
-#FILE(COPY ${OSG_BIN_FILES_RELEASE}  DESTINATION  ${CMAKE_BINARY_DIR}/out/release) 
-#FILE(COPY ${OSG_PLUGINS_DIR} DESTINATION  ${CMAKE_BINARY_DIR}/out/debug) 
-#FILE(COPY ${OSG_PLUGINS_DIR} DESTINATION  ${CMAKE_BINARY_DIR}/out/release)
-
 #Copy sample data to out folder
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data  DESTINATION  ${CMAKE_BINARY_DIR}/out) 
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data  DESTINATION  ${CMAKE_BINARY_DIR}/out) 
 
-#ADD_SUBDIRECTORY(sample1)
-#ADD_SUBDIRECTORY(sample2)
-ADD_SUBDIRECTORY(sample3)
-ADD_SUBDIRECTORY(sample4)
-ADD_SUBDIRECTORY(sample8)
+add_subdirectory(sample1)
+add_subdirectory(sample2)
+add_subdirectory(sample3)
+add_subdirectory(sample4)
+add_subdirectory(sample7)
+add_subdirectory(sample8)
+add_subdirectory(sample9)
 
-#Copy shared libraries to install folder
-#INSTALL(DIRECTORY ${OSG_PLUGINS_DIR} DESTINATION bin)
-#INSTALL(FILES ${OSG_BIN_FILES_DEBUG} DESTINATION bin CONFIGURATIONS Debug)
-#INSTALL(FILES ${OSG_BIN_FILES_RELEASE} DESTINATION bin CONFIGURATIONS Release)
+add_subdirectory(test)
+add_subdirectory(test2)
 
 #copy sample data to install folder
-INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION ./ FILES_MATCHING PATTERN "*.*" PATTERN ".svn" EXCLUDE)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION ./)
 
 
 
