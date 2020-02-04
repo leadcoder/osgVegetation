@@ -1,0 +1,5 @@
+Source: osgvegetation
+Version: 2.0.0
+Homepage: https://github.com/leadcoder/osgVegetation
+Description: osgVegetation
+Build-Depends: osg
