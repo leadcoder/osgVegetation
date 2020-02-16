@@ -46,6 +46,13 @@ namespace osgVegetation
 		node->accept(visitor);
 	}
 
+	inline osg::ref_ptr<osg::Node>  CloneAndConvertToPatches(osg::Node* node)
+	{
+		osg::ref_ptr<osg::Node> patches_node = dynamic_cast<osg::Node*>(node->clone(osg::CopyOp::DEEP_COPY_PRIMITIVES | osg::CopyOp::DEEP_COPY_DRAWABLES));
+		ConvertToPatches(patches_node.get());
+		return patches_node;
+	}
+
 	inline osg::Geometry* CreateGeometryFromHeightField(osg::HeightField* hf)
 	{
 		unsigned int numColumns = hf->getNumColumns();
