@@ -10,7 +10,7 @@ namespace osgVegetation
 	public:
 		static void EnableFog(osg::StateSet* state_set, osg::Fog::Mode fog_mode)
 		{
-			const std::string fog_mode_str = "FOG_MODE";
+			const std::string fog_mode_str = "OSG_FOG_MODE";
 			switch (fog_mode)
 			{
 			case osg::Fog::Mode::LINEAR:
@@ -27,7 +27,7 @@ namespace osgVegetation
 
 		static void EnableShadowMapping(osg::StateSet* state_set, unsigned int num_shadow_maps)
 		{
-			const std::string shadow_mode_str = "OV_NUM_SHADOW_MAPS";
+			const std::string shadow_mode_str = "OSG_NUM_SHADOW_MAPS";
 			std::stringstream ss;
 			ss << num_shadow_maps;
 			state_set->setDefine(shadow_mode_str, ss.str());
