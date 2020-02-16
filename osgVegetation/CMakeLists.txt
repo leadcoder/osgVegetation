@@ -15,8 +15,6 @@ set(H_FILES
 	ov_TerrainStateSet.h
 	ov_TextureUnits.h
 	ov_Scene.h
-	ov_Shadow.h
-	ov_Fog.h
 	ov_BillboardMultiLayerEffect.h
 	ov_BillboardLayerStateSet.h
 	ov_PassFilter.h
