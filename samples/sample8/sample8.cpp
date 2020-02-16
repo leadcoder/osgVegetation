@@ -150,13 +150,13 @@ std::vector<osgVegetation::BillboardLayerConfig> GetVegetationLayers()
 
 int main(int argc, char** argv)
 {
-	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
-	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
-	
 	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
 	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
 
-	Demo demo(argc, argv, osgVegetation::Register.Scene);
+	Demo demo(argc, argv);
+	demo.EnableFog(osg::Fog::EXP2);
+	demo.EnableShadow(Demo::SM_LISPSM);
+
 
 	osg::ref_ptr<osg::Group> root_node = new osg::Group();
 	
@@ -166,7 +166,7 @@ int main(int argc, char** argv)
 	osg::ref_ptr<osg::Image> elev_image = LoadElevationImage(HEIGHT_MAP, HEIGHT_MAP_SCALE);
 	osg::ref_ptr<osg::Texture2D> elev_tex = CreateElevationTexture(elev_image);
 	osg::ref_ptr<osg::Node> terrain = createFlatTerrainPatch(TERRAIN_SIZE, 50);
-	terrain->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask);
+	terrain->setNodeMask(osgVegetation::Register.ReceivesShadowTraversalMask);
 
 	osgVegetation::TerrainSplatShadingConfig terrain_shading_config;
 

@@ -167,14 +167,14 @@ private:
 			unsigned int node_mask = getNodeMask();
 
 			if (config.CastShadow)
-				node_mask |= Register.Scene.Shadow.CastsShadowTraversalMask;
+				node_mask |= Register.CastsShadowTraversalMask;
 			else
-				node_mask &= ~Register.Scene.Shadow.CastsShadowTraversalMask;
+				node_mask &= ~Register.CastsShadowTraversalMask;
 
 			if (config.ReceiveShadow)
-				node_mask |= Register.Scene.Shadow.ReceivesShadowTraversalMask;
+				node_mask |= Register.ReceivesShadowTraversalMask;
 			else
-				node_mask &= ~Register.Scene.Shadow.ReceivesShadowTraversalMask;
+				node_mask &= ~Register.ReceivesShadowTraversalMask;
 
 			setNodeMask(node_mask);
 		}

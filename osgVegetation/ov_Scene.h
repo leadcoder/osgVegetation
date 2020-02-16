@@ -1,24 +1,36 @@
 #pragma once
 #include "ov_Common.h"
-#include "ov_Shadow.h"
-#include "ov_Fog.h"
+#include <osg/Fog>
+#include <sstream>
 
 namespace osgVegetation
 {
-	class SceneConfig
+	class Scene
 	{
 	public:
-		SceneConfig()
+		static void EnableFog(osg::StateSet* state_set, osg::Fog::Mode fog_mode)
 		{
-
+			const std::string fog_mode_str = "FOG_MODE";
+			switch (fog_mode)
+			{
+			case osg::Fog::Mode::LINEAR:
+				state_set->setDefine(fog_mode_str, "1");
+				break;
+			case osg::Fog::Mode::EXP:
+				state_set->setDefine(fog_mode_str, "2");
+				break;
+			case osg::Fog::Mode::EXP2:
+				state_set->setDefine(fog_mode_str, "3");
+				break;
+			}
 		}
-		ShadowSettings Shadow;
-		FogSettings Fog;
 
-		void Apply(osg::StateSet* state_set)
+		static void EnableShadowMapping(osg::StateSet* state_set, unsigned int num_shadow_maps)
 		{
-			Shadow.Apply(state_set);
-			Fog.Apply(state_set);
+			const std::string shadow_mode_str = "OV_NUM_SHADOW_MAPS";
+			std::stringstream ss;
+			ss << num_shadow_maps;
+			state_set->setDefine(shadow_mode_str, ss.str());
 		}
 	};
 }

@@ -24,14 +24,11 @@ namespace osgVegetation
 
 int main(int argc, char** argv)
 {
-	
-	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_DISABLED;
-	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
 	osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
 	osgVegetation::Register.TexUnits.AddUnit(1, OV_TERRAIN_SPLAT_TEXTURE_ID);
 
-	Demo demo(argc, argv, osgVegetation::Register.Scene);
-
+	Demo demo(argc, argv);
+	//demo.EnableFog(osg::Fog::EXP2);
 	//Setup billboard grass layer
 	osg::ref_ptr<osgVegetation::BillboardLayerConfig> grass_layer = new osgVegetation::BillboardLayerConfig();
 	grass_layer->MaxDistance = 140;

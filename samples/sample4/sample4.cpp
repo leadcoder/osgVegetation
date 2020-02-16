@@ -141,11 +141,9 @@ osg::ref_ptr<osg::Group> CreateTerrain(double terrain_size)
 
 int main(int argc, char** argv)
 {
-	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_VDSM2;
-	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
-
-	Demo demo(argc, argv, osgVegetation::Register.Scene);
-
+	Demo demo(argc, argv);
+	demo.EnableFog(osg::Fog::EXP2);
+	demo.EnableShadow(Demo::SM_VDSM2);
 	const double terrain_size = 2000;
 
 //#define REUSE_TERRAIN

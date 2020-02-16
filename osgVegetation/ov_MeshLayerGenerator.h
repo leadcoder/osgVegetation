@@ -112,7 +112,7 @@ namespace osgVegetation
 			osg::BoundingSphere _bounds;
 		};
 	public:
-		MeshLayerGenerator(const MeshLayerConfig &config)
+		MeshLayerGenerator(const MeshLayerConfig& config)
 		{
 			GPUCullData* gpuData = _CreateGPUData(config);
 			m_TerrainStateSet = _CreateTerrainStateSet(gpuData);
@@ -129,22 +129,27 @@ namespace osgVegetation
 			//osg::BoundingSphere bs;
 			m_InstanceGroup = _CreateInstanceGroup(gpuData);
 
-			if(config.BackFaceCulling)
+			if (config.BackFaceCulling)
+			{
 				m_InstanceGroup->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(osg::CullFace::BACK));
+				m_InstanceGroup->getOrCreateStateSet()->setMode(GL_CULL_FACE, osg::StateAttribute::ON);
+			}
+			else
+				m_InstanceGroup->getOrCreateStateSet()->setMode(GL_CULL_FACE, osg::StateAttribute::OFF);
 
 			
 
 			unsigned int node_mask = m_InstanceGroup->getNodeMask();
 
 			if (config.CastShadow)
-				node_mask |= Register.Scene.Shadow.CastsShadowTraversalMask;
+				node_mask |= Register.CastsShadowTraversalMask;
 			else
-				node_mask &= ~Register.Scene.Shadow.CastsShadowTraversalMask;
+				node_mask &= ~Register.CastsShadowTraversalMask;
 
 			if (config.ReceiveShadow)
-				node_mask |= Register.Scene.Shadow.ReceivesShadowTraversalMask;
+				node_mask |= Register.ReceivesShadowTraversalMask;
 			else
-				node_mask &= ~Register.Scene.Shadow.ReceivesShadowTraversalMask;
+				node_mask &= ~Register.ReceivesShadowTraversalMask;
 
 			m_InstanceGroup->setNodeMask(node_mask);
 			

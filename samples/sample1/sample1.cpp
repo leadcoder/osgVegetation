@@ -28,13 +28,13 @@ namespace osgVegetation
 
 int main(int argc, char** argv)
 {
-	//Enable LiSPSM shadows
-	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_LISPSM;
+	Demo demo(argc, argv);
 	
 	//Enable fog
-	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_EXP2;
-
-	Demo demo(argc, argv, osgVegetation::Register.Scene);
+	demo.EnableFog(osg::Fog::LINEAR);
+	//Enable shadows
+	demo.EnableShadow(Demo::SM_VDSM1);
+	
 
 	osg::ref_ptr<osg::Group> root_node = new osg::Group();
 
@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 	osgVegetation::ConvertToPatches(vegetation_terrain);
 
 	//Disable terrain selfshadow (after copy/clone, we wan't vegetation to cast shadows)
-	terrain->setNodeMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask);
+	terrain->setNodeMask(osgVegetation::Register.ReceivesShadowTraversalMask);
 
 	//Setup two grass layers, 
 	//the first layer is more dens but with shorter render distance,

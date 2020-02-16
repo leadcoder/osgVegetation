@@ -203,7 +203,7 @@ namespace osgVegetation
 			}
 
 			//disable terrain self shadowing
-			TerrainNodeMaskVisitor mask_visitor(~Register.Scene.Shadow.CastsShadowTraversalMask);
+			TerrainNodeMaskVisitor mask_visitor(~Register.CastsShadowTraversalMask);
 			rr.getNode()->accept(mask_visitor);
 
 #ifdef OV_USE_TILE_ID_LOD_LEVEL

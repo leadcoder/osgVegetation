@@ -217,19 +217,19 @@ namespace osgVegetation
 
 	void loadRegister(TiXmlElement *register_elem)
 	{
-		register_elem->QueryUnsignedAttribute("CastsShadowTraversalMask", &osgVegetation::Register.Scene.Shadow.CastsShadowTraversalMask);
-		register_elem->QueryUnsignedAttribute("ReceivesShadowTraversalMask", &Register.Scene.Shadow.ReceivesShadowTraversalMask);
-		if (register_elem->Attribute("ShadowMode"))
-		{
-			const std::string sm_str = register_elem->Attribute("ShadowMode");
-			Register.Scene.Shadow.Mode = Register.Scene.Shadow.StringToMode(sm_str);
-		}
+		register_elem->QueryUnsignedAttribute("CastsShadowTraversalMask", &osgVegetation::Register.CastsShadowTraversalMask);
+		register_elem->QueryUnsignedAttribute("ReceivesShadowTraversalMask", &Register.ReceivesShadowTraversalMask);
+		//if (register_elem->Attribute("ShadowMode"))
+		//{
+		//	const std::string sm_str = register_elem->Attribute("ShadowMode");
+		//	Register.Scene.Shadow.Mode = Register.Scene.Shadow.StringToMode(sm_str);
+		//}
 
-		if (register_elem->Attribute("FogMode"))
-		{
-			const std::string fm_str = register_elem->Attribute("FogMode");
-			Register.Scene.Fog.Mode = Register.Scene.Fog.StringToMode(fm_str);
-		}
+		//if (register_elem->Attribute("FogMode"))
+		//{
+		//	const std::string fm_str = register_elem->Attribute("FogMode");
+			//Register.Scene.Fog.Mode = Register.Scene.Fog.StringToMode(fm_str);
+		//}
 
 		//check texture units
 		int tu_color = 0;

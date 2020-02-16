@@ -76,8 +76,6 @@ int main(int argc, char **argv)
 	osg::ref_ptr<osg::Group> root = new osg::Group;
 
 
-	osgVegetation::Register.Scene.Shadow.Mode = osgVegetation::SM_DISABLED;
-	osgVegetation::Register.Scene.Fog.Mode = osgVegetation::FM_DISABLED;
 
 	//Control texture slots
 	osgVegetation::Register.TexUnits.AddUnit(0, OV_TERRAIN_COLOR_TEXTURE_ID);
@@ -201,8 +199,8 @@ int main(int argc, char **argv)
 		//sm->setShadowVertexShader(NULL);
 
 		
-		shadowedScene->setReceivesShadowTraversalMask(osgVegetation::Register.Scene.Shadow.ReceivesShadowTraversalMask);
-		shadowedScene->setCastsShadowTraversalMask(osgVegetation::Register.Scene.Shadow.CastsShadowTraversalMask);
+		shadowedScene->setReceivesShadowTraversalMask(osgVegetation::Register.ReceivesShadowTraversalMask);
+		shadowedScene->setCastsShadowTraversalMask(osgVegetation::Register.CastsShadowTraversalMask);
 
 		//sm->setMainFragmentShader(NULL);
 		osg::Shader* mainFragmentShader = new osg::Shader(osg::Shader::FRAGMENT,
@@ -230,7 +228,6 @@ int main(int argc, char **argv)
 		sm->setMainFragmentShader(mainFragmentShader);
 		shadowedScene->setShadowTechnique(sm);
 		shadowedScene->addChild(root);
-
 
 		osg::StateSet::DefineList& defineList = root->getOrCreateStateSet()->getDefineList();
 		defineList["SM_LISPSM"].second = (osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);

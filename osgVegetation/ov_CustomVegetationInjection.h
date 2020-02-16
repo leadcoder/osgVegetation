@@ -141,9 +141,9 @@ namespace osgVegetation
 				rr.getNode()->accept(collection);
 
 				if(!m_TerrainCastShadow)
-					ApplyNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask, collection.TerrainTiles);
+					ApplyNodeMask(~Register.CastsShadowTraversalMask, collection.TerrainTiles);
 				if (!m_ObjectsCastShadow)
-					ApplyNodeMask(~Register.Scene.Shadow.CastsShadowTraversalMask, collection.Objects);
+					ApplyNodeMask(~Register.CastsShadowTraversalMask, collection.Objects);
 			
 				if (m_TerrainStateSet)
 				{

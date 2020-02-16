@@ -7,12 +7,12 @@
 #include <osgShadow/StandardShadowMap>
 #include <osgShadow/ViewDependentShadowMap>
 
-osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowSettings config)
+osg::ref_ptr<osg::Group> CreateShadowNode()
 {
 	osgVegetation::Register.TexUnits.AddUnit(6, OV_SHADOW_TEXTURE0_ID);
 	osgVegetation::Register.TexUnits.AddUnit(7, OV_SHADOW_TEXTURE1_ID);
 	int shadowTexUnit = osgVegetation::Register.TexUnits.GetUnit(OV_SHADOW_TEXTURE0_ID);
-	if (config.Mode == osgVegetation::SM_LISPSM)
+	if (true)//config.Mode == osgVegetation::SM_LISPSM)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
 
@@ -40,8 +40,8 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowSettings config)
 		//sm->setMainVertexShader( NULL );
 		//sm->setShadowVertexShader(NULL);
 	
-		shadowedScene->setReceivesShadowTraversalMask(config.ReceivesShadowTraversalMask);
-		shadowedScene->setCastsShadowTraversalMask(config.CastsShadowTraversalMask);
+		shadowedScene->setReceivesShadowTraversalMask(osgVegetation::Register.ReceivesShadowTraversalMask);
+		shadowedScene->setCastsShadowTraversalMask(osgVegetation::Register.CastsShadowTraversalMask);
 
 		//sm->setMainFragmentShader(NULL);
 		osg::Shader* mainFragmentShader = new osg::Shader(osg::Shader::FRAGMENT,
@@ -80,14 +80,14 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowSettings config)
 
 		return shadowedScene;
 	}
-	else if (config.Mode == osgVegetation::SM_VDSM1 ||
-		config.Mode == osgVegetation::SM_VDSM2)
+	else// if (config.Mode == osgVegetation::SM_VDSM1 ||
+		//config.Mode == osgVegetation::SM_VDSM2)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
 		int mapres = 2048;
 		osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
-		settings->setReceivesShadowTraversalMask(config.ReceivesShadowTraversalMask | 0x1);
-		settings->setCastsShadowTraversalMask(config.CastsShadowTraversalMask);
+		settings->setReceivesShadowTraversalMask(osgVegetation::Register.ReceivesShadowTraversalMask | 0x1);
+		settings->setCastsShadowTraversalMask(osgVegetation::Register.CastsShadowTraversalMask);
 		//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::PERSPECTIVE_SHADOW_MAP);
 		//settings->setShadowMapProjectionHint(osgShadow::ShadowSettings::ORTHOGRAPHIC_SHADOW_MAP);
 		
@@ -96,7 +96,7 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowSettings config)
 		double n = 0.5;
 		settings->setMinimumShadowMapNearFarRatio(n);
 	
-		const unsigned int numShadowMaps = (config.Mode == osgVegetation::SM_VDSM1) ? 1 : 2;
+		const unsigned int numShadowMaps =  2;
 		settings->setNumShadowMapsPerLight(numShadowMaps);
 		
 		//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
@@ -124,8 +124,8 @@ osg::ref_ptr<osg::Group> CreateShadowNode(osgVegetation::ShadowSettings config)
 
 		return shadowedScene;
 	}
-	else
+	/*else
 	{
 		return new osg::Group();
-	}
+	}*/
 }
