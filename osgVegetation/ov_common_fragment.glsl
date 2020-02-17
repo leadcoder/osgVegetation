@@ -1,4 +1,4 @@
-#pragma import_defines (OSG_NUM_SHADOW_MAPS, OSG_FOG_MODE)
+#pragma import_defines (OSG_LIGHTING, OSG_NUM_SHADOW_MAPS, OSG_FOG_MODE)
 
 #ifdef OSG_NUM_SHADOW_MAPS
 //pick sampler and units names from vdsm, 
@@ -29,6 +29,7 @@ float ov_getShadow()
 
 vec3 ov_directionalLightShadow(vec3 normal, vec3 diffuse)
 {
+#ifdef OSG_LIGHTING
 	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
 	float NdotL = max(dot(normal, light_dir), 0.0);
 
@@ -40,14 +41,21 @@ vec3 ov_directionalLightShadow(vec3 normal, vec3 diffuse)
 	//	light += gl_LightSource[0].specular.xyz * pow( NdotHV, 1.0);
     //light += gl_FrontLightProduct[0].specular.xyz * pow( NdotHV, gl_FrontMaterial.shininess );
 	return light;
+#else
+	return diffuse;
+#endif
 }
 
 vec3 ov_directionalLight(vec3 normal, vec3 diffuse)
 {
+#ifdef OSG_LIGHTING
 	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
 	float NdotL = max(dot(normal, light_dir), 0.0);
 	vec3 light = min(NdotL * diffuse*gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz , 1.0);
 	return light;
+#else
+	return diffuse;
+#endif
 }
 
 vec3 ov_applyFog(vec3 color, float depth)

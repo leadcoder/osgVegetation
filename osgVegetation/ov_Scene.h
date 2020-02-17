@@ -8,6 +8,11 @@ namespace osgVegetation
 	class Scene
 	{
 	public:
+		static void SetLighting(osg::StateSet* state_set, bool value)
+		{
+			state_set->setDefine("OSG_LIGHTING", value ? osg::StateAttribute::ON : osg::StateAttribute::OFF);
+		}
+
 		static void EnableFog(osg::StateSet* state_set, osg::Fog::Mode fog_mode)
 		{
 			const std::string fog_mode_str = "OSG_FOG_MODE";
