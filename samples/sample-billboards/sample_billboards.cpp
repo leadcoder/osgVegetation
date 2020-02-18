@@ -71,8 +71,7 @@ int main(int argc, char** argv)
 	// create root node
 	osg::ref_ptr<osg::Group> root_node = new osg::Group();
 
-	viewer.addEventHandler(new ovSampleUtils::StateSetManipulator(root_node->getOrCreateStateSet()));
-
+	
 	//add osg light
 	osg::ref_ptr<osg::LightSource> light_source = ovSampleUtils::createSunLight();
 	root_node->addChild(light_source);
@@ -87,6 +86,9 @@ int main(int argc, char** argv)
 
 	//enable fog in ov
 	osgVegetation::Scene::EnableFog(root_node->getOrCreateStateSet(), fog->getMode());
+
+	viewer.addEventHandler(new ovSampleUtils::StateSetManipulator(root_node->getOrCreateStateSet(), fog));
+
 	
 	//Create the terrain geometry and add it to scene
 	osg::ref_ptr<osg::Node> terrain = ovSampleUtils::createFlatGrid(4000, 50);

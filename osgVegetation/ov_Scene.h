@@ -13,6 +13,11 @@ namespace osgVegetation
 			state_set->setDefine("OSG_LIGHTING", value ? osg::StateAttribute::ON : osg::StateAttribute::OFF);
 		}
 
+		static void DisableFog(osg::StateSet* state_set)
+		{
+			state_set->removeDefine("OSG_FOG_MODE");
+		}
+
 		static void EnableFog(osg::StateSet* state_set, osg::Fog::Mode fog_mode)
 		{
 			const std::string fog_mode_str = "OSG_FOG_MODE";

@@ -35,7 +35,7 @@ namespace ovSampleUtils
 		const osg::Vec4 fog_color(0.5, 0.6, 0.7, 1.0);
 		osg::ref_ptr<osg::Fog> fog = new osg::Fog();
 		fog->setMode(osg::Fog::Mode(fog_mode));
-		fog->setDensity(0.0005);
+		fog->setDensity(0.001);
 		fog->setColor(fog_color);
 		if (fog_mode == osg::Fog::Mode::LINEAR)
 		{
