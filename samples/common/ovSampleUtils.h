@@ -3,6 +3,10 @@
 #include <osg/Geode>
 #include <osg/LightSource>
 #include <osg/Fog>
+#include <osgShadow/ShadowedScene>
+#include <osgShadow/LightSpacePerspectiveShadowMap>
+#include <osgShadow/ViewDependentShadowMap>
+
 #include "ovSampleUtils_StateSetManipulator.h"
 namespace ovSampleUtils
 {
@@ -43,6 +47,92 @@ namespace ovSampleUtils
 			fog->setEnd(500);
 		}
 		return fog;
+	}
+
+	osg::ref_ptr<osgShadow::ShadowedScene> createShadowedSceneLiSPSM()
+	{
+		const int mapres = 2048;
+		const float minLightMargin = 20.f;
+		const float maxFarPlane = 400;
+		const int baseTexUnit = 0;
+		const int shadowTexUnit = 6;
+
+		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
+		osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
+		
+		osg::ref_ptr<osgShadow::LightSpacePerspectiveShadowMapVB> lispsm = new osgShadow::LightSpacePerspectiveShadowMapVB;
+		osg::ref_ptr<osgShadow::MinimalShadowMap> sm = lispsm;
+		sm->setMinLightMargin(minLightMargin);
+		sm->setMaxFarPlane(maxFarPlane);
+		sm->setTextureSize(osg::Vec2s(mapres, mapres));
+		sm->setBaseTextureCoordIndex(baseTexUnit);
+		sm->setBaseTextureUnit(baseTexUnit);
+		sm->setShadowTextureCoordIndex(shadowTexUnit);
+		sm->setShadowTextureUnit(shadowTexUnit);
+		shadowedScene->setReceivesShadowTraversalMask(0x2);
+		shadowedScene->setCastsShadowTraversalMask(0x4);
+
+		osg::Shader* mainFragmentShader = new osg::Shader(osg::Shader::FRAGMENT,
+			" // following expressions are auto modified - do not change them:       \n"
+			" // gl_TexCoord[0]  0 - can be subsituted with other index              \n"
+			"                                                                        \n"
+			"float DynamicShadow( );                                                 \n"
+			"                                                                        \n"
+			"uniform sampler2D baseTexture;                                          \n"
+			"                                                                        \n"
+			"void main(void)                                                         \n"
+			"{                                                                       \n"
+			"  vec4 colorAmbientEmissive = gl_FrontLightModelProduct.sceneColor;     \n"
+			"  // Add ambient from Light of index = 0                                \n"
+			"  colorAmbientEmissive += gl_FrontLightProduct[0].ambient;              \n"
+			"  vec4 color = texture2D( baseTexture, gl_TexCoord[0].xy );             \n"
+			"  color *= mix( colorAmbientEmissive, gl_Color, DynamicShadow() );      \n"
+			"    float depth = gl_FragCoord.z / gl_FragCoord.w;\n"
+			"    float fogFactor = exp(-pow((gl_Fog.density * depth), 2.0));\n"
+			"    fogFactor = clamp(fogFactor, 0.0, 1.0);\n"
+			"    //color.rgb = mix( gl_Fog.color.rgb, color.rgb, fogFactor );            \n"
+			"    gl_FragColor = color;                                                 \n"
+			"} \n");
+
+		sm->setMainFragmentShader(mainFragmentShader);
+		shadowedScene->setShadowTechnique(sm);
+
+		//Add texture sampler and unit uniforms,to match vdms and our shadow shaders
+		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit0");
+		shadowTextureUnit->set(shadowTexUnit);
+		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit);
+
+		osg::Uniform* shadowTextureSampler = new osg::Uniform(osg::Uniform::INT, "shadowTexture0");
+		shadowTextureSampler->set(shadowTexUnit);
+		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureSampler);
+		return shadowedScene;
+	}
+
+	osg::ref_ptr<osgShadow::ShadowedScene> createShadowedSceneVDSM(int numShadowMaps = 2)
+	{
+		const int shadowTexUnit = 6;
+		const int mapres = 2048;
+		const double n = 0.5;
+		const double maxDistance = 800;
+		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
+		osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
+		settings->setReceivesShadowTraversalMask(0x2);
+		settings->setCastsShadowTraversalMask(0x4);
+		settings->setBaseShadowTextureUnit(shadowTexUnit);
+		settings->setMinimumShadowMapNearFarRatio(n);
+		settings->setNumShadowMapsPerLight(numShadowMaps);
+		//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::PARALLEL_SPLIT);
+		//settings->setMultipleShadowMapHint(osgShadow::ShadowSettings::CASCADED);
+		settings->setMaximumShadowMapDistance(maxDistance);
+		settings->setTextureSize(osg::Vec2s(mapres, mapres));
+		//settings->setComputeNearFarModeOverride(osg::CullSettings::DO_NOT_COMPUTE_NEAR_FAR);
+		//settings->setComputeNearFarModeOverride(osg::CullSettings::COMPUTE_NEAR_FAR_USING_PRIMITIVES);
+		settings->setComputeNearFarModeOverride(osg::CullSettings::COMPUTE_NEAR_FAR_USING_BOUNDING_VOLUMES);
+		//settings->setShaderHint(osgShadow::ShadowSettings::NO_SHADERS);
+		settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
+		osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
+		shadowedScene->setShadowTechnique(vdsm.get());
+		return shadowedScene;
 	}
 
 	osg::ref_ptr<osg::Node> createFlatGrid(double terrain_size, int samples, bool tess = false)
@@ -98,13 +188,13 @@ namespace ovSampleUtils
 		{
 			for (unsigned int c = 0; c < numColumns - 1; ++c)
 			{
-				drawElements[ei++] = r * numColumns + c;
+				drawElements[ei++] = (r + 1) * numColumns + c + 1;
 				drawElements[ei++] = (r + 1) * numColumns + c;
-				drawElements[ei++] = (r + 1) * numColumns + c + 1;
-
 				drawElements[ei++] = r * numColumns + c;
-				drawElements[ei++] = (r + 1) * numColumns + c + 1;
+				
 				drawElements[ei++] = r * numColumns + c + 1;
+				drawElements[ei++] = (r + 1) * numColumns + c + 1;
+				drawElements[ei++] = r * numColumns + c;
 			}
 		}
 		osg::ref_ptr < osg::Geode> geode = new osg::Geode();

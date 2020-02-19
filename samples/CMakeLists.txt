@@ -1,5 +1,6 @@
 
-add_subdirectory(sample-billboards)
+add_subdirectory(sample-billboard-layers)
+add_subdirectory(sample-mesh-layers)
 
 add_subdirectory(sample1)
 add_subdirectory(sample2)
