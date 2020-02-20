@@ -2,6 +2,7 @@
 #include "ov_LayerGenerator.h"
 #include "ov_Utils.h"
 #include "ov_Scene.h"
+#include "ov_TerrainSplatShadingStateSet.h"
 #include "ovSampleUtils.h"
 #include <osg/ArgumentParser>
 #include <osgDB/ReadFile>
@@ -17,7 +18,7 @@
 
 namespace osgVegetation { GlobalRegister Register; }
 
-std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > createMeshLayers()
+std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > createVegetionConfig()
 {
 	std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > layers;
 	
@@ -25,19 +26,46 @@ std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > createMeshLayers()
 	tree_layer->BackFaceCulling = true;
 	tree_layer->CastShadow = true;
 	tree_layer->ReceiveShadow = false;
+	tree_layer->Filter.SplatFilter = "if(splat_color.g < 0.5) return false;";
 	osgVegetation::MeshTypeConfig mesh;
 	const float end_dist = 1000.0f;
 	const float mix_dist = 10.0f;
 	const float lod_dist = 80.0f;
-	//mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/maple/maple.obj", osg::Vec4(0, 0, 50, 61), 0U, 1.0));
-	//mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/maple/maple_bb.osg", osg::Vec4(50, 60, end_dist, end_dist + 10), 1, 1.0));
-	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l0.osg", osg::Vec4(0.0f, 0.0f, lod_dist, lod_dist + mix_dist)));
-	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1.osg", osg::Vec4(lod_dist - mix_dist, lod_dist + mix_dist, end_dist-100, end_dist)));
+	const float intensity = 1.2;
+	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l0.osg", osg::Vec4(0.0f, 0.0f, lod_dist, lod_dist + mix_dist),0, intensity));
+	mesh.MeshLODs.push_back(osgVegetation::MeshTypeConfig::MeshLODConfig("trees/fir01_l1.osg", osg::Vec4(lod_dist - mix_dist, lod_dist + mix_dist, end_dist-100, end_dist), 0, intensity));
 	mesh.DiffuseIntensity = 1.0;
-	mesh.IntensityVariation = 0;
+	mesh.IntensityVariation = 0.6;
+	mesh.ScaleVariation = 0.2;
 	tree_layer->MeshTypes.push_back(mesh);
 	layers.push_back(tree_layer);
+
+	osg::ref_ptr <osgVegetation::BillboardLayerConfig> grass_layer_1 = new osgVegetation::BillboardLayerConfig();
+	grass_layer_1->Type = osgVegetation::BillboardLayerConfig::BLT_GRASS;
+	grass_layer_1->MaxDistance = 100;
+	grass_layer_1->Density = 0.4;
+	grass_layer_1->ColorImpact = 0.7;
+	grass_layer_1->CastShadow = false;
+	grass_layer_1->Filter.SplatFilter = "if(splat_color.g < 0.5  && splat_color.r < 0.5) return false;";
+	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 1.0, 0.008));
+	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 1.0, 0.002));
+	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	layers.push_back(grass_layer_1);
+
 	return layers;
+}
+
+osgVegetation::TerrainSplatShadingConfig createSplatShadingConfig()
+{
+	osgVegetation::TerrainSplatShadingConfig terrain_shading;
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_dirt.jpg"), 0.05));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_patch_grass.jpg"), 0.09));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass.jpg"), 0.09));
+	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_stones.jpg"), 0.05));
+	terrain_shading.NoiseTexture.File = "terrain/detail/noise.png";
+	terrain_shading.SplatTexture.File = "terrain/terrain_splat.png";
+	terrain_shading.ColorModulateRatio = 0;
+	return terrain_shading;
 }
 
 int main(int argc, char** argv)
@@ -66,7 +94,7 @@ int main(int argc, char** argv)
 
 	// create root node
 	osg::ref_ptr<osg::Group> root_node= new osg::Group();
-	if (false)
+	if (true)
 	{
 		osg::ref_ptr<osgShadow::ShadowedScene> shadow_scene = ovSampleUtils::createShadowedSceneVDSM();
 		osgVegetation::Scene::EnableShadowMapping(shadow_scene->getOrCreateStateSet(), shadow_scene->getShadowSettings()->getNumShadowMapsPerLight());
@@ -91,19 +119,23 @@ int main(int argc, char** argv)
 	osgVegetation::Scene::EnableFog(root_node->getOrCreateStateSet(), fog->getMode());
 
 	viewer.addEventHandler(new ovSampleUtils::StateSetManipulator(root_node->getOrCreateStateSet(), fog));
-
 	
-	//Create the terrain geometry and add it to scene
+	//Create the shading node that will be parent to the terrain and the vegetation node
+	osg::ref_ptr<osg::Group> splat_shading = new osg::Group();
+	splat_shading->setStateSet(new osgVegetation::TerrainSplatShadingStateSet(createSplatShadingConfig()));
+	root_node->addChild(splat_shading);
+
+	//Create the terrain geometry
 	osg::ref_ptr<osg::Node> terrain = ovSampleUtils::createFlatGrid(4000, 50);
-	root_node->addChild(terrain);
+	splat_shading->addChild(terrain);
 
 	//create the layer generator from our configuration
-	osgVegetation::LayerGenerator layer_generator(createMeshLayers());
-
-	//Make a clone of the terrain model and prepare the copy for tessellation (convert it to use GL_PATCHES)
-	osg::ref_ptr<osg::Node> vegetation_terrain = osgVegetation::CloneAndConvertToPatches(terrain);
-	osg::ref_ptr<osg::Group> vegetation_node = layer_generator.CreateVegetationNode(vegetation_terrain);
-	root_node->addChild(vegetation_node);
+	osgVegetation::LayerGenerator layer_generator(createVegetionConfig());
+	osg::ref_ptr<osg::Group> vegetation = layer_generator.CreateVegetationNode(osgVegetation::CloneAndConvertToPatches(terrain));
+	
+	//Note; by adding the vegetation-node to the splat-shading-node vegetation shaders will get access to terrain textures 
+	//that can be used for color matching or placement filtering
+	splat_shading->addChild(vegetation);
 
 	viewer.setSceneData(root_node);
 
