@@ -120,7 +120,7 @@ int main(int argc, char** argv)
 
 	viewer.addEventHandler(new ovSampleUtils::StateSetManipulator(root_node->getOrCreateStateSet(), fog));
 	
-	//Create the shading node that will be parent to the terrain and the vegetation node
+	//Create the shading node that will be parent node to both terrain and the vegetation node
 	osg::ref_ptr<osg::Group> splat_shading = new osg::Group();
 	splat_shading->setStateSet(new osgVegetation::TerrainSplatShadingStateSet(createSplatShadingConfig()));
 	root_node->addChild(splat_shading);
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 	osg::ref_ptr<osg::Node> terrain = ovSampleUtils::createFlatGrid(4000, 50);
 	splat_shading->addChild(terrain);
 
-	//create the layer generator from our configuration
+	//Create the layer generator from our configuration
 	osgVegetation::LayerGenerator layer_generator(createVegetionConfig());
 	osg::ref_ptr<osg::Group> vegetation = layer_generator.CreateVegetationNode(osgVegetation::CloneAndConvertToPatches(terrain));
 	
@@ -138,8 +138,7 @@ int main(int argc, char** argv)
 	splat_shading->addChild(vegetation);
 
 	viewer.setSceneData(root_node);
-
-	//viewer.setUpViewAcrossAllScreens();
+	
 	viewer.setUpViewInWindow(100, 100, 800, 600);
 
 	viewer.getCamera()->getGraphicsContext()->getState()->setUseModelViewAndProjectionUniforms(true);
