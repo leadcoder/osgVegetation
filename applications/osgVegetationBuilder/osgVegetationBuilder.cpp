@@ -7,10 +7,6 @@
 #include <osgDB/FileNameUtils>
 #include <iostream>
 #include <sstream>
-#include "BillboardQuadTreeScattering.h"
-#include "MeshQuadTreeScattering.h"
-#include "Serializer.h"
-#include "TerrainQuery.h"
 
 int main( int argc, char **argv )
 {

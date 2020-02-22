@@ -1,23 +1,40 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
-PROJECT(osgVegetation)
-SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
-SET(CMAKE_MODULE_PATH "${osgVegetation_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
+cmake_minimum_required(VERSION 3.13)
+project(osgVegetation)
 
-FIND_PACKAGE(OpenSceneGraph REQUIRED osgUtil osgDB osgGA osgText osgShadow osgViewer osgSim osgTerrain)
-#FIND_PACKAGE(OpenSceneGraph 3.3.8 REQUIRED osgUtil osgDB osgGA osgText osgShadow osgViewer osgSim osgTerrain)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-OPTION(OSGV_BUILD_SAMPLES "Build sample" ON)
-OPTION(OSGV_BUILD_APPLICATIONS "Build applications" ON)
+set(CMAKE_MODULE_PATH "${osgVegetation_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
+include(osgv-macros)
 
-SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
-SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
+find_package(OpenSceneGraph REQUIRED osgUtil osgDB osgGA osgText osgShadow osgViewer osgSim osgTerrain)
+include(osg-version)
 
-SET(CMAKE_DEBUG_POSTFIX  "_d" CACHE STRING "add a debug postfix, usually d on windows")
-ADD_SUBDIRECTORY(osgVegetation)
-IF(OSGV_BUILD_APPLICATIONS)
-	ADD_SUBDIRECTORY(applications)
-ENDIF()
-IF(OSGV_BUILD_SAMPLES)
-	ADD_SUBDIRECTORY(samples)
-ENDIF()
+option(OSGV_BUILD_SAMPLES "Build sample" ON)
+option(OSGV_BUILD_PLUGIN "Build plugin" ON)
+option(OSGV_BUILD_APPLICATIONS "Build applications" ON)
+
+set(OSGV_INCLUDE_INSTALL_DIR include/osgVegetation)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/out/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/out/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/out/bin)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/out/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/out/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/out/bin)
+
+set(CMAKE_DEBUG_POSTFIX  "d" CACHE STRING "add a debug postfix, usually d on windows")
+
+add_subdirectory(osgVegetation)
+
+if(OSGV_BUILD_PLUGIN)
+	add_subdirectory(osgVegetationPlugin)
+endif()
+
+if(OSGV_BUILD_APPLICATIONS)
+	add_subdirectory(applications)
+endif()
+
+if(OSGV_BUILD_SAMPLES)
+	add_subdirectory(samples)
+endif()

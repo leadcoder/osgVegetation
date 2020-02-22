@@ -1,5 +1,5 @@
-ADD_SUBDIRECTORY(osgVegetationBuilder)
-ADD_SUBDIRECTORY(osgVegetationViewer)
+#ADD_SUBDIRECTORY(osgVegetationBuilder)
+#ADD_SUBDIRECTORY(osgVegetationViewer)
 
 
 

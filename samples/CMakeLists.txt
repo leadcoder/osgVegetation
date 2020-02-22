@@ -1,25 +1,21 @@
 
-#Copy shared libraries to runtime folder
-#include(OSGDep)
-#FILE(COPY ${OSG_BIN_FILES_DEBUG}  DESTINATION  ${CMAKE_BINARY_DIR}/out/debug) 
-#FILE(COPY ${OSG_BIN_FILES_RELEASE}  DESTINATION  ${CMAKE_BINARY_DIR}/out/release) 
-#FILE(COPY ${OSG_PLUGINS_DIR} DESTINATION  ${CMAKE_BINARY_DIR}/out/debug) 
-#FILE(COPY ${OSG_PLUGINS_DIR} DESTINATION  ${CMAKE_BINARY_DIR}/out/release)
+add_subdirectory(sample-billboard-layers)
+add_subdirectory(sample-mesh-layers)
+add_subdirectory(sample-terrain-shaders)
 
-#Copy sample data to out folder
-FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/data  DESTINATION  ${CMAKE_BINARY_DIR}/out) 
+#add_subdirectory(sample1)
+#add_subdirectory(sample2)
+#add_subdirectory(sample3)
+#add_subdirectory(sample4)
+#add_subdirectory(sample7)
+#add_subdirectory(sample8)
+#add_subdirectory(sample9)
+#add_subdirectory(test)
+#add_subdirectory(test2)
 
-ADD_SUBDIRECTORY(sample1)
-ADD_SUBDIRECTORY(sample2)
-#ADD_SUBDIRECTORY(sample3)
-
-#Copy shared libraries to install folder
-#INSTALL(DIRECTORY ${OSG_PLUGINS_DIR} DESTINATION bin)
-#INSTALL(FILES ${OSG_BIN_FILES_DEBUG} DESTINATION bin CONFIGURATIONS Debug)
-#INSTALL(FILES ${OSG_BIN_FILES_RELEASE} DESTINATION bin CONFIGURATIONS Release)
-
-#copy sample data to install folder
-INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION ./ FILES_MATCHING PATTERN "*.*" PATTERN ".svn" EXCLUDE)
+#install data
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sample-data/ DESTINATION sample-data)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/sample-data  DESTINATION  ${CMAKE_BINARY_DIR}/out) 
 
 
 

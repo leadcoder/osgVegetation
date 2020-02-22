@@ -1,0 +1,237 @@
+Group {
+  nodeMask 0xffffffff
+  cullingActive TRUE
+  StateSet {
+    rendering_hint DEFAULT_BIN
+    renderBinMode INHERIT
+    GL_CULL_FACE ON
+    GL_ALPHA_TEST ON
+    Uniform {
+      name "ov_color_texture"
+      type int 1 IntArray 1
+      {
+        0 
+      }
+    }
+    AlphaFunc {
+      comparisonFunc GEQUAL
+      referenceValue 0.3
+    }
+    CullFace {
+      mode BACK
+    }
+    Program {
+      GeometryVerticesOut 1
+      GeometryInputType TRIANGLES
+      GeometryOutputType TRIANGLE_STRIP
+      num_shaders 2
+      Shader {
+        type VERTEX
+        code {
+		"#version 330 compatibility"
+		"#extension GL_ARB_gpu_shader5 : enable"
+		"in vec4 xfb_position;"
+		"out vec2 ov_tex_coord0;"
+		"out vec3 ov_normal;"
+		"out float ov_depth;"
+		"out float ov_intensity;"
+		"void main(void) { "
+		"	vec4 position = gl_Vertex; "
+		"	position.xyz += xfb_position.xyz; "
+		"	gl_Position = gl_ModelViewProjectionMatrix * (position); "
+		"	ov_normal = normalize(gl_NormalMatrix * gl_Normal);"
+		"	ov_tex_coord0 = gl_MultiTexCoord0.xy;"
+		"   vec4 mvm_pos = gl_ModelViewMatrix * position;"
+		"   ov_depth = length(mvm_pos.xyz);"
+		"   ov_intensity = xfb_position.w;"
+		"}"
+        }
+      }
+      Shader {
+        type FRAGMENT
+        code {
+          "#version 120"
+          "uniform sampler2D ov_color_texture;"
+          "varying vec3 ov_normal;"
+          "varying vec2 ov_tex_coord0;"
+		  "varying float ov_depth;"
+		  "varying float ov_intensity;"
+		  "uniform float ov_FadeDistance;"
+          "uniform float ov_StartDistance;"
+          "uniform float ov_EndDistance;"
+          "void main(void)"
+          "{"
+          "    vec3 light_dir = normalize(gl_LightSource[0].position.xyz);"
+          "    vec4 base_color = texture2D(ov_color_texture, ov_tex_coord0.xy); "
+		  "    base_color.xyz *= ov_intensity; "
+          "    vec4 coded_normal = texture2D(ov_color_texture, ov_tex_coord0.xy - vec2(0.0,0.5)); "
+          "    vec3 normal = gl_NormalMatrix * normalize(coded_normal.xyz * 2.0 - 1);"
+          "    vec3 pnormal = normalize(ov_normal);"
+          "    pnormal.y = 0;"
+          "    pnormal = normalize(pnormal);"
+          "    float NdotL = max(dot(normal, light_dir), 0);"
+          "    float NdotC = max(dot(pnormal, vec3(0,0,1)), 0);"
+          "    //if(NdotC < 0.9) NdotC = 0.0; else NdotC = 1.0;"
+		  "    //fade = fade*mix(0.3, 0.03, (depth - 200)/300);"
+          "    base_color.xyz *= gl_LightSource[0].diffuse.xyz*NdotL*0.6 + gl_LightSource[0].ambient.xyz*0.5; "
+          "    base_color.w = 1.3 * mix(base_color.w, 0.0, 1 - NdotC); "
+          "    //float depth = 1.0 / gl_FragCoord.w;"
+		  "    base_color.w = mix(0, base_color.w, clamp((ov_depth - (ov_StartDistance - ov_FadeDistance/2.0))/ov_FadeDistance, 0, 1));"
+		  "    gl_FragColor = base_color; "
+          "}"
+        }
+      }
+    }
+    textureUnit 0 {
+      GL_TEXTURE_2D ON
+      Texture2D {
+        UniqueID Texture2D_0
+        file "atlas.tga"
+        wrap_s CLAMP
+        wrap_t CLAMP
+        wrap_r CLAMP
+        min_filter LINEAR_MIPMAP_LINEAR
+        mag_filter LINEAR
+        maxAnisotropy 1
+        borderColor 0 0 0 0
+        borderWidth 0
+        useHardwareMipMapGeneration TRUE
+        unRefImageDataAfterApply FALSE
+        internalFormatMode USE_IMAGE_DATA_FORMAT
+        resizeNonPowerOfTwo TRUE
+        shadowComparison FALSE
+        shadowCompareFunc GL_LEQUAL
+        shadowTextureMode GL_LUMINANCE
+      }
+    }
+  }
+  num_children 1
+  Geode {
+    DataVariance STATIC
+    nodeMask 0xffffffff
+    cullingActive TRUE
+    num_drawables 1
+    Geometry {
+      DataVariance STATIC
+      useDisplayList TRUE
+      useVertexBufferObjects FALSE
+      PrimitiveSets 8
+      {
+        DrawArrays TRIANGLE_FAN 0 4
+        DrawArrays TRIANGLE_FAN 4 4
+        DrawArrays TRIANGLE_FAN 8 4
+        DrawArrays TRIANGLE_FAN 12 4
+        DrawArrays TRIANGLE_FAN 16 4
+        DrawArrays TRIANGLE_FAN 20 4
+        DrawArrays TRIANGLE_FAN 24 4
+        DrawArrays TRIANGLE_FAN 28 4
+      }
+      VertexArray Vec3Array 32
+      {
+        -4.26271 0 -0.0335002
+        4.2627 0 -0.0335002
+        4.2627 0 16.0335
+        -4.26271 0 16.0335
+        -3.01419 -3.01419 -0.0335002
+        3.01418 3.01418 -0.0335002
+        3.01418 3.01418 16.0335
+        -3.01419 -3.01419 16.0335
+        0 -4.26271 -0.0335002
+        0 4.2627 -0.0335002
+        0 4.2627 16.0335
+        0 -4.26271 16.0335
+        3.01419 -3.01419 -0.0335002
+        -3.01418 3.01418 -0.0335002
+        -3.01418 3.01418 16.0335
+        3.01419 -3.01419 16.0335
+        4.26271 -5.22031e-016 -0.0335002
+        -4.2627 5.2203e-016 -0.0335002
+        -4.2627 5.2203e-016 16.0335
+        4.26271 -5.22031e-016 16.0335
+        3.01419 3.01419 -0.0335002
+        -3.01418 -3.01418 -0.0335002
+        -3.01418 -3.01418 16.0335
+        3.01419 3.01419 16.0335
+        9.46512e-016 4.26271 -0.0335002
+        -9.4651e-016 -4.2627 -0.0335002
+        -9.4651e-016 -4.2627 16.0335
+        9.46512e-016 4.26271 16.0335
+        -3.01419 3.01419 -0.0335002
+        3.01418 -3.01418 -0.0335002
+        3.01418 -3.01418 16.0335
+        -3.01419 3.01419 16.0335
+      }
+      NormalBinding PER_VERTEX
+      NormalArray Vec3Array 32
+      {
+        0 -1 0
+        0 -1 0
+        0 -1 0
+        0 -1 0
+        0.707107 -0.707107 0
+        0.707107 -0.707107 0
+        0.707107 -0.707107 0
+        0.707107 -0.707107 0
+        1 0 0
+        1 0 0
+        1 0 0
+        1 0 0
+        0.707107 0.707107 0
+        0.707107 0.707107 0
+        0.707107 0.707107 0
+        0.707107 0.707107 0
+        1.22465e-016 1 0
+        1.22465e-016 1 0
+        1.22465e-016 1 0
+        1.22465e-016 1 0
+        -0.707107 0.707107 0
+        -0.707107 0.707107 0
+        -0.707107 0.707107 0
+        -0.707107 0.707107 0
+        -1 2.22045e-016 0
+        -1 2.22045e-016 0
+        -1 2.22045e-016 0
+        -1 2.22045e-016 0
+        -0.707107 -0.707107 0
+        -0.707107 -0.707107 0
+        -0.707107 -0.707107 0
+        -0.707107 -0.707107 0
+      }
+      TexCoordArray 0 Vec2Array 32
+      {
+        0 0.5
+        0.125 0.5
+        0.125 1
+        0 1
+        0.125 0.5
+        0.25 0.5
+        0.25 1
+        0.125 1
+        0.25 0.5
+        0.375 0.5
+        0.375 1
+        0.25 1
+        0.375 0.5
+        0.5 0.5
+        0.5 1
+        0.375 1
+        0.5 0.5
+        0.625 0.5
+        0.625 1
+        0.5 1
+        0.625 0.5
+        0.75 0.5
+        0.75 1
+        0.625 1
+        0.75 0.5
+        0.875 0.5
+        0.875 1
+        0.75 1
+        0.875 0.5
+        1 0.5
+        1 1
+        0.875 1
+      }
+    }
+  }
+}

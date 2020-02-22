@@ -7,11 +7,14 @@ language: cpp
 compiler:
 - gcc
 before_install:
-- sudo apt-get update -qq
+- sudo add-apt-repository ppa:openmw/openmw -y
+- sudo apt-get update -q
 - sudo apt-get install -y cmake
 - cmake --version
-#- sudo apt-get install -y --force-yes openscenegraph=3.4.0
-- sudo apt-get install -y libopenscenegraph-dev
+- sudo apt-get install -y libopenscenegraph-3.4-dev
+#- apt-cache search openscenegraph
+#- dpkg -L libopenscenegraph-dev
+#- export OSGDIR=/usr/
 script:
 - cmake -DCMAKE_BUILD_TYPE=Release . && make
 notifications:
@@ -26,3 +29,9 @@ addons:
     notification_email: leadcoder@gmail.com.com
     build_command_prepend: cmake -DCMAKE_BUILD_TYPE=Release
     build_command: make -j3
+	
+# safelist
+branches:
+  only:
+  - master
+  - stable
