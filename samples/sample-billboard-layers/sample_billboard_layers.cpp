@@ -36,7 +36,7 @@ std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > createBillboardLayers()
 	grass_layer_1->CastShadow = false;
 	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 1.0, 0.008));
 	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 1.0, 0.002));
-	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass1.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_layer_1);
 	return layers;
 }

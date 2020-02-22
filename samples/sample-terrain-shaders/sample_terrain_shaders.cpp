@@ -49,7 +49,7 @@ std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > createVegetionConfig()
 	grass_layer_1->Filter.SplatFilter = "if(splat_color.g < 0.5  && splat_color.r < 0.5) return false;";
 	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant03.png", osg::Vec2f(4, 2), 1.0, 0.008));
 	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/veg_plant01.png", osg::Vec2f(2, 2), 1.0, 0.002));
-	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass2.png", osg::Vec2f(2, 1), 1.0, 1.0));
+	grass_layer_1->Billboards.push_back(osgVegetation::BillboardLayerConfig::Billboard("billboards/grass0.png", osg::Vec2f(2, 1), 1.0, 1.0));
 	layers.push_back(grass_layer_1);
 
 	return layers;
@@ -62,7 +62,7 @@ osgVegetation::TerrainSplatShadingConfig createSplatShadingConfig()
 	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_patch_grass.jpg"), 0.09));
 	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_grass.jpg"), 0.09));
 	terrain_shading.DetailLayers.push_back(osgVegetation::DetailLayer(std::string("terrain/detail/detail_stones.jpg"), 0.05));
-	terrain_shading.NoiseTexture.File = "terrain/detail/noise.png";
+	terrain_shading.NoiseTexture.File = "terrain/noise.png";
 	terrain_shading.SplatTexture.File = "terrain/terrain_splat.png";
 	terrain_shading.ColorModulateRatio = 0;
 	return terrain_shading;
