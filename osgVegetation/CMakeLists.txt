@@ -76,6 +76,14 @@ install(FILES ${H_FILES} DESTINATION ${OSGV_INCLUDE_INSTALL_DIR})
 install(FILES ${SHADERS_FILES} DESTINATION shaders)
 install(FILES ${PROJECT_SOURCE_DIR}/CMakeModules/osgvegetation-config.cmake DESTINATION cmake)
 
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/osgvegetation-config-version.cmake
+  VERSION ${OSGV_VERSION_MAJOR}
+  COMPATIBILITY SameMajorVersion)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/osgvegetation-config-version.cmake DESTINATION cmake)
+
 if(WIN32)
 	file(COPY ${SHADERS_FILES}  DESTINATION  ${CMAKE_BINARY_DIR}/out/shaders)
 endif()

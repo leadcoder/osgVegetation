@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.13)
-project(osgVegetation)
+
+set(OSGV_VERSION_MAJOR 2)
+set(OSGV_VERSION_MINOR 0)
+set(OSGV_VERSION_PATCH 0)
+set(OSGV_VERSION ${OSGV_VERSION_MAJOR}.${OSGV_VERSION_MINOR}.${OSGV_VERSION_PATCH})
+
+project(osgVegetation VERSION ${OSGV_VERSION})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
