@@ -4,6 +4,8 @@
 layout(triangles) in;
 layout(points, max_vertices = 1) out;
 
+//#define OV_TERRAIN_COLOR_INT
+
 in ov_VertexData
 {
   vec4 Position;
@@ -241,8 +243,9 @@ void main(void)
 			//scale dist by fov
 			lod_scale = max(osg_ProjectionMatrix[0][0], 1);
 		}
-
-		//vec3 terrain_color =  ov_getTerrainColor(-mv_pos.z, instance_tex_coords.xy, instance_position.xy).xyz;
+#ifdef OV_TERRAIN_COLOR_INT
+		vec3 terrain_color =  ov_getTerrainColor(-mv_pos.z, instance_tex_coords.xy, instance_position.xy).xyz;
+#endif
 		vec4 max_lod_dist = instanceTypes[instance_type_id].lods[max_lods-1].distances;
 
 		for(int i = start_lod ; i < max_lods; ++i)
@@ -257,10 +260,15 @@ void main(void)
 		    if(ov_boundingBoxInViewFrustum( mvpo_matrix, instanceTypes[instance_type_id].lods[i].bbMin.xyz, instanceTypes[instance_type_id].lods[i].bbMax.xyz ) &&
                 (distance_to_object >= lod_dist.x ) && ( distance_to_object < lod_dist.w ))
             {
+#ifdef OV_TERRAIN_COLOR_INT				
+				const vec3 all_ones = vec3(1.0);
+				float intensity = 0.2 + 4 * dot(terrain_color, all_ones)/3.0;
+#else
 				//get intensity
                 float intensity = instanceTypes[instance_type_id].lods[i].bbMin.w;
 				float max_intensity_variation = instanceTypes[instance_type_id].floatParams.x;
 				intensity = (intensity - max_intensity_variation*0.5) + max_intensity_variation*ov_rand(instance_position.xy + vec2(20.1,6.5));
+#endif
 				float fade_alpha  = ( clamp( (distance_to_object - lod_dist.x)/(lod_dist.y - lod_dist.x), 0.0, 1.0 ) 
                     -  clamp( (distance_to_object- lod_dist.z)/( lod_dist.w - lod_dist.z), 0.0, 1.0 ) );
                 
