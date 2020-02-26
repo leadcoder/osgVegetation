@@ -4,13 +4,19 @@
 layout(triangles) in;
 layout(points, max_vertices = 1) out;
 
-in vec4 ov_te_position[3];
-in vec2 ov_te_texcoord[3];
+in ov_VertexData
+{
+  vec4 Position;
+  vec3 Normal;
+  vec2 TexCoord0;
+} ov_in[];
 
 uniform sampler2D ov_landCoverTexture;
 
-uniform mat4 osg_ViewMatrixInverse;
+//uniform mat4 osg_ViewMatrixInverse;
 uniform mat4 osg_ModelViewMatrix;
+uniform mat4 osg_ModelViewProjectionMatrix;
+uniform mat4 osg_ProjectionMatrix;
 uniform int ov_indirectCommandSize; // = sizeof(DrawArraysIndirectCommand) / sizeof(unsigned int) = 4
 uniform int ov_numInstanceTypes;
 
@@ -134,19 +140,26 @@ vec3 ov_getRandomBarycentricPoint(vec2 seed)
     return b;
 }
 
-void ov_getRandomPointInTriangle(in vec4 tri_vertices[3],in vec2 tri_tex_coords[3],  out vec4 point, out vec2 point_tex_coords)
+
+
+void ov_getRandomPointInTriangle(out vec4 position, out vec3 normal, out vec2 tex_coords)
 {
-	point = vec4(0,0,0,1);
-	point_tex_coords = vec2(0,0);
-	vec3 b = ov_getRandomBarycentricPoint(tri_vertices[0].xy);
+	position = vec4(0,0,0,1);
+	normal = vec3(0,0,0);
+	tex_coords = vec2(0,0);
+	vec3 b = ov_getRandomBarycentricPoint(ov_in[0].Position.xy);
     for(int i=0; i < 3; ++i)
     {
-		point.x += b[i] * tri_vertices[i].x;
-		point.y += b[i] * tri_vertices[i].y;
-		point.z += b[i] * tri_vertices[i].z;
+		position.x += b[i] * ov_in[i].Position.x;
+		position.y += b[i] * ov_in[i].Position.y;
+		position.z += b[i] * ov_in[i].Position.z;
 
-		point_tex_coords.x += b[i] * tri_tex_coords[i].x;
-        point_tex_coords.y += b[i] * tri_tex_coords[i].y;
+		normal.x += b[i] * ov_in[i].Normal.x;
+		normal.y += b[i] * ov_in[i].Normal.y;
+		normal.z += b[i] * ov_in[i].Normal.z;
+
+		tex_coords.x += b[i] * ov_in[i].TexCoord0.x;
+        tex_coords.y += b[i] * ov_in[i].TexCoord0.y;
     }
 }
 
@@ -183,11 +196,11 @@ void main(void)
 	//get a random position inside current triangle
 	vec4 instance_position;
 	vec2 instance_tex_coords;
-	ov_getRandomPointInTriangle(ov_te_position, ov_te_texcoord, instance_position, instance_tex_coords);
-
+	vec3 instance_normal;
+	ov_getRandomPointInTriangle(instance_position, instance_normal, instance_tex_coords);
+	
 	//check if this is valid location
-	vec3 terrain_normal = vec3(0,0,1); 
-	if(!ov_passFilter(instance_position.xyz, terrain_normal, instance_tex_coords))
+	if(!ov_passFilter(instance_position.xyz, instance_normal, instance_tex_coords))
 		return;
 	 
 	//get random mesh
@@ -197,7 +210,7 @@ void main(void)
 	float scale_variation = instanceTypes[instance_type_id].floatParams.y;
 	float scale = instanceTypes[instance_type_id].floatParams.w;
     mat4 instance_matrix = ov_getTransformationMatrix(instance_position, scale, scale_variation);
-    mat4 mvpo_matrix = gl_ModelViewProjectionMatrix * instance_matrix;
+    mat4 mvpo_matrix = osg_ModelViewProjectionMatrix * instance_matrix;
 
     // gl_Position is created only for debugging purposes
     //gl_Position = mvpo_matrix * vec4(0.0,0.0,10.0,1.0);
@@ -212,7 +225,7 @@ void main(void)
 		float distance_to_object = length(mv_pos.xyz);
 		int max_lods = instanceTypes[instance_type_id].params.x;
 
-		bool shadow_camera = gl_ProjectionMatrix[3][3] != 0;
+		bool shadow_camera = osg_ProjectionMatrix[3][3] != 0;
 		
 		int start_lod = 0;
 		float lod_scale = 1.0;
@@ -226,7 +239,7 @@ void main(void)
 		else
 		{
 			//scale dist by fov
-			lod_scale = max(gl_ProjectionMatrix[0][0], 1);
+			lod_scale = max(osg_ProjectionMatrix[0][0], 1);
 		}
 
 		//vec3 terrain_color =  ov_getTerrainColor(-mv_pos.z, instance_tex_coords.xy, instance_position.xy).xyz;
@@ -248,7 +261,6 @@ void main(void)
                 float intensity = instanceTypes[instance_type_id].lods[i].bbMin.w;
 				float max_intensity_variation = instanceTypes[instance_type_id].floatParams.x;
 				intensity = (intensity - max_intensity_variation*0.5) + max_intensity_variation*ov_rand(instance_position.xy + vec2(20.1,6.5));
-
 				float fade_alpha  = ( clamp( (distance_to_object - lod_dist.x)/(lod_dist.y - lod_dist.x), 0.0, 1.0 ) 
                     -  clamp( (distance_to_object- lod_dist.z)/( lod_dist.w - lod_dist.z), 0.0, 1.0 ) );
                 
