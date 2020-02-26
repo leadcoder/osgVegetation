@@ -46,9 +46,9 @@ namespace osgVegetation
 		node->accept(visitor);
 	}
 
-	inline osg::ref_ptr<osg::Node>  CloneAndConvertToPatches(osg::Node* node)
+	inline osg::ref_ptr<osg::Node>  CloneAndConvertToPatches(osg::Node* node, const osg::CopyOp& copyop = osg::CopyOp::DEEP_COPY_PRIMITIVES | osg::CopyOp::DEEP_COPY_DRAWABLES)
 	{
-		osg::ref_ptr<osg::Node> patches_node = dynamic_cast<osg::Node*>(node->clone(osg::CopyOp::DEEP_COPY_PRIMITIVES | osg::CopyOp::DEEP_COPY_DRAWABLES));
+		osg::ref_ptr<osg::Node> patches_node = dynamic_cast<osg::Node*>(node->clone(copyop));
 		ConvertToPatches(patches_node.get());
 		return patches_node;
 	}
