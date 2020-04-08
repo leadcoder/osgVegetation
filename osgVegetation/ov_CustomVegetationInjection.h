@@ -115,24 +115,27 @@ namespace osgVegetation
 			return lod_level;
 		}
 
-		osgDB::ReaderWriter::ReadResult readNode(
-			const std::string& filename,
-			const osgDB::ReaderWriter::Options* options)
+		virtual ReadResult readNode(const std::string& file,
+			const osgDB::Options* options) const
 		{
-			const bool use_pseudo_loader = m_PseudoLoaderExt != "" ? true : false;
-			osgDB::ReaderWriter::ReadResult rr = use_pseudo_loader ? osgDB::readNodeFile(filename, options) : ReadFileCallback::readNode(filename, options);
+
+			if (!acceptsExtension(osgDB::getFileExtension(file)))
+				return ReadResult::FILE_NOT_HANDLED;
+
+			//const std::string ext = osgDB::getFileExtension(file);
+			//remove pseudo extension
+			const std::string filename = osgDB::getNameLessExtension(file);
+			osgDB::ReaderWriter::ReadResult rr = osgDB::readNodeFile(filename, options);
+
 			if (!rr.getNode())
 				return rr;
 
 			if (!rr.validNode())
 				return rr;
 
-			if (use_pseudo_loader)
-			{
-				ApplyPseudoLoader pseudo_loader_visitor(m_PseudoLoaderExt);
-				rr.getNode()->accept(pseudo_loader_visitor);
-			}
-
+			ApplyPseudoLoader pseudo_loader_visitor(OV_PLOD_READER_EXT);
+			rr.getNode()->accept(pseudo_loader_visitor);
+			
 			const int lod_level = GetLODLevelFromFileName(filename);
 
 			//if (lod_level >= 0)

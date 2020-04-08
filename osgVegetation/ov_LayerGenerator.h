@@ -22,7 +22,7 @@ namespace osgVegetation
 			m_MeshGenerator = new MeshMultiLayerGenerator(mesh_layers);
 		}
 
-		osg::ref_ptr<osg::Group> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry)
+		osg::ref_ptr<osg::Group> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry) const
 		{
 			osg::ref_ptr<osg::Group> root = new osg::Group();
 			osg::ref_ptr<BillboardMultiLayerEffect> bb_layers = m_BillboardGenerator->createInstance(terrain_geometry);

@@ -3,6 +3,7 @@
 #include "ov_BillboardLayerConfig.h"
 #include "ov_BillboardLayerStateSet.h"
 #include "ov_MeshLayerConfig.h"
+#include "ov_TerrainSplatShadingStateSet.h"
 
 namespace osgVegetation
 {
@@ -20,8 +21,14 @@ namespace osgVegetation
 	class VPBVegetationInjectionConfig
 	{
 	public:
-		VPBVegetationInjectionConfig(const std::vector<VPBInjectionLODConfig> &lods = std::vector<VPBInjectionLODConfig>()) : TerrainLODs(lods)
+		VPBVegetationInjectionConfig() {}
+		VPBVegetationInjectionConfig(const std::vector<VPBInjectionLODConfig> &lods) : TerrainLODs(lods)
 		{}
+		//std::string Filename;
+		//std::string TerrainType;
+		bool ObjectsCastShadow;
+		bool TerrainCastShadow;
+		TerrainSplatShadingConfig SplatConfig;
 		std::vector<VPBInjectionLODConfig> TerrainLODs;
 	};
 }

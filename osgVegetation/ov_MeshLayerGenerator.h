@@ -176,7 +176,7 @@ namespace osgVegetation
 			return group;
 		}
 
-		osg::Group* CreateMeshNode(osg::Node* terrain_geometry)
+		osg::Group* CreateMeshNode(osg::Node* terrain_geometry) const
 		{
 			osg::Group* group = new osg::Group();
 			group->getOrCreateStateSet()->setRenderBinDetails(1, "TraversalOrderBin", osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);

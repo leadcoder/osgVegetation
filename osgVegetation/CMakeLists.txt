@@ -24,6 +24,10 @@ set(H_FILES
 	ov_MeshLayerConfig.h 
 	ov_GPUCullData.h
 	ov_CustomVegetationInjection.h
+	ov_XMLUtils.h
+	ov_XMLLayerReader.h
+	ov_XMLTerrainShadingReader.h
+	ov_XMLVPBReader.h
 )
 
 set(SHADERS_FILES

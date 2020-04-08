@@ -7,7 +7,9 @@
 #include <osgTerrain/Terrain>
 #include <osgTerrain/TerrainTile>
 #include <osgDB/WriteFile>
+#include <osgDB/FileNameUtils>
 
+#define OV_PLOD_READER_EXT "ov_plod_reader"
 namespace osgVegetation
 {
 	class VPBInjectionLOD
@@ -17,9 +19,10 @@ namespace osgVegetation
 			TargetLevel(config.TargetLevel),
 			m_Generator(config.Layers)
 		{
+
 		}
 
-		osg::ref_ptr<osg::Group> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry)
+		osg::ref_ptr<osg::Group> CreateVegetationNode(osg::ref_ptr<osg::Node> terrain_geometry) const
 		{
 			return m_Generator.CreateVegetationNode(terrain_geometry);
 		}
@@ -31,7 +34,7 @@ namespace osgVegetation
 	//Inject vegetation layers into VirtualPlanetBuilder (VPB) PLOD terrains,
 	//ie terrain created with --PagedLOD, --POLYGONAL or --TERRAIN.
 	//Both flat and geocentric terrains should work.
-	class VPBVegetationInjection : public osgDB::ReadFileCallback
+	class VPBVegetationInjection : public osgDB::ReaderWriter
 	{
 	public:
 		class TerrainNodeMaskVisitor : public osg::NodeVisitor
@@ -138,13 +141,26 @@ namespace osgVegetation
 			}
 		};
 
-		VPBVegetationInjection(const VPBVegetationInjectionConfig &config) : m_TerrainCastShadow(false),
-			m_ObjectsCastShadow(false)
+		VPBVegetationInjection(const VPBVegetationInjectionConfig &config) : m_TerrainCastShadow(config.TerrainCastShadow),
+			m_ObjectsCastShadow(config.ObjectsCastShadow)
 		{
+			if(config.SplatConfig.DetailLayers.size() > 0)
+				m_TerrainStateSet = new TerrainSplatShadingStateSet(config.SplatConfig);
 			for (size_t i = 0; i < config.TerrainLODs.size(); i++)
 			{
 				m_Levels.push_back(VPBInjectionLOD(config.TerrainLODs[i]));
 			}
+		}
+
+		virtual const char* className() const
+		{
+			// Return a description of this class
+			return "PagedLod File Reader";
+		}
+
+		virtual bool acceptsExtension(const std::string& extension) const
+		{
+			return osgDB::equalCaseInsensitive(extension, OV_PLOD_READER_EXT);
 		}
 
 		static int ExtractLODLevelFromFileName(const std::string& filename)
@@ -172,7 +188,7 @@ namespace osgVegetation
 
 		//#define OV_USE_TILE_ID_LOD_LEVEL
 
-		VPBInjectionLOD* GetTargetLevel(int level)
+		VPBInjectionLOD* GetTargetLevel(int level) const
 		{
 			for (size_t i = 0; i < m_Levels.size(); i++)
 			{
@@ -182,13 +198,17 @@ namespace osgVegetation
 			return NULL;
 		}
 
-		virtual osgDB::ReaderWriter::ReadResult readNode(
-			const std::string& filename,
-			const osgDB::ReaderWriter::Options* options)
+		virtual ReadResult readNode(const std::string& file,
+			const osgDB::Options* options) const
 		{
-			const bool use_pseudo_loader = m_PseudoLoaderExt != "" ? true : false;
+			if (!acceptsExtension(osgDB::getFileExtension(file)))
+				return ReadResult::FILE_NOT_HANDLED;
 
-			osgDB::ReaderWriter::ReadResult rr = use_pseudo_loader ? osgDB::readNodeFile(filename, options) : ReadFileCallback::readNode(filename, options);
+			const std::string ext = osgDB::getFileExtension(file);
+			
+			//remove pseudo extension
+			const std::string filename = osgDB::getNameLessExtension(file);
+			osgDB::ReaderWriter::ReadResult rr = osgDB::readNodeFile(filename, options);
 
 			if (!rr.getNode())
 				return rr;
@@ -196,15 +216,15 @@ namespace osgVegetation
 			if (!rr.validNode())
 				return rr;
 
-			if (use_pseudo_loader)
-			{
-				ApplyPseudoLoader pseudo_loader_visitor(m_PseudoLoaderExt);
+			ApplyPseudoLoader pseudo_loader_visitor(OV_PLOD_READER_EXT);
 				rr.getNode()->accept(pseudo_loader_visitor);
-			}
-
+		
 			//disable terrain self shadowing
 			TerrainNodeMaskVisitor mask_visitor(~Register.CastsShadowTraversalMask);
 			rr.getNode()->accept(mask_visitor);
+
+			if(m_TerrainStateSet)
+				rr.getNode()->setStateSet(m_TerrainStateSet);
 
 #ifdef OV_USE_TILE_ID_LOD_LEVEL
 			const int lod_level = ttv.Tiles.size() > 0 ? ttv.Tiles[0]->getTileID().level - 1 : 0;
@@ -227,24 +247,15 @@ namespace osgVegetation
 			}
 			return rr;
 		}
-
-		void SetPseudoLoaderExt(const std::string& ext)
-		{
-			m_PseudoLoaderExt = ext;
-		}
-
+	
 		void SetTerrainStateSet(osg::ref_ptr <osg::StateSet> state_set)
 		{
 			m_TerrainStateSet = state_set;
 		}
-
-		void SetTerrainCastShadow(bool value) { m_TerrainCastShadow = value;}
-		void SetObjectsCastShadow(bool value) { m_ObjectsCastShadow = value; }
 	protected:
 		virtual ~VPBVegetationInjection() {}
-		std::vector<VPBInjectionLOD> m_Levels;
-		std::string m_PseudoLoaderExt;
-		osg::ref_ptr <osg::StateSet> m_TerrainStateSet;
+		mutable std::vector<VPBInjectionLOD> m_Levels;
+		osg::ref_ptr<osg::StateSet> m_TerrainStateSet;
 		bool m_TerrainCastShadow;
 		bool m_ObjectsCastShadow;
 	};
