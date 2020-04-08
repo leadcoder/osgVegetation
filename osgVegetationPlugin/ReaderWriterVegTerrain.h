@@ -5,11 +5,6 @@
 #include <osgDB/Registry>
 #include <osgDB/FileNameUtils>
 
-namespace osgVegetation
-{
-	class VPBVegetationInjection;
-}
-
 
 class ReaderWriterOVT : public osgDB::ReaderWriter
 {
@@ -24,9 +19,6 @@ public:
 
 private:
 	ReaderWriter::ReadResult _readOVT(const std::string& file, const ReaderWriter::Options* options) const;
-	ReaderWriter::ReadResult _readPseudo(const std::string& file, const ReaderWriter::Options* options) const;
-	mutable osgVegetation::VPBVegetationInjection* m_VPBInjection;
-
 };
 
 #endif
