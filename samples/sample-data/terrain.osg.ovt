@@ -48,6 +48,26 @@
 					Probability="1.0">
 				</Billboard>
 			</BillboardLayer>
+			<MeshLayer Density="1000"
+						CastShadow="true"
+						ReceiveShadow="true">
+				<Mesh Probability="1">
+					<LOD MeshFile="trees/fir01_l0.osg"
+						StartDistance="0" 
+						FadeInDistance="0"
+						EndDistance="80" 
+						FadeOutDistance="20"
+						Intensity="1.0"
+						Type="0"/>
+					<LOD MeshFile="trees/fir01_l1.osg"
+						StartDistance="80" 
+						FadeInDistance="20"
+						EndDistance="1000" 
+						FadeOutDistance="100"
+						Intensity="1.0"
+						Type="0"/>
+				</Mesh>
+			</MeshLayer> 
 		</Layers>
 	</SimpleTerrainReader>
 </OVT>
