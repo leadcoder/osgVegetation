@@ -4,6 +4,7 @@
 #include <osg/MatrixTransform>
 #include <osg/NodeVisitor>
 #include <osg/Texture2D>
+#include <osg/PagedLOD>
 #include <osgTerrain/TerrainTile>
 #include <osgTerrain/Locator>
 #include <osg/ShapeDrawable>
@@ -13,28 +14,14 @@ namespace osgVegetation
 {
 	class TerrainHelper
 	{
-	private:
-		class TerrainTileVisitor : public osg::NodeVisitor
-		{
-		public:
-			TerrainTileVisitor(): osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
-			}
-
-			void apply(osg::Node& node)
-			{
-				osgTerrain::TerrainTile* tile = dynamic_cast<osgTerrain::TerrainTile*>(&node);
-				if (tile)
-				{
-					TerrainTiles.push_back(tile);
-				}
-				else
-				{
-					traverse(node);
-				}
-			}
-			std::vector<osgTerrain::TerrainTile*> TerrainTiles;
-		};
 	public:
+
+		static void AddExtToPLOD(osg::ref_ptr<osg::Node> node, const std::string &ext)
+		{
+			AddExtToPLODVistor visitor(ext);
+			node->accept(visitor);
+		}
+
 		static std::vector<osgTerrain::TerrainTile*> GetTerrainTiles(osg::Node* node)
 		{
 			TerrainTileVisitor visitor;
@@ -53,9 +40,9 @@ namespace osgVegetation
 				{
 					osgTerrain::Locator* locator = tile->getLocator();
 					osg::EllipsoidModel* em = locator->getEllipsoidModel();
-					
+
 					ret_node = new osg::MatrixTransform();
-					
+
 					const osg::Matrixd matrix = locator->getTransform();
 					osg::Matrixd localToWorldTransform;
 
@@ -71,7 +58,7 @@ namespace osgVegetation
 #if 1
 					//unscale to allow VDSM-shadowing...and avoid inverse scaling in geometry shader
 					osg::Vec3d scale = localToWorldTransform.getScale();
-					localToWorldTransform.preMultScale(osg::Vec3d(1.0/ scale.x(), 1.0 / scale.y(), 1.0 / scale.z()));
+					localToWorldTransform.preMultScale(osg::Vec3d(1.0 / scale.x(), 1.0 / scale.y(), 1.0 / scale.z()));
 					ret_node->setMatrix(localToWorldTransform);
 #endif
 					osg::Matrixd worldToLocalTransform;
@@ -79,7 +66,7 @@ namespace osgVegetation
 					osg::Geometry* hf_geom = _CreateGeometryFromHeightField(hf, locator, worldToLocalTransform);
 
 					ret_node->addChild(hf_geom);
-				
+
 					//Add color texture
 					osgTerrain::Layer* colorLayer = tile->getColorLayer(0);
 					if (colorLayer)
@@ -102,7 +89,7 @@ namespace osgVegetation
 			return ret_node;
 		}
 	private:
-		static osg::Geometry* _CreateGeometryFromHeightField(const osg::HeightField* hf, const osgTerrain::Locator* locator ,const osg::Matrixd& worldToLocalTransform)
+		static osg::Geometry* _CreateGeometryFromHeightField(const osg::HeightField* hf, const osgTerrain::Locator* locator, const osg::Matrixd& worldToLocalTransform)
 		{
 			const unsigned int numColumns = hf->getNumColumns();
 			const unsigned int numRows = hf->getNumRows();
@@ -116,9 +103,9 @@ namespace osgVegetation
 
 			osg::Geometry* geometry = new osg::Geometry;
 
-			osg::Vec3Array& v = *(new osg::Vec3Array(numColumns*numRows));
-			osg::Vec2Array& t = *(new osg::Vec2Array(numColumns*numRows));
-			osg::Vec3Array& n = *(new osg::Vec3Array(numColumns*numRows));
+			osg::Vec3Array& v = *(new osg::Vec3Array(numColumns * numRows));
+			osg::Vec2Array& t = *(new osg::Vec2Array(numColumns * numRows));
+			osg::Vec3Array& n = *(new osg::Vec3Array(numColumns * numRows));
 			osg::Vec4ubArray& color = *(new osg::Vec4ubArray(1));
 			color[0].set(255, 255, 255, 255);
 			osg::Vec3d local_origin(0, 0, 0);
@@ -140,7 +127,7 @@ namespace osgVegetation
 
 					v[vi].set(new_local_pos.x(), new_local_pos.y(), new_local_pos.z());
 					t[vi].set(tex.x(), tex.y());
-					
+
 					local_pos.x() += columnCoordDelta;
 					tex.x() += columnTexDelta;
 					++vi;
@@ -171,12 +158,12 @@ namespace osgVegetation
 					}
 					if (r > 0)
 					{
-						int down = (r - 1)*numColumns + c;
+						int down = (r - 1) * numColumns + c;
 						dy += v[center] - v[down];
 					}
-					if (r < numRows-1)
+					if (r < numRows - 1)
 					{
-						int up = (r + 1)*numColumns + c;
+						int up = (r + 1) * numColumns + c;
 						dy += v[up] - v[center];
 					}
 
@@ -194,7 +181,7 @@ namespace osgVegetation
 			geometry->setTexCoordArray(0, &t);
 			geometry->setColorArray(&color, osg::Array::BIND_OVERALL);
 
-			osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns*numRows)));
+			osg::DrawElementsUShort& drawElements = *(new osg::DrawElementsUShort(GL_PATCHES, 2 * 3 * (numColumns * numRows)));
 			geometry->addPrimitiveSet(&drawElements);
 			int ei = 0;
 			for (unsigned int r = 0; r < numRows - 1; ++r)
@@ -205,38 +192,81 @@ namespace osgVegetation
 					// which way to put the diagonal by choosing to
 					// place it between the two corners that have the least curvature
 					// relative to each other.
-					
-					osg::Vec3 n00 = n[r*numColumns + c];
-					osg::Vec3 n01 = n[(r+1)*numColumns + c];
-					osg::Vec3 n10 = n[r*numColumns + c +1];
-					osg::Vec3 n11 = n[(r + 1)*numColumns + c+1];
-					
+
+					osg::Vec3 n00 = n[r * numColumns + c];
+					osg::Vec3 n01 = n[(r + 1) * numColumns + c];
+					osg::Vec3 n10 = n[r * numColumns + c + 1];
+					osg::Vec3 n11 = n[(r + 1) * numColumns + c + 1];
+
 					float dot_00_11 = n00 * n11;
 					float dot_01_10 = n01 * n10;
 					if (dot_00_11 > dot_01_10)
 					{
 						drawElements[ei++] = (r)*numColumns + c;
 						drawElements[ei++] = (r)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c + 1;
+						drawElements[ei++] = (r + 1) * numColumns + c + 1;
 
-						drawElements[ei++] = (r + 1)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c;
+						drawElements[ei++] = (r + 1) * numColumns + c + 1;
+						drawElements[ei++] = (r + 1) * numColumns + c;
 						drawElements[ei++] = (r)*numColumns + c;
 					}
 					else
 					{
 						drawElements[ei++] = (r)*numColumns + c;
 						drawElements[ei++] = (r)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c;
+						drawElements[ei++] = (r + 1) * numColumns + c;
 
 						drawElements[ei++] = (r)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c + 1;
-						drawElements[ei++] = (r + 1)*numColumns + c;
+						drawElements[ei++] = (r + 1) * numColumns + c + 1;
+						drawElements[ei++] = (r + 1) * numColumns + c;
 					}
 				}
 			}
 			geometry->setUseDisplayList(false);
 			return geometry;
 		}
+
+	private:
+		class TerrainTileVisitor : public osg::NodeVisitor
+		{
+		public:
+			TerrainTileVisitor() : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
+			}
+
+			void apply(osg::Node& node)
+			{
+				osgTerrain::TerrainTile* tile = dynamic_cast<osgTerrain::TerrainTile*>(&node);
+				if (tile)
+				{
+					TerrainTiles.push_back(tile);
+				}
+				else
+				{
+					traverse(node);
+				}
+			}
+			std::vector<osgTerrain::TerrainTile*> TerrainTiles;
+		}; //end TerrainTileVisitor
+
+		//Vistor that apply extenstion to PagedLOD file list, 
+		class AddExtToPLODVistor : public osg::NodeVisitor
+		{
+		private:
+			std::string m_PseudoLoaderExt;
+		public:
+			AddExtToPLODVistor(const std::string &ext) : m_PseudoLoaderExt(ext),
+				osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {
+			}
+
+			void apply(osg::PagedLOD& node)
+			{
+				for (size_t i = 0; i < node.getNumFileNames(); i++)
+				{
+					const std::string name = node.getFileName(i);
+					if (name != "")
+						node.setFileName(i, name + "." + m_PseudoLoaderExt);
+				}
+			}
+		};//end ApplyExtToPLODVistor
 	};
 }

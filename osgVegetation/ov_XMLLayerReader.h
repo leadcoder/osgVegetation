@@ -15,7 +15,7 @@
 
 namespace osgVegetation
 {
-    BillboardLayerConfig::Billboard loadBillboard(osgDB::XmlNode* xmlNode)
+    inline BillboardLayerConfig::Billboard loadBillboard(osgDB::XmlNode* xmlNode)
     {
         std::string texture;
         if (!QueryStringAttribute(xmlNode, "Texture", texture))
@@ -34,7 +34,7 @@ namespace osgVegetation
         return bb;
     }
 
-    osg::ref_ptr<ILayerConfig> readBillboardLayer(osgDB::XmlNode* xmlNode)
+    inline osg::ref_ptr<ILayerConfig> readBillboardLayer(osgDB::XmlNode* xmlNode)
     {
         osg::ref_ptr<BillboardLayerConfig> layer = new BillboardLayerConfig;
 
@@ -70,7 +70,7 @@ namespace osgVegetation
         return layer;
     }
 
-    MeshTypeConfig::MeshLODConfig loadMeshLOD(osgDB::XmlNode* xmlNode)
+    inline MeshTypeConfig::MeshLODConfig loadMeshLOD(osgDB::XmlNode* xmlNode)
     {
         MeshTypeConfig::MeshLODConfig mesh_lod;
 
@@ -92,7 +92,7 @@ namespace osgVegetation
         return mesh_lod;
     }
 
-    MeshTypeConfig loadMesh(osgDB::XmlNode* xmlNode)
+    inline MeshTypeConfig loadMesh(osgDB::XmlNode* xmlNode)
     {
         MeshTypeConfig mesh;
         QueryFloatAttribute(xmlNode, "Probability", mesh.Probability);
@@ -111,7 +111,7 @@ namespace osgVegetation
         return mesh;
     }
 
-    osg::ref_ptr<MeshLayerConfig> readMeshLayer(osgDB::XmlNode* xmlNode)
+    inline  osg::ref_ptr<MeshLayerConfig> readMeshLayer(osgDB::XmlNode* xmlNode)
     {
         osg::ref_ptr<MeshLayerConfig> layer = new MeshLayerConfig();
         QueryFloatAttribute(xmlNode, "Density", layer->Density);
@@ -172,7 +172,7 @@ namespace osgVegetation
     }
 
 
-    std::vector<osg::ref_ptr<ILayerConfig>> readLayers(osgDB::XmlNode* xmlNOde)
+    inline std::vector<osg::ref_ptr<ILayerConfig>> readLayers(osgDB::XmlNode* xmlNOde)
     {
         std::vector<osg::ref_ptr<ILayerConfig>> layers;
         for (unsigned int i = 0; i < xmlNOde->children.size(); ++i)

@@ -11,7 +11,7 @@
 
 namespace osgVegetation
 {
-	class TerrainStateSetConfig
+	class TerrainStateSetConfig : public osg::Referenced
 	{
 	public:
 		TerrainStateSetConfig() : ColorTexture(Register.TexUnits.GetUnit(OV_TERRAIN_COLOR_TEXTURE_ID)),

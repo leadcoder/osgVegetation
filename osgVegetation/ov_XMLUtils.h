@@ -12,7 +12,7 @@
 
 namespace osgVegetation
 {
-    static bool isXMLNodeType(osgDB::XmlNode* xmlNode)
+    inline static bool isXMLNodeType(osgDB::XmlNode* xmlNode)
     {
         switch (xmlNode->type)
         {
@@ -25,7 +25,7 @@ namespace osgVegetation
         }
     }
 
-    bool QueryStringAttribute(osgDB::XmlNode* xmlNode, const std::string name, std::string& value)
+    inline bool QueryStringAttribute(osgDB::XmlNode* xmlNode, const std::string name, std::string& value)
     {
         std::map<std::string, std::string>::const_iterator iter = xmlNode->properties.find(name);
         if (iter != xmlNode->properties.end())
@@ -36,7 +36,7 @@ namespace osgVegetation
         return false;
     }
 
-    bool QueryBoolAttribute(osgDB::XmlNode* xmlNode, const std::string name, bool& value)
+    inline bool QueryBoolAttribute(osgDB::XmlNode* xmlNode, const std::string name, bool& value)
     {
         std::map<std::string, std::string>::const_iterator iter = xmlNode->properties.find(name);
         if (iter != xmlNode->properties.end())
@@ -47,7 +47,7 @@ namespace osgVegetation
         return false;
     }
 
-    bool QueryFloatAttribute(osgDB::XmlNode* xmlNode, const std::string name, float& value)
+    inline bool QueryFloatAttribute(osgDB::XmlNode* xmlNode, const std::string name, float& value)
     {
         std::map<std::string, std::string>::const_iterator iter = xmlNode->properties.find(name);
         if (iter != xmlNode->properties.end())
@@ -58,7 +58,7 @@ namespace osgVegetation
         return false;
     }
 
-    bool QueryIntAttribute(osgDB::XmlNode* xmlNode, const std::string name, int& value)
+    inline bool QueryIntAttribute(osgDB::XmlNode* xmlNode, const std::string name, int& value)
     {
         std::map<std::string, std::string>::const_iterator iter = xmlNode->properties.find(name);
         if (iter != xmlNode->properties.end())
@@ -69,7 +69,7 @@ namespace osgVegetation
         return false;
     }
 
-    bool QueryUnsignedAttribute(osgDB::XmlNode* xmlNode, const std::string name, unsigned int& value)
+    inline bool QueryUnsignedAttribute(osgDB::XmlNode* xmlNode, const std::string name, unsigned int& value)
     {
         std::map<std::string, std::string>::const_iterator iter = xmlNode->properties.find(name);
         if (iter != xmlNode->properties.end())
@@ -80,7 +80,7 @@ namespace osgVegetation
         return false;
     }
 	
-	osgDB::XmlNode* getFirstNodeByName(osgDB::XmlNode* xmlNode, const std::string &name)
+    inline osgDB::XmlNode* getFirstNodeByName(osgDB::XmlNode* xmlNode, const std::string &name)
     {
         if (xmlNode)
         {

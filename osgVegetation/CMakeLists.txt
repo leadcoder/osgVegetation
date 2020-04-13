@@ -6,13 +6,15 @@ set(H_FILES
 	ov_BillboardLayerConfig.h
 	ov_Common.h
 	ov_Utils.h
-	ov_VPBVegetationInjection.h
-	ov_VPBVegetationInjectionConfig.h
+	ov_VPBTerrainReader.h
+	ov_T3DBTerrainReader.h
 	ov_Register.h
 	ov_TextureConfig.h
 	ov_TerrainShadingStateSet.h
 	ov_TerrainSplatShadingStateSet.h
 	ov_TerrainStateSet.h
+	ov_TerrainHelper.h
+	ov_TerrainLODGenerator.h
 	ov_TextureUnits.h
 	ov_Scene.h
 	ov_BillboardMultiLayerEffect.h
@@ -23,11 +25,11 @@ set(H_FILES
 	ov_MeshLayerGenerator.h 
 	ov_MeshLayerConfig.h 
 	ov_GPUCullData.h
-	ov_CustomVegetationInjection.h
 	ov_XMLUtils.h
 	ov_XMLLayerReader.h
 	ov_XMLTerrainShadingReader.h
-	ov_XMLVPBReader.h
+	ov_XMLRegisterReader.h
+	ov_SimpleTerrainReader.h
 )
 
 set(SHADERS_FILES

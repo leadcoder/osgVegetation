@@ -1,6 +1,7 @@
 #pragma once
 #include "ov_Common.h"
 #include "ov_TerrainShadingStateSet.h"
+#include "ov_XMLUtils.h"
 #include <osg/Vec2>
 #include <osg/Program>
 #include <osg/Texture2D>
@@ -12,7 +13,6 @@
 
 namespace osgVegetation
 {
-
 	class DetailLayer
 	{
 	public:
@@ -32,6 +32,48 @@ namespace osgVegetation
 		TextureConfig SplatTexture;
 		float MaxDistance;
 		float ColorModulateRatio;
+
+		static TerrainSplatShadingConfig ReadXML(osgDB::XmlNode* xmlNode)
+		{
+			TerrainSplatShadingConfig splat_config;
+			QueryFloatAttribute(xmlNode, "MaxDistance", splat_config.MaxDistance);
+			QueryFloatAttribute(xmlNode, "ColorModulateRatio", splat_config.ColorModulateRatio);
+			QueryStringAttribute(xmlNode, "ColorTexture", splat_config.ColorTexture.File);
+			QueryIntAttribute(xmlNode, "ColorTextureUnit", splat_config.ColorTexture.TexUnit);
+			QueryStringAttribute(xmlNode, "SplatTexture", splat_config.SplatTexture.File);
+			QueryIntAttribute(xmlNode, "SplatTextureUnit", splat_config.SplatTexture.TexUnit);
+			QueryStringAttribute(xmlNode, "NoiseTexture", splat_config.NoiseTexture.File);
+			QueryIntAttribute(xmlNode, "NoiseTextureUnit", splat_config.NoiseTexture.TexUnit);
+			osgDB::XmlNode* dlsNode = getFirstNodeByName(xmlNode, "DetailLayers");
+			if (dlsNode)
+				splat_config.DetailLayers = _ReadDetailLayers(dlsNode);
+			return splat_config;
+		}
+	private:
+		static inline DetailLayer _ReadDetailLayer(osgDB::XmlNode* xmlNode)
+		{
+			std::string texture;
+			if (!QueryStringAttribute(xmlNode, "Texture", texture))
+				throw std::runtime_error(std::string("Serializer::loadDetailLayer - Failed to find attribute: Texture").c_str());
+
+			DetailLayer layer(texture);
+			QueryFloatAttribute(xmlNode, "Scale", layer.Scale);
+			return layer;
+		}
+
+		static inline std::vector<DetailLayer> _ReadDetailLayers(osgDB::XmlNode* xmlNode)
+		{
+			std::vector<osgVegetation::DetailLayer> layers;
+			for (unsigned int i = 0; i < xmlNode->children.size(); ++i)
+			{
+				if (xmlNode->children[i]->name == "DetailLayer")
+				{
+					DetailLayer dl = _ReadDetailLayer(xmlNode->children[i].get());
+					layers.push_back(dl);
+				}
+			}
+			return layers;
+		}
 	};
 
 	class TerrainSplatShadingStateSet : public TerrainShadingStateSet
