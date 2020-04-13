@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OVT>
+	<Register  CastsShadowTraversalMask="4"
+				ReceivesShadowTraversalMask="2"
+				TerrainColorTextureUnit="0"
+				TerrainSplatTextureUnit="1"/>
+	<SimpleTerrainReader TerrainCastShadow="false">
+		<TerrainStateSet>
+			<TerrainSplatShading MaxDistance = "200"
+						ColorModulateRatio="0.0"
+						ColorTextureUnit="0"
+						SplatTexture="terrain/terrain_splat.png" SplatTextureUnit="1"
+						DetailTextureUnit="3">
+				<DetailLayers>
+					<DetailLayer Texture="terrain/detail/detail_dirt.jpg" Scale="0.05"/>
+					<DetailLayer Texture="terrain/detail/detail_patch_grass.jpg" Scale="0.09"/>
+					<DetailLayer Texture="terrain/detail/detail_grass.jpg" Scale="0.09"/>
+					<DetailLayer Texture="terrain/detail/detail_stones.jpg" Scale="0.05"/>
+				</DetailLayers>
+			</TerrainSplatShading>
+		</TerrainStateSet>
+		<Layers>
+			<BillboardLayer
+				MaxDistance="100"
+				Density="0.4"
+				ColorImpact="0.8"
+				AlphaRejectValue="0.1"
+				CastShadow="false"
+				ReceiveShadow="true"
+				SplatFilter = "if(splat_color.g < 0.5 &amp;&amp; splat_color.r < 0.5) return false;"
+				Type="BLT_GRASS">
+				<Billboard 
+					Texture="billboards/veg_plant03.png"
+					Width="4" Height="2"
+					Intensity="0.9"
+					Probability="0.008">
+				</Billboard>
+				<Billboard 
+					Texture="billboards/veg_plant01.png"
+					Width="2" Height="2"
+					Intensity="0.9"
+					Probability="0.002">
+				</Billboard>
+				<Billboard 
+					Texture="billboards/grass0.png"
+					Width="2" Height="1"
+					Intensity="1.0"
+					Probability="1.0">
+				</Billboard>
+			</BillboardLayer>
+		</Layers>
+	</SimpleTerrainReader>
+</OVT>
