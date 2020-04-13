@@ -2,7 +2,8 @@
 add_subdirectory(sample-billboard-layers)
 add_subdirectory(sample-mesh-layers)
 add_subdirectory(sample-terrain-shaders)
-
+add_subdirectory(sample-ovt)
+#add_subdirectory(sample-simple-terrain)
 #add_subdirectory(sample1)
 #add_subdirectory(sample2)
 #add_subdirectory(sample3)
