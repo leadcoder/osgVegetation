@@ -24,7 +24,7 @@ class OVTConfig
 {
 public:
 	osg::ref_ptr<osgDB::ReaderWriter> TerrainReader;
-	std::string Filename;
+	std::string TerrainFilename;
 };
 
 OVTConfig readOVTConfig(const std::string& filename, const ReaderWriter::Options* options)
@@ -35,11 +35,10 @@ OVTConfig readOVTConfig(const std::string& filename, const ReaderWriter::Options
 	{
 		osgDB::FilePathList& filePaths = osgDB::getDataFilePathList();
 		filePaths.push_back(osgDB::getFilePath(filename));
-		if (osgDB::XmlNode* terrain_node = osgVegetation::getFirstNodeByName(xmlRoot.get(), "Terrain"))
+		if (osgDB::XmlNode* terrain_node = osgVegetation::getFirstNodeByName(xmlRoot.get(), "OVT"))
 		{
-			if (!osgVegetation::QueryStringAttribute(terrain_node, "File", ovtconfig.Filename))
-				throw std::runtime_error(std::string("readOVTConfig : Failed to find attribute: File").c_str());
-
+			osgVegetation::QueryStringAttribute(terrain_node, "TerrainFile", ovtconfig.TerrainFilename);
+			
 			if (osgDB::XmlNode* register_node = osgVegetation::getFirstNodeByName(terrain_node, "Register"))
 				osgVegetation::loadRegister(register_node);
 
@@ -102,7 +101,10 @@ ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, cons
 
 	const std::string reader_ext = formats.cbegin()->first;
 
-	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(config.Filename + "." + reader_ext);
+	const std::string file_no_ext = osgDB::getNameLessExtension(file);
+	const std::string terrain_file = config.TerrainFilename.empty() ? file_no_ext : config.TerrainFilename;
+
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(terrain_file + "." + reader_ext);
 	
 	if (!terrain_node)
 		return ReadResult::ERROR_IN_READING_FILE;
