@@ -2,7 +2,7 @@
 #include "ov_Utils.h"
 #include "ov_TerrainHelper.h"
 #include "ov_LayerGenerator.h"
-#include "ov_TerrainPagedLOD.h"
+#include "ov_TerrainLODGenerator.h"
 #include "ov_XMLUtils.h"
 #include "ov_XMLTerrainShadingReader.h"
 
