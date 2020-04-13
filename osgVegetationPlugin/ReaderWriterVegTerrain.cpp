@@ -7,9 +7,10 @@
 
 #include <osg/PagedLOD>
 #include "ov_Utils.h"
-#include "ov_VPBVegetationInjection.h"
-#include "ov_CustomVegetationInjection.h"
-#include "ov_XMLVPBReader.h"
+#include "ov_VPBTerrainReader.h"
+#include "ov_T3DBTerrainReader.h"
+#include "ov_SimpleTerrainReader.h"
+#include "ov_XMLRegisterReader.h"
 
 using namespace osg;
 using namespace osgDB;
@@ -17,6 +18,52 @@ using namespace osgDB;
 namespace osgVegetation
 {
 	GlobalRegister Register;
+}
+
+class OVTConfig
+{
+public:
+	osg::ref_ptr<osgDB::ReaderWriter> TerrainReader;
+	std::string Filename;
+};
+
+OVTConfig readOVTConfig(const std::string& filename, const ReaderWriter::Options* options)
+{
+	OVTConfig ovtconfig;
+	osg::ref_ptr<osgDB::XmlNode> xmlRoot = osgDB::readXmlFile(filename, options);
+	if (xmlRoot.valid())
+	{
+		osgDB::FilePathList& filePaths = osgDB::getDataFilePathList();
+		filePaths.push_back(osgDB::getFilePath(filename));
+		if (osgDB::XmlNode* terrain_node = osgVegetation::getFirstNodeByName(xmlRoot.get(), "Terrain"))
+		{
+			if (!osgVegetation::QueryStringAttribute(terrain_node, "File", ovtconfig.Filename))
+				throw std::runtime_error(std::string("readOVTConfig : Failed to find attribute: File").c_str());
+
+			if (osgDB::XmlNode* register_node = osgVegetation::getFirstNodeByName(terrain_node, "Register"))
+				osgVegetation::loadRegister(register_node);
+
+			if (osgDB::XmlNode* t_node = osgVegetation::getFirstNodeByName(terrain_node, "T3DBTerrainReader"))
+			{
+				ovtconfig.TerrainReader = osgVegetation::T3DBTerrainReader::ReadXML(t_node);
+			}
+			else if (osgDB::XmlNode* vpb_node = osgVegetation::getFirstNodeByName(terrain_node, "VPBTerrainReader"))
+			{
+				ovtconfig.TerrainReader = osgVegetation::VPBTerrainReader::ReadXML(vpb_node);
+			}
+			else if (osgDB::XmlNode* str_node = osgVegetation::getFirstNodeByName(terrain_node, "SimpleTerrainReader"))
+			{
+				ovtconfig.TerrainReader = osgVegetation::SimpleTerrainReader::readXML(str_node);
+			}
+			else
+				throw std::runtime_error(std::string("readOVTConfig : Failed to find Terrain Reader").c_str());
+
+			if(!ovtconfig.TerrainReader)
+				throw std::runtime_error(std::string("readOVTConfig : Failed Load Terrain Reader").c_str());
+		}
+		filePaths.pop_back();
+	}
+	return ovtconfig;
 }
 
 ReaderWriterOVT::ReaderWriterOVT()
@@ -35,45 +82,6 @@ bool ReaderWriterOVT::acceptsExtension(const std::string& extension) const
     return osgDB::equalCaseInsensitive(extension, "ovt");
 }
 
-
-class OVTConfig
-{
-public:
-	osgVegetation::VPBVegetationInjectionConfig VPBConfig;
-	std::string Filename;
-	std::string VPBType;
-
-};
-
-OVTConfig readOVTConfig(const std::string& filename, const ReaderWriter::Options* options)
-{
-	OVTConfig ovtconfig;
-	osg::ref_ptr<osgDB::XmlNode> xmlRoot = osgDB::readXmlFile(filename, options);
-	if (xmlRoot.valid())
-	{
-		osgDB::FilePathList& filePaths = osgDB::getDataFilePathList();
-		filePaths.push_back(osgDB::getFilePath(filename));
-		if (osgDB::XmlNode* terrain_node = osgVegetation::getFirstNodeByName(xmlRoot.get(), "Terrain"))
-		{
-			if (!osgVegetation::QueryStringAttribute(terrain_node, "File", ovtconfig.Filename))
-				throw std::runtime_error(std::string("Failed to find attribute: File").c_str());
-
-			osgVegetation::QueryStringAttribute(terrain_node, "Type", ovtconfig.VPBType);
-			if (osgDB::XmlNode* register_node = osgVegetation::getFirstNodeByName(terrain_node, "Register"))
-				osgVegetation::loadRegister(register_node);
-
-			if (osgDB::XmlNode* vpb_node = osgVegetation::getFirstNodeByName(terrain_node, "VPBVegetationInjectionConfig"))
-			{
-				ovtconfig.VPBConfig = osgVegetation::readVPBConfig(vpb_node);
-
-			}
-		}
-		filePaths.pop_back();
-	}
-	return ovtconfig;
-}
-
-
 ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, const ReaderWriter::Options* options) const
 {
 	// See if we can find the requested file
@@ -81,19 +89,21 @@ ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, cons
 	if (fileName.empty())
 		return ReadResult::FILE_NOT_FOUND;
 
-	OVTConfig config = readOVTConfig(fileName, options);
 	const std::string file_path = osgDB::getFilePath(fileName);
 	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path);
-	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path + "/shaders");
-	
+	OVTConfig config = readOVTConfig(fileName, options);
+	//osgDB::Registry::instance()->getDataFilePathList().push_back(file_path + "/shaders");
+	osgDB::Registry::instance()->addReaderWriter(config.TerrainReader);
 
-	const bool custom_vpb = config.VPBType == "custom" ? true : false;
-	osgVegetation::VPBVegetationInjection* vegetation_reader = custom_vpb ?  new osgVegetation::CustomVegetationInjection(config.VPBConfig) :
-		new osgVegetation::VPBVegetationInjection(config.VPBConfig);
-	
-	osgDB::Registry::instance()->addReaderWriter(vegetation_reader);
-	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(config.Filename + "." + OV_PLOD_READER_EXT);
+	const osgDB::ReaderWriter::FormatDescriptionMap& formats = config.TerrainReader->supportedExtensions();
 
+	if(formats.empty())
+		throw std::runtime_error(std::string("ReaderWriterOVT::_readOVT : Terrain Reader don't provide any extensions").c_str());
+
+	const std::string reader_ext = formats.cbegin()->first;
+
+	osg::ref_ptr<osg::Node> terrain_node = osgDB::readNodeFile(config.Filename + "." + reader_ext);
+	
 	if (!terrain_node)
 		return ReadResult::ERROR_IN_READING_FILE;
 	
@@ -109,4 +119,3 @@ ReaderWriter::ReadResult ReaderWriterOVT::readNode(const std::string& file, cons
 }
 
 REGISTER_OSGPLUGIN(ovt, ReaderWriterOVT)
-
