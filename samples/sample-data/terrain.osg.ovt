@@ -50,7 +50,8 @@
 			</BillboardLayer>
 			<MeshLayer Density="1000"
 						CastShadow="true"
-						ReceiveShadow="true">
+						ReceiveShadow="true"
+						BackFaceCulling="true">
 				<Mesh Probability="1">
 					<LOD MeshFile="trees/fir01_l0.osg"
 						StartDistance="0" 
