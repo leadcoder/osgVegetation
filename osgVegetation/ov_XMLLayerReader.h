@@ -70,41 +70,46 @@ namespace osgVegetation
         return layer;
     }
 
-    inline MeshTypeConfig::MeshLODConfig loadMeshLOD(osgDB::XmlNode* xmlNode)
+    inline MeshTypeConfig::MeshLODConfig loadMeshLOD(osgDB::XmlNode* xmlNode, MeshTypeConfig::MeshLODConfig &mesh_lod)
     {
-        MeshTypeConfig::MeshLODConfig mesh_lod;
-
         if (!QueryStringAttribute(xmlNode, "MeshFile", mesh_lod.Mesh))
             throw std::runtime_error(std::string("Serializer::loadMeshLOD - Failed to find attribute: MeshFile").c_str());
 
-
-        float start_dist = 0;
-        float end_dist = 0;
-        float fade_in_dist = 0;
-        float fade_out_dist = 0;
+        float start_dist = mesh_lod.Distance.y();
+        float end_dist = mesh_lod.Distance.z();
+        float fade_in_dist = mesh_lod.Distance.y() - mesh_lod.Distance.x();
+        float fade_out_dist = mesh_lod.Distance.w() - mesh_lod.Distance.z();
+        
         QueryFloatAttribute(xmlNode, "StartDistance", start_dist);
         QueryFloatAttribute(xmlNode, "EndDistance", end_dist);
         QueryFloatAttribute(xmlNode, "FadeInDistance", fade_in_dist);
         QueryFloatAttribute(xmlNode, "FadeOutDistance", fade_out_dist);
+
         mesh_lod.Distance.set(start_dist - fade_in_dist, start_dist, end_dist, end_dist + fade_out_dist);
+
         QueryFloatAttribute(xmlNode, "Intensity", mesh_lod.Intensity);
         QueryIntAttribute(xmlNode, "Type", mesh_lod.Type);
         return mesh_lod;
     }
 
-    inline MeshTypeConfig loadMesh(osgDB::XmlNode* xmlNode)
+    inline MeshTypeConfig loadMesh(osgDB::XmlNode* xmlNode, MeshTypeConfig& mesh)
     {
-        MeshTypeConfig mesh;
         QueryFloatAttribute(xmlNode, "Probability", mesh.Probability);
         QueryFloatAttribute(xmlNode, "IntensityVariation", mesh.IntensityVariation);
         QueryFloatAttribute(xmlNode, "Scale", mesh.Scale);
         QueryFloatAttribute(xmlNode, "ScaleVariation", mesh.ScaleVariation);
         QueryFloatAttribute(xmlNode, "DiffuseIntensity", mesh.DiffuseIntensity);
+
+        std::vector<MeshTypeConfig::MeshLODConfig> template_lods = mesh.MeshLODs;
+        mesh.MeshLODs.clear();
         for (unsigned int i = 0; i < xmlNode->children.size(); ++i)
         {
             if (xmlNode->children[i]->name == "LOD")
             {
-                MeshTypeConfig::MeshLODConfig mesh_lod = loadMeshLOD(xmlNode->children[i].get());
+                MeshTypeConfig::MeshLODConfig mesh_lod;
+                if (i < template_lods.size())
+                    mesh_lod = template_lods[i];
+                loadMeshLOD(xmlNode->children[i].get(), mesh_lod);
                 mesh.MeshLODs.push_back(mesh_lod);
             }
         }
@@ -123,49 +128,48 @@ namespace osgVegetation
         QueryStringAttribute(xmlNode, "SplatFilter", layer->Filter.SplatFilter);
         QueryStringAttribute(xmlNode, "NormalFilter", layer->Filter.NormalFilter);
 
+        std::map<std::string, MeshTypeConfig> templates;
+        for (unsigned int i = 0; i < xmlNode->children.size(); ++i)
+        {
+            if (xmlNode->children[i]->name == "MeshTemplate")
+            {
+                MeshTypeConfig mesh;
+                loadMesh(xmlNode->children[i].get(), mesh);
+                std::string temp_name;
+                if(!QueryStringAttribute(xmlNode->children[i], "Name", temp_name))
+                    throw std::runtime_error(std::string("loadMesh - Failed to find attribute: Name").c_str());
+                templates[temp_name] = mesh;
+            }
+        }
 
         for (unsigned int i = 0; i < xmlNode->children.size(); ++i)
         {
             if (xmlNode->children[i]->name == "Mesh")
             {
-                MeshTypeConfig mesh = loadMesh(xmlNode->children[i].get());
+                MeshTypeConfig mesh;
+                std::string temp_name;
+                if (QueryStringAttribute(xmlNode->children[i], "Template", temp_name))
+                {
+                    if(templates.find(temp_name) != templates.end())
+                        mesh = templates[temp_name];
+                    else
+                        throw std::runtime_error(std::string("loadMesh - Failed to find template").c_str());
+                }
+                loadMesh(xmlNode->children[i].get(), mesh);
                 layer->MeshTypes.push_back(mesh);
             }
         }
 
-        //support override lod.settings
-        float lod0_dist = -1;
-        float lod1_dist = -1;
-        float lod0_fade_dist = -1;
-        float lod1_fade_dist = -1;
-        float intensity = -1;
-        float dist_scale = 1;
-
-        QueryFloatAttribute(xmlNode, "DefaultDistanceLOD0", lod0_dist);
-        QueryFloatAttribute(xmlNode, "DefaultFadeLOD0", lod0_fade_dist);
-        QueryFloatAttribute(xmlNode, "DefaultDistanceLOD1", lod1_dist);
-        QueryFloatAttribute(xmlNode, "DefaultFadeLOD0", lod1_fade_dist);
-        QueryFloatAttribute(xmlNode, "DefaultIntensity", intensity);
+        float dist_scale  = 1.0;
         QueryFloatAttribute(xmlNode, "DistanceScale", dist_scale);
 
         for (size_t i = 0; i < layer->MeshTypes.size(); i++)
         {
             for (size_t j = 0; j < layer->MeshTypes[i].MeshLODs.size(); j++)
             {
-                if (layer->MeshTypes[i].MeshLODs[j].Distance.w() == 0)
-                {
-                    if (j == 0 && lod0_dist > -1)
-                    {
-                        layer->MeshTypes[i].MeshLODs[j].Distance.set(0, 0, lod0_dist, lod0_dist + lod0_fade_dist);
-                    }
-                    if (j == 1 && lod0_dist > -1 && lod1_dist > -1)
-                    {
-                        layer->MeshTypes[i].MeshLODs[j].Distance.set(lod0_dist - lod0_fade_dist, lod0_dist, lod1_dist, lod1_dist + lod1_fade_dist);
-                    }
-                    layer->MeshTypes[i].MeshLODs[j].Distance = layer->MeshTypes[i].MeshLODs[j].Distance * dist_scale;
-                }
-                if (intensity > -1)
-                    layer->MeshTypes[i].MeshLODs[j].Intensity = intensity;
+                layer->MeshTypes[i].MeshLODs[j].Distance = layer->MeshTypes[i].MeshLODs[j].Distance * dist_scale;
+                //if (intensity > -1)
+                //    layer->MeshTypes[i].MeshLODs[j].Intensity = intensity;
             }
         }
         return layer;
