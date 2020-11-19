@@ -15,7 +15,7 @@ namespace osgVegetation
 
 		static void DisableFog(osg::StateSet* state_set)
 		{
-			state_set->removeDefine("OSG_FOG_MODE");
+			state_set->setDefine("OSG_FOG_MODE","0", 0U);
 		}
 
 		static void EnableFog(osg::StateSet* state_set, osg::Fog::Mode fog_mode)
