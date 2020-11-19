@@ -135,7 +135,7 @@ namespace osgVegetation
 				m_InstanceGroup->getOrCreateStateSet()->setMode(GL_CULL_FACE, osg::StateAttribute::ON);
 			}
 			else
-				m_InstanceGroup->getOrCreateStateSet()->setMode(GL_CULL_FACE, osg::StateAttribute::OFF);
+				m_InstanceGroup->getOrCreateStateSet()->setMode(GL_CULL_FACE, osg::StateAttribute::OFF | osg::StateAttribute::PROTECTED);
 
 			
 
@@ -152,6 +152,11 @@ namespace osgVegetation
 				node_mask &= ~Register.ReceivesShadowTraversalMask;
 
 			m_InstanceGroup->setNodeMask(node_mask);
+
+			
+			m_InstanceGroup->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", config.ReceiveShadow));
+
+
 			
 			delete gpuData;
 		}
@@ -204,10 +209,11 @@ namespace osgVegetation
 			osg::ref_ptr < osg::Program> drawProgram = new osg::Program;
 			//stateset->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_mesh_render_vertex.glsl")));
-			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_common_vertex.glsl")));
+			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_shadow_vertex.glsl")));
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_terrain_color.glsl")));
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_mesh_render_fragment.glsl")));
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_common_fragment.glsl")));
+			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_shadow_fragment.glsl")));
 			gpuData->registerIndirectTarget(0, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
 			//m_GpuData.registerIndirectTarget(1, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
 
@@ -304,7 +310,7 @@ namespace osgVegetation
 				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("ov_mesh_cull_tess_ctrl.glsl")));
 				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::TESSEVALUATION, osgDB::findDataFile("ov_mesh_cull_tess_eval.glsl")));
 				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_mesh_cull_geometry.glsl")));
-				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_common_vertex.glsl")));
+				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_shadow_vertex.glsl")));
 				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_terrain_elevation.glsl")));
 				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_terrain_color.glsl")));
 				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::GEOMETRY, osgDB::findDataFile("ov_terrain_pass_filter.glsl")));

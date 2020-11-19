@@ -40,6 +40,8 @@ set(SHADERS_FILES
 	ov_billboard_fragment.glsl
 	ov_common_vertex.glsl
 	ov_common_fragment.glsl
+	ov_shadow_vertex.glsl
+	ov_shadow_fragment.glsl
 	ov_terrain_color.glsl
 	ov_terrain_elevation.glsl
 	ov_terrain_vertex.glsl

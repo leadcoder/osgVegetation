@@ -8,6 +8,7 @@
 #include <osgShadow/ViewDependentShadowMap>
 
 #include "ovSampleUtils_StateSetManipulator.h"
+
 namespace ovSampleUtils
 {
 	struct BoundingBoxCB : public osg::Drawable::ComputeBoundingBoxCallback
@@ -23,7 +24,7 @@ namespace ovSampleUtils
 	{
 		osg::ref_ptr<osg::Light> light = new osg::Light;
 		light->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
-		osg::Vec4 light_pos(1, 1.0, 1, 0);
+		osg::Vec4 light_pos(0.5, 0.5, 1, 0);
 		light->setPosition(light_pos);		// last param	w = 0.0 directional light (direction)
 		osg::Vec3f light_dir(-light_pos.x(), -light_pos.y(), -light_pos.z());
 		light_dir.normalize();
@@ -105,6 +106,10 @@ namespace ovSampleUtils
 		osg::Uniform* shadowTextureSampler = new osg::Uniform(osg::Uniform::INT, "shadowTexture0");
 		shadowTextureSampler->set(shadowTexUnit);
 		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureSampler);
+
+		bool receive_shadow = true;
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", receive_shadow));
+
 		return shadowedScene;
 	}
 
@@ -132,6 +137,10 @@ namespace ovSampleUtils
 		settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
 		osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
 		shadowedScene->setShadowTechnique(vdsm.get());
+
+		bool receive_shadow = true;
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", receive_shadow));
+
 		return shadowedScene;
 	}
 

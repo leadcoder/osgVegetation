@@ -1,72 +1,19 @@
-#pragma import_defines (OSG_LIGHTING, OSG_NUM_SHADOW_MAPS, OSG_FOG_MODE)
+#version 400 compatibility
+#extension GL_EXT_gpu_shader4 : enable
+#extension GL_EXT_texture_array : enable
+#pragma import_defines (OSG_LIGHTING, OSG_FOG_MODE)
 
-#ifdef OSG_NUM_SHADOW_MAPS
-//pick sampler and units names from vdsm, 
-//if you use other shadow-tech add own uniform or change names below
-#if (OSG_NUM_SHADOW_MAPS > 0)
-uniform sampler2DShadow shadowTexture0;
-uniform int shadowTextureUnit0;
-#if (OSG_NUM_SHADOW_MAPS > 1)
-uniform sampler2DShadow shadowTexture1;
-uniform int shadowTextureUnit1;
-#endif
-#endif
-#endif
+uniform bool ov_receive_shadow;
 
-#define USE_PCF
-
-#ifdef USE_PCF
-
-float ov_getShadowMapValue(sampler2DShadow shadowmap, vec4 shadowUV)
-{
-	// PCF filtering
-	float invTexel = 1.0 / 2048.0;
-	float softness = 3.0;
-	float offset  = softness* invTexel * shadowUV.w;
-	float shadowTerm = shadow2DProj(shadowmap, shadowUV).r;
-	shadowTerm += shadow2DProj(shadowmap, shadowUV - vec4(offset, 0.0, 0.0, 0.0)).r;
-	shadowTerm += shadow2DProj(shadowmap, shadowUV + vec4(offset, 0.0, 0.0, 0.0)).r;
-	shadowTerm += shadow2DProj(shadowmap, shadowUV - vec4(0.0, offset, 0.0, 0.0)).r;
-	shadowTerm += shadow2DProj(shadowmap, shadowUV + vec4(0.0, offset, 0.0, 0.0)).r;
-	shadowTerm += shadow2DProj(shadowmap, shadowUV - vec4(offset, offset, 0.0, 0.0)).r;
-	shadowTerm += shadow2DProj(shadowmap, shadowUV + vec4(offset, offset, 0.0, 0.0)).r;
-	shadowTerm += shadow2DProj(shadowmap, shadowUV - vec4(offset,-offset, 0.0, 0.0)).r;
-	shadowTerm += shadow2DProj(shadowmap, shadowUV + vec4(offset,-offset, 0.0, 0.0)).r;
-	shadowTerm = shadowTerm / 9.0;
-	return shadowTerm;
-}
-
-#else 
-
-float ov_getShadowMapValue(sampler2DShadow shadowmap, vec4 shadowUV)
-{
-	return shadow2DProj(shadowmap, shadowUV).r;
-}
-
-#endif
-
-
-float ov_getShadow()
-{
-	float shadow = 1.0;
-#ifdef OSG_NUM_SHADOW_MAPS
-#if (OSG_NUM_SHADOW_MAPS > 0)
-	shadow *= ov_getShadowMapValue(shadowTexture0, gl_TexCoord[shadowTextureUnit0]);
-#if (OSG_NUM_SHADOW_MAPS > 1)
-	shadow *= ov_getShadowMapValue(shadowTexture1, gl_TexCoord[shadowTextureUnit1]);
-#endif
-#endif
-#endif
-	return shadow;
-}
+float ov_getShadow(vec3 normal);
 
 vec3 ov_directionalLightShadow(vec3 normal, vec3 diffuse)
 {
-#ifdef OSG_LIGHTING
+#if defined(OSG_LIGHTING)
 	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
 	float NdotL = max(dot(normal, light_dir), 0.0);
-
-	NdotL *= ov_getShadow();
+	if(ov_receive_shadow)
+		NdotL *= ov_getShadow(normal);
 	vec3 light = min(NdotL * diffuse*gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz, 1.0);
     
 	//float NdotHV = max(dot(normal, gl_LightSource[0].halfVector.xyz), 0.0);

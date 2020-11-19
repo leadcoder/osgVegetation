@@ -13,6 +13,7 @@ in ov_VertexData
   vec2 TexCoord0;
 } ov_in[];
 
+uniform mat4 oe_shadowToPrimaryMatrix;
 uniform mat4 osg_ModelViewMatrix;
 uniform mat4 osg_ModelViewProjectionMatrix;
 uniform mat4 osg_ProjectionMatrix;
@@ -225,10 +226,15 @@ void main(void)
 		float lod_scale = 1.0;
 		if (shadow_camera)
 		{
+#if 0
+			vec4 wouldBePositionView = oe_shadowToPrimaryMatrix * mv_pos;
+			distance_to_object = length(wouldBePositionView.xyz);
+#else
 			//select last lod
 			start_lod = max(0, max_lods - 1);
 			//and override object distance to be inside lod-range
 			distance_to_object = instanceTypes[instance_type_id].lods[start_lod].distances.y + 0.1; //note that we add 0.1m to avoid problems with zero values
+#endif
 		}
 		else
 		{

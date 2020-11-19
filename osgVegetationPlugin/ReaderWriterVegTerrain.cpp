@@ -60,6 +60,10 @@ OVTConfig readOVTConfig(const std::string& filename, const ReaderWriter::Options
 			if(!ovtconfig.TerrainReader)
 				throw std::runtime_error(std::string("readOVTConfig : Failed Load Terrain Reader").c_str());
 		}
+		else
+		{
+			throw std::runtime_error(std::string("readOVTConfig : Failed to find OVT node").c_str());
+		}
 		filePaths.pop_back();
 	}
 	return ovtconfig;

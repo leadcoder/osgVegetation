@@ -14,11 +14,20 @@ namespace osgVegetation
 	class T3DBTerrainReaderConfig
 	{
 	public:
-		T3DBTerrainReaderConfig() {}
-		T3DBTerrainReaderConfig(const std::vector<TerrainLODGeneratorConfig>& lods) : TerrainLODs(lods)
+		T3DBTerrainReaderConfig(): TerrainCastShadow(false), 
+			TerrainReceiveShadow(true),
+			ObjectsCastShadow(true),
+			ObjectsReceiveShadow(false) {}
+		T3DBTerrainReaderConfig(const std::vector<TerrainLODGeneratorConfig>& lods) : TerrainCastShadow(false),
+			TerrainReceiveShadow(true),
+			ObjectsCastShadow(true),
+			ObjectsReceiveShadow(false),
+			TerrainLODs(lods)
 		{}
-		bool ObjectsCastShadow;
 		bool TerrainCastShadow;
+		bool TerrainReceiveShadow;
+		bool ObjectsCastShadow;
+		bool ObjectsReceiveShadow;
 		osg::ref_ptr<osg::StateSet> TerrainStateSet;
 		std::vector<TerrainLODGeneratorConfig> TerrainLODs;
 		static T3DBTerrainReaderConfig ReadXML(osgDB::XmlNode* vpb_node)
@@ -27,7 +36,9 @@ namespace osgVegetation
 			config.TerrainStateSet = loadTerrainStateSet(vpb_node);
 
 			QueryBoolAttribute(vpb_node, "TerrainCastShadow", config.TerrainCastShadow);
+			QueryBoolAttribute(vpb_node, "TerrainReceiveShadow", config.TerrainReceiveShadow);
 			QueryBoolAttribute(vpb_node, "ObjectsCastShadow", config.ObjectsCastShadow);
+			QueryBoolAttribute(vpb_node, "ObjectsReceiveShadow", config.ObjectsReceiveShadow);
 
 			for (unsigned int i = 0; i < vpb_node->children.size(); ++i)
 			{
@@ -47,11 +58,16 @@ namespace osgVegetation
 		mutable std::vector<TerrainLODGenerator> m_Levels;
 		osg::ref_ptr<osg::StateSet> m_TerrainStateSet;
 		bool m_TerrainCastShadow;
+		bool m_TerrainReceiveShadow;
+		     
 		bool m_ObjectsCastShadow;
+		bool m_ObjectsReceiveShadow;
 	public:
 		T3DBTerrainReader(const T3DBTerrainReaderConfig&config) :
 			m_TerrainCastShadow(config.TerrainCastShadow),
+			m_TerrainReceiveShadow(config.TerrainReceiveShadow),
 			m_ObjectsCastShadow(config.ObjectsCastShadow),
+			m_ObjectsReceiveShadow(config.ObjectsReceiveShadow),
 			m_TerrainStateSet(config.TerrainStateSet)
 		{
 			supportsExtension(OV_T3DB_EXT, "T3DBTerrainReader");
@@ -104,6 +120,22 @@ namespace osgVegetation
 					ApplyNodeMask(~Register.CastsShadowTraversalMask, collection.TerrainTiles);
 				if (!m_ObjectsCastShadow)
 					ApplyNodeMask(~Register.CastsShadowTraversalMask, collection.Objects);
+
+				if (!m_ObjectsReceiveShadow)
+				{
+					for (size_t i = 0; i < collection.Objects.size(); i++)
+					{
+						collection.Objects[i]->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", m_ObjectsReceiveShadow));
+					}
+				}
+
+				if (!m_TerrainReceiveShadow)
+				{
+					for (size_t i = 0; i < collection.TerrainTiles.size(); i++)
+					{
+						collection.TerrainTiles[i]->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", m_ObjectsReceiveShadow));
+					}
+				}
 			
 				if (m_TerrainStateSet)
 				{

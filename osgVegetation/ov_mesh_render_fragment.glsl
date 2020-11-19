@@ -1,7 +1,7 @@
 #version 420 compatibility
 #extension GL_EXT_texture_array : enable 
 #extension GL_EXT_gpu_shader4 : enable
-
+#pragma import_defines (OE_IS_DEPTH_CAMERA)
 in vec3 ov_position;
 in vec3 ov_vPosition;
 in vec3 ov_normal;
@@ -26,6 +26,9 @@ void main()
     //vec3 normal   = normalize(ov_normal);
     //float NdotL   = max(dot(normal, light_dir), 0.0);
 	vec4 base_color = ov_color * texture2DArray(ov_mesh_color_texture, vec3(ov_texCoord.xy, ov_textureIndex));
+#ifdef OE_IS_DEPTH_CAMERA
+	gl_FragColor =  base_color;
+#else
 	vec3 normal = normalize(ov_texMat * normalize(ov_normal));
 	if(ov_type > 0)
 	{
@@ -34,6 +37,7 @@ void main()
 		//vec3 bnormal = normalize(vec3(ov_vPosition.xy,0));
 		//bnormal = normalize(ov_texMat * vec3(bnormal.xy,ov_texCoord.y));
 		base_color.xyz *= ov_directionalLightShadow(bnormal, ov_diffuse);
+		//base_color.xyz *= ov_directionalLight(bnormal, ov_diffuse);
 		if(ov_normal.z < 0.9)
 			normal.y = 0;
 		normal = normalize(normal);
@@ -45,7 +49,7 @@ void main()
 		//if (!gl_FrontFacing)
 		//	normal = -normal;
 	
-		//base_color.xyz *= ov_directionalLight(normal);
+		//base_color.xyz *= ov_directionalLight(normal, ov_diffuse);
 		base_color.xyz *= ov_directionalLightShadow(normal, ov_diffuse);
 	}
 
@@ -57,5 +61,6 @@ void main()
 
 	//gl_FragColor =  vec4(base_color.rgb,1.0);
 	gl_FragColor =  base_color;
+#endif
     //gl_FragColor =  NdotL * base_color * gl_LightSource[0].diffuse +  base_color * gl_LightSource[0].ambient;
 }
