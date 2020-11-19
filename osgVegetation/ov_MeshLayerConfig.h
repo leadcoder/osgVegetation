@@ -48,12 +48,14 @@ namespace osgVegetation
 	{
 	public:
 		MeshLayerConfig(float density = 2) : Density(density),
+			Enable(true),
 			CastShadow(true),
 			ReceiveShadow(true),
 			BackFaceCulling(false)
 		{
 
 		}
+		bool Enable;
 		float Density;
 		bool CastShadow;
 		bool ReceiveShadow;

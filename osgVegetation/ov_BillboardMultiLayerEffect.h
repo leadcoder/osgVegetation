@@ -11,8 +11,11 @@ namespace osgVegetation
 		{
 			for (size_t i = 0; i < layers.size(); i++)
 			{
-				osg::ref_ptr<BillboardLayerEffect> layer = new BillboardLayerEffect(layers[i]);
-				addChild(layer);
+				if (layers[i].Enable)
+				{
+					osg::ref_ptr<BillboardLayerEffect> layer = new BillboardLayerEffect(layers[i]);
+					addChild(layer);
+				}
 			}
 		}
 

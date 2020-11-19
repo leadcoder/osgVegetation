@@ -38,6 +38,7 @@ namespace osgVegetation
     {
         osg::ref_ptr<BillboardLayerConfig> layer = new BillboardLayerConfig;
 
+        QueryBoolAttribute(xmlNode, "Enable", layer->Enable);
         std::string bbl_type;
         if (!QueryStringAttribute(xmlNode, "Type", bbl_type))
         {
@@ -61,6 +62,7 @@ namespace osgVegetation
         QueryStringAttribute(xmlNode, "ColorFilter", layer->Filter.ColorFilter);
         QueryStringAttribute(xmlNode, "SplatFilter", layer->Filter.SplatFilter);
         QueryStringAttribute(xmlNode, "NormalFilter", layer->Filter.NormalFilter);
+        
 
         for (unsigned int i = 0; i < xmlNode->children.size(); ++i)
         {
@@ -119,6 +121,7 @@ namespace osgVegetation
     inline  osg::ref_ptr<MeshLayerConfig> readMeshLayer(osgDB::XmlNode* xmlNode)
     {
         osg::ref_ptr<MeshLayerConfig> layer = new MeshLayerConfig();
+        QueryBoolAttribute(xmlNode, "Enable", layer->Enable);
         QueryFloatAttribute(xmlNode, "Density", layer->Density);
         QueryBoolAttribute(xmlNode, "CastShadow", layer->CastShadow);
         QueryBoolAttribute(xmlNode, "ReceiveShadow", layer->ReceiveShadow);

@@ -360,7 +360,8 @@ namespace osgVegetation
 		{
 			for (size_t i = 0; i < layers.size(); i++)
 			{
-				m_MeshGenerators.push_back(MeshLayerGenerator(layers[i]));
+				if(layers[i].Enable)
+					m_MeshGenerators.push_back(MeshLayerGenerator(layers[i]));
 			}
 		}
 

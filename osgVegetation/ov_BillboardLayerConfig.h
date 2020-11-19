@@ -35,6 +35,7 @@ namespace osgVegetation
 				Size(size),
 				Intensity(intensity),
 				Probability(probability)
+				
 			{
 
 			}
@@ -56,7 +57,8 @@ namespace osgVegetation
 			ColorImpact(1.0),
 			AlphaRejectValue(0.1),
 			CastShadow(true),
-			ReceiveShadow(true)
+			ReceiveShadow(true),
+			Enable(true)
 		{
 
 		}
@@ -65,7 +67,7 @@ namespace osgVegetation
 		{
 
 		}
-
+		bool Enable;
 		float MaxDistance;
 		float Density;
 		float ColorImpact;
