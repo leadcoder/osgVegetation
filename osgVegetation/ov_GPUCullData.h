@@ -272,7 +272,7 @@ namespace osgVegetation
 	// ( instance types, indirect targets, etc ).
 	struct GPUCullData
 	{
-		GPUCullData()
+		GPUCullData() : _maxHeight(0)
 		{
 			useMultiDrawArraysIndirect = false;
 			instanceTypes = new osg::BufferTemplate< std::vector<InstanceType> >;
@@ -299,7 +299,8 @@ namespace osgVegetation
 		bool registerType(unsigned int typeID, 
 			unsigned int targetID, 
 			osg::Node* node, 
-			float maxDensityPerSquareKilometer, 
+			float maxDensityPerSquareKilometer,
+			float max_dist,
 			float probablity,
 			const MeshTypeConfig::MeshLODConfig &config)
 		{
@@ -322,6 +323,8 @@ namespace osgVegetation
 			osg::ComputeBoundsVisitor cbv;
 			node->accept(cbv);
 
+			_maxHeight = osg::maximum<double>(_maxHeight, cbv.getBoundingBox().zMax());
+
 			itd.setLodDefinition(lodNumber, 
 				targetID, 
 				aoResult.index, 
@@ -333,8 +336,13 @@ namespace osgVegetation
 
 			const osg::Vec4 lodDistances = config.Distance;
 			// Indirect target texture buffers have finite size, therefore each instance LOD has maximum number that may be rendered in one frame.
-			// This maximum number of rendered instances is estimated from the area that LOD covers and maximum density of instances per square kilometer.
-			const float lodArea = osg::PI * (lodDistances.w() * lodDistances.w() - lodDistances.x() * lodDistances.x()) / 1000000.0f;
+			float lodArea = 0;
+			if(max_dist > 0)
+				lodArea = osg::PI * (max_dist * max_dist) / 1000000.0f;
+			else // This maximum number of rendered instances is estimated from the area that LOD covers and maximum density of instances per square kilometer.
+				lodArea = osg::PI * (lodDistances.w() * lodDistances.w() - lodDistances.x() * lodDistances.x()) / 1000000.0f;
+			
+			
 			// calculate max quantity of objects in lodArea using maximum density per square kilometer
 			const unsigned int maxQuantity = (unsigned int)ceil(lodArea * maxDensityPerSquareKilometer);
 
@@ -388,7 +396,7 @@ namespace osgVegetation
 		osg::ref_ptr< osg::BufferTemplate< std::vector<InstanceType> > >   instanceTypes;
 		osg::ref_ptr<osg::UniformBufferObject>              instanceTypesUBO;
 		osg::ref_ptr<osg::UniformBufferBinding>             instanceTypesUBB;
-
+		double _maxHeight;
 		std::map<unsigned int, IndirectTarget>               targets;
 	};
 }

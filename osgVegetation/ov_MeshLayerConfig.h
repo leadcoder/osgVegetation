@@ -28,10 +28,10 @@ namespace osgVegetation
 		};
 
 		MeshTypeConfig() : Probability(0), 
-			IntensityVariation(0.2),
-			Scale(1.0),
+			IntensityVariation(0.2f),
+			Scale(1.0f),
 			ScaleVariation(0),
-			DiffuseIntensity(1.0)
+			DiffuseIntensity(1.0f)
 		{
 
 		}
@@ -51,7 +51,8 @@ namespace osgVegetation
 			Enable(true),
 			CastShadow(true),
 			ReceiveShadow(true),
-			BackFaceCulling(false)
+			BackFaceCulling(false),
+			DynamicLODMaxDistanceRatio(3.0f)
 		{
 
 		}
@@ -60,6 +61,7 @@ namespace osgVegetation
 		bool CastShadow;
 		bool ReceiveShadow;
 		bool BackFaceCulling;
+		float DynamicLODMaxDistanceRatio;
 		PassFilter Filter;
 		std::vector<MeshTypeConfig> MeshTypes;
 	private:

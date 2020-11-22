@@ -3,6 +3,7 @@
 #include "ov_MeshLayerConfig.h"
 #include "ov_Utils.h"
 #include <osg/CullFace>
+#include <osg/io_utils>
 #include <osgDB/ReadFile>
 #include <osgDB/FileUtils>
 
@@ -103,16 +104,16 @@ namespace osgVegetation
 			osg::BoundingBox _bbox;
 		};
 
-		struct BoundingSphereCB : public osg::Drawable::ComputeBoundingSphereCallback
+		/*struct BoundingSphereCB : public osg::Drawable::ComputeBoundingSphereCallback
 		{
 			BoundingSphereCB() {}
 			BoundingSphereCB(const osg::BoundingSphere &bs) : _bounds(bs) {};
 			osg::BoundingSphere computeBound(const osg::Node&) const { return _bounds; }
 		private:
 			osg::BoundingSphere _bounds;
-		};
+		};*/
 	public:
-		MeshLayerGenerator(const MeshLayerConfig& config)
+		MeshLayerGenerator(const MeshLayerConfig& config) : m_MaxMeshHeight(0)
 		{
 			GPUCullData* gpuData = _CreateGPUData(config);
 			m_TerrainStateSet = _CreateTerrainStateSet(gpuData);
@@ -126,7 +127,6 @@ namespace osgVegetation
 			targetTriangleSide->set(target_tri_side_lenght);
 			m_TerrainStateSet->addUniform(targetTriangleSide);
 
-			//osg::BoundingSphere bs;
 			m_InstanceGroup = _CreateInstanceGroup(gpuData);
 
 			if (config.BackFaceCulling)
@@ -146,53 +146,52 @@ namespace osgVegetation
 			else
 				node_mask &= ~Register.CastsShadowTraversalMask;
 
-			if (config.ReceiveShadow)
-				node_mask |= Register.ReceivesShadowTraversalMask;
-			else
-				node_mask &= ~Register.ReceivesShadowTraversalMask;
+			//if (config.ReceiveShadow)
+			//	node_mask |= Register.ReceivesShadowTraversalMask;
+			//else
+			//	node_mask &= ~Register.ReceivesShadowTraversalMask;
 
 			m_InstanceGroup->setNodeMask(node_mask);
-
-			
 			m_InstanceGroup->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", config.ReceiveShadow));
-
-
 			
 			delete gpuData;
 		}
 
-		osg::Group* CreateMeshTile(osg::Geometry* terrain_geometry)
+		class PaddBoundsVisitor : public osg::NodeVisitor
 		{
-			osg::Group* group = new osg::Group();
-			group->getOrCreateStateSet()->setRenderBinDetails(1, "TraversalOrderBin", osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);
-			osg::Geode* terrain_geode = new osg::Geode();
-			terrain_geode->addDrawable(terrain_geometry);
-			terrain_geode->setStateSet(m_TerrainStateSet);
-			DrawCallbackVisitor scbv;
-			terrain_geometry->accept(scbv);
-			//terrain_geometry->setDrawCallback(new TerrainGeometryDrawCB(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT));
-			group->addChild(terrain_geode);
-			group->addChild(m_InstanceGroup);
-			//osg::BoundingSphere bs = terrain_geode->getBound();
-			//osg::ref_ptr<osg::Group> instance_group = _CreateInstanceGroup(bs);
-			//group->addChild(instance_group);
+		public:
+			PaddBoundsVisitor(double padding = 40) : osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN), _padding(padding)
+			{}
 
+			void apply(osg::Drawable& drawable)
+			{
+				osg::BoundingBoxd bb = drawable.getBoundingBox();
+				bb.zMax() += _padding;
+				drawable.setInitialBound(bb);
+			}
+		protected:
+			double _padding;
+		};
 
-			return group;
-		}
 
 		osg::Group* CreateMeshNode(osg::Node* terrain_geometry) const
 		{
 			osg::Group* group = new osg::Group();
 			group->getOrCreateStateSet()->setRenderBinDetails(1, "TraversalOrderBin", osg::StateSet::OVERRIDE_RENDERBIN_DETAILS);
-			osg::Group* terrain_geode = new osg::Group();
-			terrain_geode->addChild(terrain_geometry);
-			terrain_geode->setStateSet(m_TerrainStateSet);
+			osg::Group* veg_group = new osg::Group();
+			veg_group->addChild(terrain_geometry);
+			veg_group->setStateSet(m_TerrainStateSet);
+
+			PaddBoundsVisitor padding(m_MaxMeshHeight);
+			terrain_geometry->accept(padding);
+
+			//inject draw callbacks
 			DrawCallbackVisitor scbv;
 			terrain_geometry->accept(scbv);
-			group->addChild(terrain_geode);
+			group->addChild(veg_group);
 			group->addChild(m_InstanceGroup);
 			group->setNodeMask(m_InstanceGroup->getNodeMask());
+
 			//osg::BoundingSphere bs = terrain_geode->getBound();
 			//osg::ref_ptr<osg::Group> instance_group = _CreateInstanceGroup(bs);
 			//group->addChild(instance_group);
@@ -231,22 +230,16 @@ namespace osgVegetation
 			{
 				for (size_t j = 0; j < mesh_data.MeshTypes[i].MeshLODs.size(); j++)
 				{
-#if 1
 					osg::ref_ptr<osg::Node> mesh = osgDB::readNodeFile(mesh_data.MeshTypes[i].MeshLODs[j].Mesh);
-#else
-					osg::ref_ptr<osg::Node> mesh;
-					if (mesh_data[i].MeshLODs[j].Mesh == "LOD0") mesh = createConiferTree(0.75f, osg::Vec4(1.0, 1.0, 1.0, 1.0), osg::Vec4(0.0, 1.0, 0.0, 1.0));
-					else if (mesh_data[i].MeshLODs[j].Mesh == "LOD1") mesh = createConiferTree(0.45f, osg::Vec4(0.0, 0.0, 1.0, 1.0), osg::Vec4(1.0, 1.0, 0.0, 1.0));
-					else if (mesh_data[i].MeshLODs[j].Mesh == "LOD2") mesh = createConiferTree(0.15f, osg::Vec4(1.0, 0.0, 0.0, 1.0), osg::Vec4(0.0, 0.0, 1.0, 1.0));
-					else mesh = osgDB::readNodeFile(mesh_data[i].MeshLODs[j].Mesh);
-#endif
+
 					const float norm_prob = acc_probability > 0 ? mesh_data.MeshTypes[i].Probability / acc_probability : 1.0f / mesh_data.MeshTypes.size();
-					//float density = 2 * mesh_data.Density / mesh_data.MeshTypes.size();
-					const float density = 4 * mesh_data.Density * norm_prob;
+					const float density = mesh_data.Density * norm_prob;
+					const float max_dist = mesh_data.DynamicLODMaxDistanceRatio * mesh_data.MeshTypes[i].MeshLODs.back().Distance.w();
 					gpuData->registerType(i, 
 						0, 
 						mesh.get(), 
 						density,
+						max_dist,
 						norm_prob,
 						mesh_data.MeshTypes[i].MeshLODs[j]);
 				}
@@ -260,9 +253,12 @@ namespace osgVegetation
 				}
 			}
 
+			
+
 			// every target will store 6 rows of data in GL_RGBA32F_ARB format ( the whole StaticInstance structure )
 			gpuData->endRegister(6, GL_RGBA, GL_FLOAT, GL_RGBA32F_ARB);
 
+			m_MaxMeshHeight = gpuData->_maxHeight;
 			// in the end - we create OSG objects that draw instances using indirect targets and commands.
 			std::map<unsigned int, IndirectTarget>::iterator it, eit;
 			for (it = gpuData->targets.begin(), eit = gpuData->targets.end(); it != eit; ++it)
@@ -351,6 +347,7 @@ namespace osgVegetation
 	private:
 		osg::ref_ptr<osg::StateSet>  m_TerrainStateSet;
 		osg::ref_ptr<osg::Group> m_InstanceGroup;
+		double m_MaxMeshHeight;
 	};
 
 	class MeshMultiLayerGenerator
@@ -377,5 +374,6 @@ namespace osgVegetation
 		}
 	private:
 		std::vector<MeshLayerGenerator> m_MeshGenerators;
+		
 	};
 }
