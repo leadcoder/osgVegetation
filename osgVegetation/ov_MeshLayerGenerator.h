@@ -90,15 +90,6 @@ namespace osgVegetation
 		private:
 			osg::BoundingBox _bbox;
 		};
-
-		/*struct BoundingSphereCB : public osg::Drawable::ComputeBoundingSphereCallback
-		{
-			BoundingSphereCB() {}
-			BoundingSphereCB(const osg::BoundingSphere &bs) : _bounds(bs) {};
-			osg::BoundingSphere computeBound(const osg::Node&) const { return _bounds; }
-		private:
-			osg::BoundingSphere _bounds;
-		};*/
 	public:
 		MeshLayerGenerator(const MeshLayerConfig& config) : m_MaxMeshHeight(0)
 		{
@@ -128,8 +119,6 @@ namespace osgVegetation
 
 			if(config.OverrideNormals)
 				m_InstanceGroup->getOrCreateStateSet()->setDefine("OV_OVERRIDE_NORMALS");
-
-			
 
 			unsigned int node_mask = m_InstanceGroup->getNodeMask();
 
@@ -183,10 +172,6 @@ namespace osgVegetation
 			group->addChild(veg_group);
 			group->addChild(m_InstanceGroup);
 			group->setNodeMask(m_InstanceGroup->getNodeMask());
-
-			//osg::BoundingSphere bs = terrain_geode->getBound();
-			//osg::ref_ptr<osg::Group> instance_group = _CreateInstanceGroup(bs);
-			//group->addChild(instance_group);
 			return group;
 		}
 	private:
@@ -198,7 +183,6 @@ namespace osgVegetation
 			gpuData->setUseMultiDrawArraysIndirect(useMultiDrawArraysIndirect);
 
 			osg::ref_ptr < osg::Program> drawProgram = new osg::Program;
-			//stateset->setAttribute(program, osg::StateAttribute::PROTECTED | osg::StateAttribute::ON);
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_mesh_render_vertex.glsl")));
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_shadow_vertex.glsl")));
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_terrain_color.glsl")));
@@ -206,11 +190,6 @@ namespace osgVegetation
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_common_fragment.glsl")));
 			drawProgram->addShader(osg::Shader::readShaderFile(osg::Shader::FRAGMENT, osgDB::findDataFile("ov_shadow_fragment.glsl")));
 			gpuData->registerIndirectTarget(0, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
-			//m_GpuData.registerIndirectTarget(1, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
-
-			//const double target_instance_area = 1.0 / mesh_data.Density;
-			//const float target_tri_side_lenght = static_cast<float>(GetEquilateralTriangleSideLengthFromArea(target_instance_area));
-
 
 			float acc_probability = 0;
 			for (size_t i = 0; i < mesh_data.MeshTypes.size(); i++)
@@ -272,15 +251,9 @@ namespace osgVegetation
 			{
 				osg::ref_ptr<osg::Geode> drawGeode = new osg::Geode;
 				drawGeode->addDrawable(it->second._geometryAggregator->getAggregatedGeometry());
-				//drawGeode->setCullingActive(false);
-				//drawGeode->setComputeBoundingSphereCallback(new BoundingSphereCB(terrain_bs));
 				it->second.addIndirectTargetData(false, "ov_indirectTarget", it->first, drawGeode->getOrCreateStateSet());
 				drawGeode->getOrCreateStateSet()->setAttributeAndModes(gpuData->instanceTypesUBB.get());
 				it->second.addDrawProgram("ov_instanceTypesData", drawGeode->getOrCreateStateSet());
-				//drawGeode->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(), osg::StateAttribute::OFF | osg::StateAttribute::OVERRIDE);
-				
-				//drawGeode->getOrCreateStateSet()->setAttributeAndModes(new osg::CullFace(osg::CullFace::BACK));
-				//it->second.geometryAggregator->getAggregatedGeometry()->setComputeBoundingBoxCallback(new StaticBoundingBox());
 				group->addChild(drawGeode);
 			}
 			return group;
@@ -292,7 +265,6 @@ namespace osgVegetation
 			// instance OSG tree is connected to cull shader with all necessary data ( all indirect commands, all
 			// indirect targets, necessary OpenGl modes etc. )
 			{
-				//osg::ref_ptr<ResetTexturesCallback> resetTexturesCallback = new ResetTexturesCallback;
 				osg::ref_ptr < osg::Program> cullProgram = new osg::Program;
 				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::VERTEX, osgDB::findDataFile("ov_mesh_cull_vertex.glsl")));
 				cullProgram->addShader(osg::Shader::readShaderFile(osg::Shader::TESSCONTROL, osgDB::findDataFile("ov_mesh_cull_tess_ctrl.glsl")));
@@ -317,11 +289,7 @@ namespace osgVegetation
 				for (it = gpuData->targets.begin(), eit = gpuData->targets.end(); it != eit; ++it)
 				{
 					it->second.addIndirectCommandData("ov_indirectCommand", it->first, terrain_ss);
-					//resetTexturesCallback->addTextureDirty(it->first);
-					//resetTexturesCallback->addTextureDirtyParams(it->first);
-
 					it->second.addIndirectTargetData(true, "ov_indirectTarget", it->first, terrain_ss);
-					//resetTexturesCallback->addTextureDirtyParams(OSGGPUCULL_MAXIMUM_INDIRECT_TARGET_NUMBER + it->first);
 				}
 
 				osg::Uniform* indirectCommandSize = new osg::Uniform(osg::Uniform::INT, "ov_indirectCommandSize");
@@ -332,7 +300,6 @@ namespace osgVegetation
 				int num_instance_types = static_cast<int>(gpuData->instanceTypes->getData().size());
 				numInstanceTypesUniform->set(num_instance_types);
 				terrain_ss->addUniform(numInstanceTypesUniform);
-				//terrain_ss->setUpdateCallback(resetTexturesCallback.get());
 			}
 			return terrain_ss;
 		}
