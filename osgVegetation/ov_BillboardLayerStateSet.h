@@ -135,25 +135,26 @@ namespace osgVegetation
 		virtual Object* clone(const osg::CopyOp& copyop) const { return new BillboardLayerStateSet(*this, copyop); }
 private:
 
-		osg::ref_ptr<osg::Texture2DArray> _CreateTextureArray(const std::vector<BillboardLayerConfig::Billboard> &textrues)
+		osg::ref_ptr<osg::Texture2DArray> _CreateTextureArray(const std::vector<BillboardLayerConfig::Billboard> &billboards)
 		{
 			//Load textures
 			const osg::ref_ptr<osgDB::ReaderWriter::Options> options = new osgDB::ReaderWriter::Options();
 			//options->setOptionString("dds_flip");
 			osg::ref_ptr<osg::Texture2DArray> tex = new osg::Texture2DArray;
-
-			for (size_t i = 0; i < textrues.size(); i++)
+			
+			for (size_t i = 0; i < billboards.size(); i++)
 			{
-				const std::string texture_name = textrues[i].TextureName;
+				const std::string texture_name = billboards[i].TextureName;
 				options->setOptionString("dds_flip");
 				osg::Image* image = osgDB::readImageFile(texture_name, options);
 				if (image == NULL)
 					OSGV_EXCEPT(std::string("BillboardLayerConfig::CreateTextureArray - Failed to load texture:" + texture_name).c_str());
 				if (i == 0) // first image decide array size
 				{
-					tex->setTextureSize(image->s(), image->t(), textrues.size());
+					tex->setTextureSize(image->s(), image->t(), billboards.size());
 					tex->setUseHardwareMipMapGeneration(true);
 				}
+
 				tex->setImage(i, image);
 			}
 			return tex;
