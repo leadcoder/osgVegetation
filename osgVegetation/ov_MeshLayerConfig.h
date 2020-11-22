@@ -52,6 +52,8 @@ namespace osgVegetation
 			CastShadow(true),
 			ReceiveShadow(true),
 			BackFaceCulling(false),
+			OverrideNormals(false),
+			TerrainModulatedIntensity(false),
 			DynamicLODMaxDistanceRatio(3.0f)
 		{
 
@@ -61,6 +63,8 @@ namespace osgVegetation
 		bool CastShadow;
 		bool ReceiveShadow;
 		bool BackFaceCulling;
+		bool OverrideNormals;
+		bool TerrainModulatedIntensity;
 		float DynamicLODMaxDistanceRatio;
 		PassFilter Filter;
 		std::vector<MeshTypeConfig> MeshTypes;

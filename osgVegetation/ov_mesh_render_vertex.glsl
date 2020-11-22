@@ -73,9 +73,9 @@ void main()
 	ov_vPosition = ov_vertexPosition.xyz;
     ov_position = mv_pos.xyz / mv_pos.w;
     ov_texMat = mat3(mv_matrix);
-	//ov_normal = normalize( mat3(mv_matrix) * ov_vertexNormal.xyz );
-	ov_normal = ov_vertexNormal.xyz;
 	
+	ov_normal = ov_vertexNormal.xyz;
+    
     ov_texCoord = ov_vertexTexCoord0.xy;
 	ov_textureIndex = ov_vertexTexCoord1.z;
 

@@ -1,10 +1,10 @@
 #version 420 compatibility
 #extension GL_ARB_geometry_shader4 : enable
 #extension GL_ARB_enhanced_layouts : enable
+#pragma import_defines (OV_TERRAIN_MODULATED_INTENSITY)
+
 layout(triangles) in;
 layout(points, max_vertices = 1) out;
-
-//#define OV_TERRAIN_COLOR_INT
 
 in ov_VertexData
 {
@@ -241,7 +241,7 @@ void main(void)
 			//scale dist by fov
 			lod_scale = max(osg_ProjectionMatrix[0][0], 1);
 		}
-#ifdef OV_TERRAIN_COLOR_INT
+#ifdef OV_TERRAIN_MODULATED_INTENSITY
 		vec3 terrain_color =  ov_getTerrainColor(-mv_pos.z, instance_tex_coords.xy, instance_position.xy).xyz;
 #endif
 		vec4 max_lod_dist = instanceTypes[instance_type_id].lods[max_lods-1].distances;
@@ -254,9 +254,11 @@ void main(void)
 			if(ov_boundingBoxInViewFrustum( mvpo_matrix, instanceTypes[instance_type_id].lods[i].bbMin.xyz, instanceTypes[instance_type_id].lods[i].bbMax.xyz ) &&
 				(distance_to_object >= lod_dist.x ) && ( distance_to_object < lod_dist.w ))
 			{
-#ifdef OV_TERRAIN_COLOR_INT				
-				const vec3 all_ones = vec3(1.0);
-				float intensity = 0.2 + 4 * dot(terrain_color, all_ones)/3.0;
+#ifdef OV_TERRAIN_MODULATED_INTENSITY
+				float intensity = instanceTypes[instance_type_id].lods[i].bbMin.w;
+				float min_intensity = instanceTypes[instance_type_id].floatParams.x;
+				float max_intensity = 1.2;
+				intensity = min(min_intensity + intensity * 4 * dot(terrain_color, vec3(1.0))/3.0, max_intensity);
 #else
 				//get intensity
 				float intensity = instanceTypes[instance_type_id].lods[i].bbMin.w;

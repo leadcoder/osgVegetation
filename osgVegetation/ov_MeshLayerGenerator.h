@@ -46,21 +46,8 @@ namespace osgVegetation
 
 			virtual void drawImplementation(osg::RenderInfo& renderInfo, const osg::Drawable* drawable) const
 			{
-				//osg::BufferData* img = const_cast<osg::BufferData*>(_texture->getBufferData());
-				//if (img != NULL)
-				//{
-					//img->dirty();
-					//_binding->apply(*renderInfo.getState());
-					//_texture->dirtyTextureParameters();
-					//apply(*renderInfo.getState());
-				//}
-				//_texture->dirtyTextureObject();
-				//_texture->dirtyTextureParameters();
-				//_texture->apply(*renderInfo.getState());
 				if (_firstTerrainDrawDone)
 				{
-					//std::cout << "Geom Draw\n";
-
 					renderInfo.getState()->get<osg::GLExtensions>()->glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_COMMAND_BARRIER_BIT);
 					drawable->drawImplementation(renderInfo);
 
@@ -118,6 +105,8 @@ namespace osgVegetation
 			GPUCullData* gpuData = _CreateGPUData(config);
 			m_TerrainStateSet = _CreateTerrainStateSet(gpuData);
 
+			if (config.TerrainModulatedIntensity)
+				m_TerrainStateSet->setDefine("OV_TERRAIN_MODULATED_INTENSITY");
 			//apply filters
 			config.Filter.Apply(m_TerrainStateSet);
 
@@ -136,6 +125,9 @@ namespace osgVegetation
 			}
 			else
 				m_InstanceGroup->getOrCreateStateSet()->setMode(GL_CULL_FACE, osg::StateAttribute::OFF | osg::StateAttribute::PROTECTED);
+
+			if(config.OverrideNormals)
+				m_InstanceGroup->getOrCreateStateSet()->setDefine("OV_OVERRIDE_NORMALS");
 
 			
 

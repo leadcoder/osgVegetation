@@ -126,6 +126,8 @@ namespace osgVegetation
         QueryBoolAttribute(xmlNode, "CastShadow", layer->CastShadow);
         QueryBoolAttribute(xmlNode, "ReceiveShadow", layer->ReceiveShadow);
         QueryBoolAttribute(xmlNode, "BackFaceCulling", layer->BackFaceCulling);
+        QueryBoolAttribute(xmlNode, "OverrideNormals", layer->OverrideNormals);
+        QueryBoolAttribute(xmlNode, "TerrainModulatedIntensity", layer->TerrainModulatedIntensity);
         QueryFloatAttribute(xmlNode, "DynamicLODMaxDistanceRatio", layer->DynamicLODMaxDistanceRatio);
 
         QueryStringAttribute(xmlNode, "ColorFilter", layer->Filter.ColorFilter);

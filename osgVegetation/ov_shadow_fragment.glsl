@@ -19,7 +19,7 @@ uniform int shadowTextureUnit1;
 #endif
 
 
-#define USE_PCF
+//#define USE_PCF
 #ifdef USE_PCF
 float ov_getShadowMapValue(sampler2DShadow shadowmap, vec4 shadowUV)
 {
@@ -61,7 +61,12 @@ float ov_getShadow(vec3 normal)
 #endif
 #endif
 #endif
-	return shadow;
+	float depth = gl_FragCoord.z / gl_FragCoord.w;
+	float fade_dist = 100;
+	float max_dist = 800;
+	float intp = min( max(max_dist - depth, 0) / fade_dist, 1.0);
+	
+	return mix(1.0, shadow,intp);
 }
 
 #elif defined(OE_SHADOW_NUM_SLICES)
@@ -77,7 +82,7 @@ float ov_getShadowValue(sampler2DArrayShadow shadowmap, vec4 shadowUV)
 		// PCF filtering
 		ivec3 tex_size = textureSize(shadowmap,0);
 		float invTexel = 1.0 / float(tex_size.x);
-		float offset  = oe_shadow_blur * invTexel * shadowUV.w;
+		float offset  = oe_shadow_blur * invTexel / shadowUV.w;
 		float shadowTerm = shadow2DArray(shadowmap, shadowUV).r;
 		shadowTerm += shadow2DArray(shadowmap, shadowUV - vec4(offset, 0.0, 0.0, 0.0)).r;
 		shadowTerm += shadow2DArray(shadowmap, shadowUV + vec4(offset, 0.0, 0.0, 0.0)).r;
