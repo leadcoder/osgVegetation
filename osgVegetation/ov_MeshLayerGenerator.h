@@ -121,7 +121,7 @@ namespace osgVegetation
 			//apply filters
 			config.Filter.Apply(m_TerrainStateSet);
 
-			const double target_instance_area = 1.0 / (config.Density / 1000000.0);
+			const double target_instance_area = 1.0 / config.Density;
 			const float target_tri_side_lenght = static_cast<float>(GetEquilateralTriangleSideLengthFromArea(target_instance_area));
 			osg::Uniform* targetTriangleSide = new osg::Uniform(osg::Uniform::FLOAT, "ov_TargetTriangleSide");
 			targetTriangleSide->set(target_tri_side_lenght);
@@ -216,7 +216,7 @@ namespace osgVegetation
 			gpuData->registerIndirectTarget(0, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
 			//m_GpuData.registerIndirectTarget(1, new AggregateGeometryVisitor(new ConvertTrianglesOperatorClassic()), drawProgram);
 
-			//const double target_instance_area = 1.0 / (mesh_data.Density/1000000.0);
+			//const double target_instance_area = 1.0 / mesh_data.Density;
 			//const float target_tri_side_lenght = static_cast<float>(GetEquilateralTriangleSideLengthFromArea(target_instance_area));
 
 

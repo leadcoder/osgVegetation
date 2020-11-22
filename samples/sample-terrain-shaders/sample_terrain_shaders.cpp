@@ -22,7 +22,7 @@ std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > createVegetionConfig()
 {
 	std::vector<osg::ref_ptr<osgVegetation::ILayerConfig> > layers;
 	
-	osg::ref_ptr <osgVegetation::MeshLayerConfig> tree_layer = new osgVegetation::MeshLayerConfig(1000);
+	osg::ref_ptr <osgVegetation::MeshLayerConfig> tree_layer = new osgVegetation::MeshLayerConfig(0.001);
 	tree_layer->BackFaceCulling = true;
 	tree_layer->CastShadow = true;
 	tree_layer->ReceiveShadow = false;

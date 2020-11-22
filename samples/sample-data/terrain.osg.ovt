@@ -48,7 +48,22 @@
 					Probability="1.0">
 				</Billboard>
 			</BillboardLayer>
-			<MeshLayer Density="1000"
+			<!--<BillboardLayer
+				MaxDistance="1000"
+				Density="0.002"
+				ColorImpact="0.0"
+				AlphaRejectValue="0.1"
+				CastShadow="true"
+				ReceiveShadow="true"
+				Type="BLT_CROSS_QUADS">
+				<Billboard 
+					Texture="billboards/fir01_bb.png"
+					Width="10" Height="16"
+					Intensity="0.9"
+					Probability="1">
+				</Billboard>
+			</BillboardLayer>-->
+			<MeshLayer Density="0.001"
 						CastShadow="true"
 						ReceiveShadow="true"
 						BackFaceCulling="true">
@@ -68,7 +83,7 @@
 						Intensity="1.0"
 						Type="0"/>
 				</Mesh>
-			</MeshLayer> 
+			</MeshLayer>
 		</Layers>
 	</SimpleTerrainReader>
 </OVT>

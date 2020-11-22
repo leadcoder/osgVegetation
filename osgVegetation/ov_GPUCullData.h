@@ -338,9 +338,9 @@ namespace osgVegetation
 			// Indirect target texture buffers have finite size, therefore each instance LOD has maximum number that may be rendered in one frame.
 			float lodArea = 0;
 			if(max_dist > 0)
-				lodArea = osg::PI * (max_dist * max_dist) / 1000000.0f;
+				lodArea = osg::PI * (max_dist * max_dist);
 			else // This maximum number of rendered instances is estimated from the area that LOD covers and maximum density of instances per square kilometer.
-				lodArea = osg::PI * (lodDistances.w() * lodDistances.w() - lodDistances.x() * lodDistances.x()) / 1000000.0f;
+				lodArea = osg::PI * (lodDistances.w() * lodDistances.w() - lodDistances.x() * lodDistances.x());
 			
 			
 			// calculate max quantity of objects in lodArea using maximum density per square kilometer
