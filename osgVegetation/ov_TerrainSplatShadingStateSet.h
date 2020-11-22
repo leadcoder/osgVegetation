@@ -137,15 +137,24 @@ namespace osgVegetation
 			tex->setUseHardwareMipMapGeneration(true);
 			tex->setFilter(osg::Texture2DArray::MIN_FILTER, osg::Texture2DArray::LINEAR_MIPMAP_LINEAR);
 			tex->setMaxAnisotropy(4.0f);
-
+			int tex_size = 1;
 			for (size_t i = 0; i < detail_layers.size(); i++)
 			{
 				const std::string texture_name = detail_layers[i].DetailTexture;
-				//options->setOptionString("dds_flip");
-				//osg::Image* image = osgDB::readImageFile(texture_name, options);
 				osg::Image* image = osgDB::readImageFile(texture_name);
 				if (image == NULL)
 					OSGV_EXCEPT(std::string("TerrainShading::_CreateTextureArray - Failed to load texture:" + texture_name).c_str());
+				
+				if (i == 0) // first image decide texture dim
+				{
+					tex_size = image->s();
+					tex->setTextureSize(tex_size, tex_size, detail_layers.size());
+				}
+				
+				if(image->s() != tex_size || image->t() != tex_size)
+				{
+					image->scaleImage(tex_size, tex_size, 1);
+				}
 				tex->setImage(i, image);
 			}
 			return tex;
