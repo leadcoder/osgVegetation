@@ -24,12 +24,12 @@ namespace ovSampleUtils
 	{
 		osg::ref_ptr<osg::Light> light = new osg::Light;
 		light->setDiffuse(osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
-		osg::Vec4 light_pos(0.5, 0.5, 1, 0);
+		osg::Vec4 light_pos(0.5, -0.5, 0.7, 0);
 		light->setPosition(light_pos);		// last param	w = 0.0 directional light (direction)
 		osg::Vec3f light_dir(-light_pos.x(), -light_pos.y(), -light_pos.z());
 		light_dir.normalize();
 		light->setDirection(light_dir);
-		light->setAmbient(osg::Vec4(0.4f, 0.4f, 0.4f, 1.0f));
+		light->setAmbient(osg::Vec4(0.5f, 0.5f, 0.5f, 1.0f));
 		osg::ref_ptr <osg::LightSource> light_source = new osg::LightSource;
 		light_source->setLight(light);
 		return light_source;
@@ -109,6 +109,8 @@ namespace ovSampleUtils
 
 		bool receive_shadow = true;
 		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", receive_shadow));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_shadowMaxDistance", float(maxFarPlane)));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_shadowSoftness", float(10.0f)));
 
 		return shadowedScene;
 	}
@@ -135,11 +137,14 @@ namespace ovSampleUtils
 		settings->setComputeNearFarModeOverride(osg::CullSettings::COMPUTE_NEAR_FAR_USING_BOUNDING_VOLUMES);
 		//settings->setShaderHint(osgShadow::ShadowSettings::NO_SHADERS);
 		settings->setShaderHint(osgShadow::ShadowSettings::PROVIDE_VERTEX_AND_FRAGMENT_SHADER);
+		settings->setDebugDraw(false);
 		osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
 		shadowedScene->setShadowTechnique(vdsm.get());
 
 		bool receive_shadow = true;
 		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", receive_shadow));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_shadowMaxDistance", float(maxDistance)));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_shadowSoftness", float(10.0f)));
 
 		return shadowedScene;
 	}

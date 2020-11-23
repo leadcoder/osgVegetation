@@ -1,7 +1,7 @@
 #version 420 compatibility
 #extension GL_EXT_texture_array : enable 
 #extension GL_EXT_gpu_shader4 : enable
-#pragma import_defines (OE_IS_DEPTH_CAMERA, OV_OVERRIDE_NORMALS)
+#pragma import_defines (OSG_IS_SHADOW_CAMERA, OV_OVERRIDE_NORMALS)
 
 in vec3 ov_position;
 in vec3 ov_vPosition;
@@ -16,14 +16,12 @@ flat in int ov_type;
 uniform sampler2DArray ov_mesh_color_texture;
     
 //forward declarations
-vec3 ov_directionalLight(vec3 normal, vec3 diffuse);
-vec3 ov_directionalLightShadow(vec3 normal, vec3 diffuse);
-vec3 ov_applyFog(vec3 color, float depth);
+vec3 ov_lit(vec3 color, vec3 diffuse,vec3 normal, float depth);
 
 void main()
 {
 	vec4 base_color = ov_color * texture2DArray(ov_mesh_color_texture, vec3(ov_texCoord.xy, ov_textureIndex));
-#ifdef OE_IS_DEPTH_CAMERA
+#ifdef OSG_IS_SHADOW_CAMERA
 	gl_FragColor =  base_color;
 #else
 	vec3 normal = normalize(ov_texMat * normalize(ov_normal));
@@ -54,9 +52,9 @@ void main()
 #endif
 	}
 
-	base_color.xyz *= ov_directionalLightShadow(normal, ov_diffuse);
-	base_color.xyz = ov_applyFog(base_color.xyz, -ov_position.z);
-
+	float depth = -ov_position.z;
+	base_color.xyz = ov_lit(base_color.xyz, ov_diffuse, normal, depth);
+	
 	//boost alpha at distance to make forest more dens 
 	float alpha_boost_fade_dist = 100;
 	float alpha_boost = 1.0 + 1.0 * clamp(-ov_position.z / alpha_boost_fade_dist, 0.0, 1.0);
