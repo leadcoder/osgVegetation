@@ -28,7 +28,7 @@ namespace osgVegetation
 			//apply filters
 			data.Filter.Apply(this);
 
-			addUniform(new osg::Uniform("ov_receive_shadow", data.ReceiveShadow));
+			addUniform(new osg::Uniform("osg_ReceiveShadow", data.ReceiveShadow));
 
 			addUniform(new osg::Uniform("ov_billboard_texture", billboard_tex_unit));
 			addUniform(new osg::Uniform("ov_billboard_max_distance", data.MaxDistance));

@@ -133,7 +133,7 @@ namespace osgVegetation
 			//	node_mask &= ~Register.ReceivesShadowTraversalMask;
 
 			m_InstanceGroup->setNodeMask(node_mask);
-			m_InstanceGroup->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", config.ReceiveShadow));
+			m_InstanceGroup->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ReceiveShadow", config.ReceiveShadow));
 			
 			delete gpuData;
 		}

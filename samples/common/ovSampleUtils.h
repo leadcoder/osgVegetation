@@ -99,18 +99,12 @@ namespace ovSampleUtils
 		shadowedScene->setShadowTechnique(sm);
 
 		//Add texture sampler and unit uniforms,to match vdms and our shadow shaders
-		osg::Uniform* shadowTextureUnit = new osg::Uniform(osg::Uniform::INT, "shadowTextureUnit0");
-		shadowTextureUnit->set(shadowTexUnit);
-		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureUnit);
-
-		osg::Uniform* shadowTextureSampler = new osg::Uniform(osg::Uniform::INT, "shadowTexture0");
-		shadowTextureSampler->set(shadowTexUnit);
-		shadowedScene->getOrCreateStateSet()->addUniform(shadowTextureSampler);
-
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowTextureUnit0", shadowTexUnit));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowTexture0", shadowTexUnit));
 		bool receive_shadow = true;
-		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", receive_shadow));
-		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_shadowMaxDistance", float(maxFarPlane)));
-		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_shadowSoftness", float(10.0f)));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ReceiveShadow", receive_shadow));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowMaxDistance", osg::Vec2f(maxFarPlane, maxFarPlane*0.2)));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowSoftness", float(3.0f)));
 
 		return shadowedScene;
 	}
@@ -119,7 +113,7 @@ namespace ovSampleUtils
 	{
 		const int shadowTexUnit = 6;
 		const int mapres = 2048;
-		const double n = 0.5;
+		const double n = 1.0;
 		const double maxDistance = 800;
 		osg::ref_ptr<osgShadow::ShadowedScene> shadowedScene = new osgShadow::ShadowedScene;
 		osgShadow::ShadowSettings* settings = shadowedScene->getShadowSettings();
@@ -141,10 +135,15 @@ namespace ovSampleUtils
 		osg::ref_ptr<osgShadow::ViewDependentShadowMap> vdsm = new osgShadow::ViewDependentShadowMap;
 		shadowedScene->setShadowTechnique(vdsm.get());
 
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowTextureUnit0", shadowTexUnit));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowTexture0", shadowTexUnit));
+
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowTextureUnit1", int (shadowTexUnit + 1)));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowTexture1", int (shadowTexUnit + 1)));
 		bool receive_shadow = true;
-		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", receive_shadow));
-		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_shadowMaxDistance", float(maxDistance)));
-		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_shadowSoftness", float(10.0f)));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ReceiveShadow", receive_shadow));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowMaxDistance", osg::Vec2f(maxDistance, maxDistance * 0.2)));
+		shadowedScene->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ShadowSoftness", float(0.0f)));
 
 		return shadowedScene;
 	}

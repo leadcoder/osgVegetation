@@ -4,29 +4,25 @@
 #pragma import_defines (OSG_NUM_SHADOW_MAPS, OE_SHADOW_NUM_SLICES, OE_IS_DEPTH_CAMERA)
 
 #ifdef OSG_NUM_SHADOW_MAPS
-//pick sampler and units names from vdsm, 
-//if you use other shadow-tech add own uniform or change names below
 
 #if (OSG_NUM_SHADOW_MAPS > 0)
-uniform sampler2DShadow shadowTexture0;
-uniform int shadowTextureUnit0;
+uniform sampler2DShadow osg_ShadowTexture0;
+uniform int osg_ShadowTextureUnit0;
+uniform vec2 osg_ShadowMaxDistance;
+uniform float osg_ShadowSoftness;
 #endif
 
 #if (OSG_NUM_SHADOW_MAPS > 1)
-uniform sampler2DShadow shadowTexture1;
-uniform int shadowTextureUnit1;
+uniform sampler2DShadow osg_ShadowTexture1;
+uniform int osg_ShadowTextureUnit1;
 #endif
-
-uniform float osg_shadowMaxDistance;
-//uniform float osg_shadowFadeOutDistance;
-uniform float osg_shadowSoftness;
 
 float ov_getPCFShadowMapValue(sampler2DShadow shadowmap, vec4 shadowUV)
 {
 	// PCF filtering
 	ivec2 tex_size = textureSize(shadowmap,0);
 	float invTexel = 1.0 / float(tex_size.x);
-	float offset  = osg_shadowSoftness * invTexel * shadowUV.w;
+	float offset  = osg_ShadowSoftness * invTexel * shadowUV.w;
 	float shadowTerm = shadow2DProj(shadowmap, shadowUV).r;
 	shadowTerm += shadow2DProj(shadowmap, shadowUV - vec4(offset, 0.0, 0.0, 0.0)).r;
 	shadowTerm += shadow2DProj(shadowmap, shadowUV + vec4(offset, 0.0, 0.0, 0.0)).r;
@@ -43,7 +39,7 @@ float ov_getPCFShadowMapValue(sampler2DShadow shadowmap, vec4 shadowUV)
 float ov_getShadowMapValue(sampler2DShadow shadowmap, vec4 shadowUV, float bias)
 {
 	shadowUV.z -= bias;
-	if(osg_shadowSoftness > 0)
+	if(osg_ShadowSoftness > 0)
 		return ov_getPCFShadowMapValue(shadowmap, shadowUV);
 	else
 		return shadow2DProj(shadowmap, shadowUV).r;
@@ -51,24 +47,25 @@ float ov_getShadowMapValue(sampler2DShadow shadowmap, vec4 shadowUV, float bias)
 
 float ov_getShadow(vec3 normal, float depth)
 {
-	const float b0 = 0.001;
-    vec3 L = normalize(gl_LightSource[0].position.xyz);
-    vec3 N = normalize(normal);
-    float costheta = clamp(dot(L,N), 0.0, 1.0);
-    float bias = b0*tan(acos(costheta));
+	//const float b0 = 0.001;
+    //vec3 L = normalize(gl_LightSource[0].position.xyz);
+    //vec3 N = normalize(normal);
+    //float costheta = clamp(dot(L,N), 0.0, 1.0);
+    //float bias = b0*tan(acos(costheta));
+	float bias = 0.0001;
 
 	float shadow = 1.0;
 #ifdef OSG_NUM_SHADOW_MAPS
 #if (OSG_NUM_SHADOW_MAPS > 0)
-	shadow *= ov_getShadowMapValue(shadowTexture0, gl_TexCoord[shadowTextureUnit0], bias);
+	shadow *= ov_getShadowMapValue(osg_ShadowTexture0, gl_TexCoord[osg_ShadowTextureUnit0], bias*gl_TexCoord[osg_ShadowTextureUnit0].w);
 #if (OSG_NUM_SHADOW_MAPS > 1)
-	shadow *= ov_getShadowMapValue(shadowTexture1, gl_TexCoord[shadowTextureUnit1], bias);
+	shadow *= ov_getShadowMapValue(osg_ShadowTexture1, gl_TexCoord[osg_ShadowTextureUnit1], bias*gl_TexCoord[osg_ShadowTextureUnit1].w);
 #endif
 #endif
 #endif
 	//float depth = gl_FragCoord.z / gl_FragCoord.w;
-	float fade_dist = osg_shadowMaxDistance*0.2;
-	float intp = min( max(osg_shadowMaxDistance - depth, 0) / fade_dist, 1.0);
+	float fade_dist = osg_ShadowMaxDistance.y;
+	float intp = min( max(osg_ShadowMaxDistance.x - depth, 0) / fade_dist, 1.0);
 	return mix(1.0, shadow,intp);
 }
 

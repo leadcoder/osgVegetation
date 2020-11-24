@@ -3,7 +3,7 @@
 #extension GL_EXT_texture_array : enable
 #pragma import_defines (OSG_LIGHTING, OSG_FOG_MODE)
 
-uniform bool ov_receive_shadow;
+uniform bool osg_ReceiveShadow;
 
 float ov_getShadow(vec3 normal, float depth);
 
@@ -12,7 +12,7 @@ vec3 ov_directionalLightAndShadow(vec3 normal, vec3 diffuse, float depth)
 #if defined(OSG_LIGHTING)
 	vec3 light_dir = normalize(gl_LightSource[0].position.xyz);
 	float NdotL = max(dot(normal, light_dir), 0.0);
-	if(ov_receive_shadow)
+	if(osg_ReceiveShadow)
 		NdotL *= ov_getShadow(normal, depth);
 	vec3 light = min(NdotL * diffuse*gl_LightSource[0].diffuse.xyz + gl_LightSource[0].ambient.xyz, 1.0);
     

@@ -125,7 +125,7 @@ namespace osgVegetation
 				{
 					for (size_t i = 0; i < collection.Objects.size(); i++)
 					{
-						collection.Objects[i]->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", m_ObjectsReceiveShadow));
+						collection.Objects[i]->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ReceiveShadow", m_ObjectsReceiveShadow));
 					}
 				}
 
@@ -133,7 +133,7 @@ namespace osgVegetation
 				{
 					for (size_t i = 0; i < collection.TerrainTiles.size(); i++)
 					{
-						collection.TerrainTiles[i]->getOrCreateStateSet()->addUniform(new osg::Uniform("ov_receive_shadow", m_ObjectsReceiveShadow));
+						collection.TerrainTiles[i]->getOrCreateStateSet()->addUniform(new osg::Uniform("osg_ReceiveShadow", m_ObjectsReceiveShadow));
 					}
 				}
 			
