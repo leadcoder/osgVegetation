@@ -1,7 +1,7 @@
 #version 420 compatibility
 #extension GL_ARB_geometry_shader4 : enable
 #extension GL_ARB_enhanced_layouts : enable
-#pragma import_defines (OV_TERRAIN_MODULATED_INTENSITY)
+#pragma import_defines (OV_TERRAIN_MODULATED_INTENSITY, OSG_IS_SHADOW_CAMERA)
 
 layout(triangles) in;
 layout(points, max_vertices = 1) out;
@@ -220,11 +220,17 @@ void main(void)
 		float distance_to_object = length(mv_pos.xyz);
 		int max_lods = instanceTypes[instance_type_id].params.x;
 
-		bool shadow_camera = osg_ProjectionMatrix[3][3] != 0;
+		
 		
 		int start_lod = 0;
 		float lod_scale = 1.0;
-		if (shadow_camera)
+#ifdef OSG_IS_SHADOW_CAMERA
+		start_lod = max(0, max_lods - 1);
+		//and override object distance to be inside lod-range
+		distance_to_object = instanceTypes[instance_type_id].lods[start_lod].distances.y + 0.1;
+#else
+		bool is_ortho_camera = osg_ProjectionMatrix[3][3] != 0;
+		if (is_ortho_camera)
 		{
 #if 0
 			vec4 wouldBePositionView = oe_shadowToPrimaryMatrix * mv_pos;
@@ -241,6 +247,7 @@ void main(void)
 			//scale dist by fov
 			lod_scale = max(osg_ProjectionMatrix[0][0], 1);
 		}
+#endif
 #ifdef OV_TERRAIN_MODULATED_INTENSITY
 		vec3 terrain_color =  ov_getTerrainColor(-mv_pos.z, instance_tex_coords.xy, instance_position.xy).xyz;
 #endif

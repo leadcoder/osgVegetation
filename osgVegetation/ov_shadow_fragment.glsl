@@ -47,12 +47,12 @@ float ov_getShadowMapValue(sampler2DShadow shadowmap, vec4 shadowUV, float bias)
 
 float ov_getShadow(vec3 normal, float depth)
 {
-	//const float b0 = 0.001;
+	//const float b0 = 0.001;	
     //vec3 L = normalize(gl_LightSource[0].position.xyz);
     //vec3 N = normalize(normal);
     //float costheta = clamp(dot(L,N), 0.0, 1.0);
     //float bias = b0*tan(acos(costheta));
-	float bias = 0.0001;
+	float bias = 0.0;//0.0001;
 
 	float shadow = 1.0;
 #ifdef OSG_NUM_SHADOW_MAPS
