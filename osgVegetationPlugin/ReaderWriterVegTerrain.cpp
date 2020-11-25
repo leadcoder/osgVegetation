@@ -94,8 +94,8 @@ ReaderWriter::ReadResult ReaderWriterOVT::_readOVT(const std::string& file, cons
 
 	const std::string file_path = osgDB::getFilePath(fileName);
 	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path);
+	osgDB::Registry::instance()->getDataFilePathList().push_back(file_path + "/shaders");
 	OVTConfig config = readOVTConfig(fileName, options);
-	//osgDB::Registry::instance()->getDataFilePathList().push_back(file_path + "/shaders");
 	osgDB::Registry::instance()->addReaderWriter(config.TerrainReader);
 
 	const osgDB::ReaderWriter::FormatDescriptionMap& formats = config.TerrainReader->supportedExtensions();
