@@ -191,7 +191,7 @@ namespace osgVegetation
 						{
 							//insert vegetation below matrix transform, (MeshLayer don't respect transformed terrain)
 							osg::ref_ptr<osg::Group> veg_node = m_Generator->CreateVegetationNode(terrain_tile->getChild(0));
-							terrain_tile->removeChild(unsigned int(0));
+							terrain_tile->removeChild(0U);
 							terrain_tile->addChild(veg_node);
 							m_VegetationRoot->addChild(terrain_tile);
 						}
